@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+        <meta charset="utf-8">
+        <title>Emulator 101 - 6502 Addressing Modes</title>
+        <link rel="stylesheet" href="Emulator%20101%20-%206502%20Addressing%20Modes_files/minimal.css">
+    </head>
+    <body cz-shortcut-listen="true">
+    <div class="container">
+    <header>
+        <a class="logo" href="http://www.emulator101.com/welcome.html">Emulator 101</a>
+        <nav class="float-right">
+        <a href="http://www.emulator101.com/reference/8080-by-opcode.html">8080 reference</a>
+        &nbsp;
+        <a href="http://www.emulator101.com/reference/6502-reference.html">6502 reference</a>
+        </nav>
+
+    </header>
+<h1>6502 Addressing Modes</h1><p>When the 6502 refers to addressing 
+modes, it really means "What is the source of the data used in this 
+instruction?"  The 6502's data book divides the addressing modes into 2 
+groups, indexed and non-indexed.  That seems to be a logical way to 
+discuss them, so I'll stick with that.</p>
+<h3>Non-Indexed, non memory</h3>
+<p>Most of the addressing modes are used to access memory, but 3 do not.</p>
+<p><strong>Accumulator</strong></p>
+<p>These instructions have register A (the accumulator) as the target.  Examples are <code>LSR  A</code> and <code>ROL   A</code>.</p>
+<p><strong>Immediate</strong> </p>
+<p>These instructions have their data defined as the next byte after the opcode.  <code>ORA #$B2</code> will perform a logical (also called bitwise) of the value B2 with the accumulator.  <em>Remember
+ that in assembly when you see a # sign, it indicates an immediate 
+value.  If $B2 was written without a #, it would indicate an address or 
+offset.</em></p>
+<p><strong>Implied</strong></p>
+<p>In an implied instruction, the data and/or destination is mandatory for the instruction.  For example, the <code>CLC</code> instruction is implied, it is going to clear the processor's Carry flag.</p>
+<h3>Non-Indexed memory ops</h3>
+<p><strong>Relative</strong></p>
+<p>Relative addressing on the 6502 is only used for branch operations.  
+The byte after the opcode is the branch offset.  If the branch is taken,
+ the new address will the the current PC plus the offset.  The offset is
+ a signed byte, so it can jump a maximum of 127 bytes forward, or 128 
+bytes backward.  (For more info about signed numbers,  check <a href="http://www.emulator101.com/more-about-binary-numbers.html">here</a>.)</p>
+<p><strong>Absolute</strong></p>
+<p>Absolute addressing specifies the memory location explicitly in the two bytes following the opcode.  So <code>JMP $4032</code> will set the PC to $4032.  The hex for this is <code>4C 32 40</code>.
+  The 6502 is a little endian machine, so any 16 bit (2 byte) value is 
+stored with the LSB first.  All instructions that use absolute 
+addressing are 3 bytes.</p>
+<p><strong>Zero-Page</strong></p>
+<p>Zero-Page is an addressing mode that is only capable of addressing 
+the first 256 bytes of the CPU's memory map.  You can think of it as 
+absolute addressing for the first 256 bytes.  The instruction <code>LDA $35</code>
+ will put the value stored in memory location $35 into A.  The advantage
+ of zero-page are two - the instruction takes one less byte to specify, 
+and it executes in less CPU cycles.  Most programs are written to store 
+the most frequently used variables in the first 256 memory locations so 
+they can take advantage of zero page addressing.</p>
+<p><strong>Indirect</strong></p>
+<p>The JMP instruction is the only instruction that uses this addressing
+ mode.  It is a 3 byte instruction - the 2nd and 3rd bytes are an 
+absolute address.  The set the PC to the address stored at that address.
+  So maybe this would be clearer.</p>
+<pre>   Memory:    
+   1000 52 3a 04 d3 93 00 3f 93 84
+
+   Instruction:    
+   JMP  ($1000)    
+</pre>
+
+<p>When this instruction is executed, the PC will be set to $3a52, which is the address stored at address $1000.</p>
+<h3>Indexed memory ops</h3>
+<p>The 6502 has the ability to do indexed addressing, where the X or Y 
+register is used as an extra offset to the address being accessed.</p>
+<p><strong>Absolute Indexed</strong></p>
+<p>This addressing mode makes the target address by adding the contents 
+of the X or Y register to an absolute address.  For example, this 6502 
+code can be used to fill 10 bytes with $FF starting at address $1009, 
+counting down to address $1000.</p>
+<pre>   LDA #$FF    
+   LDY #$09    
+   loop:    
+   STA $1000,Y ; absolute indexed addressing    
+   DEY    
+   BPL loop    
+</pre>
+
+<p><strong>Zero-Page Indexed</strong>   </p>
+<p>This works just like absolute indexed, but the target address is limited to the first 0xFF bytes.  </p>
+<p>The target address will wrap around and will always be in the zero page.  If the instruction is <code>LDA $C0,X</code>,
+ and X is $60, then the target address will be $20.  $C0+$60 = $120, but
+ the carry is discarded in the calculation of the target address.</p>
+<p><strong>Indexed Indirect</strong>    </p>
+<p>This mode is only used with the X register.  Consider a situation where the instruction is <code>LDA ($20,X)</code>, X contains $04, and memory at $24 contains <code>0024: 74 20</code>,
+ First, X is added to $20 to get $24.  The target address will be 
+fetched from $24 resulting in a target address of $2074.  Register A 
+will be loaded with the contents of memory at $2074.</p>
+<p>If X + the immediate byte will wrap around to a zero-page address.  So you could code that like <code>targetAddress = (X + opcode[1]) &amp; 0xFF</code> .</p>
+<p>Indexed Indirect instructions are 2 bytes - the second byte is the 
+zero-page address - $20 in the example.  Obviously the fetched address 
+has to be stored in the zero page.</p>
+<p><strong>Indirect Indexed</strong>    </p>
+<p>This mode is only used with the Y register.   It differs in the order
+ that Y is applied to the indirectly fetched address.  An example 
+instruction that uses indirect index addressing is <code>LDA ($86),Y</code>
+ .  To calculate the target address, the CPU will first fetch the 
+address stored at zero page location $86.  That address will be added to
+ register Y to get the final target address.  For <code>LDA ($86),Y</code>, if the address stored at $86 is $4028 (memory is  <code>0086: 28 40</code>,
+ remember little endian) and register Y contains $10, then the final 
+target address would be $4038.  Register A will be loaded with the 
+contents of memory at $4038.</p>
+<p>Indirect Indexed instructions are 2 bytes - the second byte is the 
+zero-page address - $20 in the example.  (So the fetched address has to 
+be stored in the zero page.)</p>
+<p>While indexed indirect addressing will only generate a zero-page 
+address, this mode's target address is not wrapped - it can be anywhere 
+in the 16-bit address space. </p><a href="http://www.emulator101.com/6502-emulator.html">← Prev: 6502-emulator</a> &nbsp; <a href="http://www.emulator101.com/6502-disassembler.html">Next: 6502-disassembler →</a> <br><br><br><p>Post questions or comments on Twitter @realemulator101, or if you find issues in the code, file them on
+the github repository.</p><br><br>
+<footer>
+<br>
+<br>
+<br>
+    © 2011-2018 emulator101.com
+<br>
+<br>
+<p></p>
+</footer>
+
+</div>
+
+
+</body></html>

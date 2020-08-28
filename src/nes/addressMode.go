@@ -64,37 +64,36 @@ func absoluteYIndexed(state AddressModeState) Address {
 }
 
 // Address Mode: Indirect
-// The supplied 16-bit address is read to get the actual 16-bit address. This is
-// instruction is unusual in that it has a bug in the hardware! To emulate its
+// The supplied 16-bit address is read to get the actual 16-bit address.
+// This is instruction is unusual in that it has a bug in the hardware! To emulate its
 // function accurately, we also need to emulate this bug. If the low byte of the
 // supplied address is 0xFF, then to read the high byte of the actual address
 // we need to cross a page boundary. This doesnt actually work on the chip as
 // designed, instead it wraps back around in the same page, yielding an
 // invalid actual address
-// Another explanation of the bug: if address is (xxFF) will fail because the MSB will be fetched from address xx00 instead of page xx+1.
+// Example: supplied address is (0x1FF), LSB will be 0x00 and MSB will be 0x01 instead of 0x02.
 
-// If the 16-bit argument of an indirect JMP is located between 2 pages (0x01FF and 0x0200 for example), then the LSB will be read from 0x01FF and the MSB will be read from 0x0100. This is an actual hardware bug in early revisions of the 6502 which happen to be present in the 2A03 used by the NES.
+// If the 16-bit argument of an indirect JMP is located between 2 pages (0x01FF and 0x0200 for example),
+// then the LSB will be read from 0x01FF and the MSB will be read from 0x0100.
+// This is an actual hardware bug in early revisions of the 6502 which happen to be present
+// in the 2A03 used by the NES.
 func indirect(state AddressModeState) Address {
 	registers := state.registers
 	ram := state.ram
 
+	// Get Pointer Address
 	ptrLow := ram.read(registers.Pc)
 	ptrHigh := ram.read(registers.Pc + 1)
 	ptrAddress := CreateAddress(ptrLow, ptrHigh)
 
-	finalAddress := CreateAddress(ram.read(ptrAddressLow), ram.read(ptrAddress+1))
+	finalAddress := ram.read16Bugged(ptrAddress)
 
-	// Emulate page boundary hardware bug
-	if (ptrLow & 0xFF) == 0xFF {
-		ptrHigh = ptrHigh & 0x00
-	}
+	return Address(finalAddress)
+	//lsb := ptrAddress
+	// Emulates page boundary hardware bug
+	//msb := (lsb & 0xFF00) | (lsb & 0xFF) + 1
 
-	if ptrLow == 0xFF {
-		fixedHigh := (ptrAddress & 0xFF00) << 8
-		finalLow := ram.read()
-	}
-
-	return finalAddress
+	//return CreateAddress(ram.read(lsb), ram.read(msb))
 }
 
 func preIndexedIndirect(state AddressModeState) {

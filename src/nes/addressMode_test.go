@@ -114,11 +114,11 @@ func TestIndirectBug(t *testing.T) {
 	ram.write(1, 0x01)
 
 	// Write 0x0134 with final Address(0x200)
-	ram.write(Address(0x1FF), 0x00)
-	ram.write(Address(0x135), 0x02)
+	ram.write(Address(0x1FF), 0x32)
+	ram.write(Address(0x200), 0x04)
 
 	result := indirect(AddressModeState{registers, &ram})
-	expected := Address(0x200)
+	expected := Address(0x432)
 
 	assert.Equal(t, expected, result, "Indirect error")
 }
