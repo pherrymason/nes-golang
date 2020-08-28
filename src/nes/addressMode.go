@@ -89,11 +89,6 @@ func indirect(state AddressModeState) Address {
 	finalAddress := ram.read16Bugged(ptrAddress)
 
 	return Address(finalAddress)
-	//lsb := ptrAddress
-	// Emulates page boundary hardware bug
-	//msb := (lsb & 0xFF00) | (lsb & 0xFF) + 1
-
-	//return CreateAddress(ram.read(lsb), ram.read(msb))
 }
 
 func preIndexedIndirect(state AddressModeState) {
