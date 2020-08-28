@@ -91,8 +91,16 @@ func indirect(state AddressModeState) Address {
 	return Address(finalAddress)
 }
 
-func preIndexedIndirect(state AddressModeState) {
+func preIndexedIndirect(state AddressModeState) Address {
+	registers := state.registers
+	ram := state.ram
 
+	low := state.ram.read(registers.Pc)
+	address := (uint16(low) + uint16(registers.X)) & 0xFF
+
+	finalAddress := ram.read16(Address(address))
+
+	return Address(finalAddress)
 }
 
 func postIndexedIndirect(state AddressModeState) {

@@ -122,3 +122,32 @@ func TestIndirectBug(t *testing.T) {
 
 	assert.Equal(t, expected, result, "Indirect error")
 }
+
+func TestPreIndexedIndirect(t *testing.T) {
+	registers := CreateRegisters()
+	registers.X = 4
+
+	ram := RAM{}
+	ram.write(0, 0x10)
+	ram.write(0x0014, 0x25)
+
+	result := preIndexedIndirect(AddressModeState{registers, &ram})
+
+	expected := Address(0x0025)
+	assert.Equal(t, expected, result)
+}
+
+func TestPreIndexedIndirectWithWrapAround(t *testing.T) {
+	registers := CreateRegisters()
+	registers.Pc = 0x00
+	registers.X = 21
+	ram := RAM{}
+	ram.write(0x0000, 250)
+	ram.write(0x0001, 0x01)
+	ram.write(0x000F, 0x10)
+
+	result := preIndexedIndirect(AddressModeState{registers, &ram})
+
+	expected := Address(0x0010)
+	assert.Equal(t, expected, result)
+}
