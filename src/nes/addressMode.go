@@ -120,6 +120,18 @@ func postIndexedIndirect(state AddressModeState) Address {
 	return Address(ram.read16(Address(offsetAddress)))
 }
 
-func relative(state AddressModeState) {
+func relative(state AddressModeState) Address {
+	registers := state.registers
+	ram := state.ram
 
+	opcodeOperand := ram.read(registers.Pc)
+
+	address := registers.Pc + 2
+	if opcodeOperand < 0x80 {
+		address += Address(opcodeOperand)
+	} else {
+		address += Address(opcodeOperand) - 0x100
+	}
+
+	return address
 }

@@ -203,3 +203,35 @@ func TestPostIndexedIndirectWithWrapAround(t *testing.T) {
 
 	assert.Equal(t, expected, result)
 }
+
+func TestRelativeAddressMode(t *testing.T) {
+	registers := CreateRegisters()
+	registers.Pc = 0x10
+	ram := RAM{}
+
+	// Write Operand
+	//operand := signedByteToUnsignedByte(-3)
+	ram.write(0x10, 0x04)
+
+	result := relative(AddressModeState{registers, &ram})
+
+	assert.Equal(t, Address(0x16), result)
+}
+
+func TestRelativeAddressModeNegative(t *testing.T) {
+	registers := CreateRegisters()
+	registers.Pc = 0x10
+	ram := RAM{}
+
+	// Write Operand
+	//operand := signedByteToUnsignedByte(-4)
+	ram.write(0x10, 0x100-4)
+
+	result := relative(AddressModeState{registers, &ram})
+
+	assert.Equal(t, Address(0x0E), result)
+}
+
+func signedByteToUnsignedByte(value int8) byte {
+	return byte(uint8(value) + 128)
+}
