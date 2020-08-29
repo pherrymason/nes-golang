@@ -1,7 +1,7 @@
 package nes
 
-// Registers is a representation of the registers of the NES cpu
-type Registers struct {
+// CPURegisters is a representation of the registers of the NES cpu
+type CPURegisters struct {
 	// Accumulator
 	// and along with the arithmetic logic unit (ALU), supports using the status register for carrying, overflow
 	// detection, and so on.
@@ -30,9 +30,12 @@ type Registers struct {
 	// this register is decremented every time a byte is pushed onto the stack,
 	// and incremented when a byte is popped off the stack.
 	Sp byte //: NesByte = NesByte(0xFF);
+
+	NegativeFlag bool
+	ZeroFlag     bool
 }
 
-func (registers *Registers) reset() {
+func (registers *CPURegisters) reset() {
 	registers.A = 0x00
 	registers.X = 0x00
 	registers.Y = 0x00
@@ -40,7 +43,15 @@ func (registers *Registers) reset() {
 	registers.Pc = Address(0x0000)
 }
 
+func (registers *CPURegisters) updateNegativeFlag(value byte) {
+	registers.NegativeFlag = value&0x80 == 0x80
+}
+
+func (registers *CPURegisters) updateZeroFlag(value byte) {
+	registers.ZeroFlag = value == 0x00
+}
+
 // CreateRegisters creates a properly initialized CPU Register
-func CreateRegisters() Registers {
-	return Registers{0x00, 0x00, 0x00, 0x0000, 0xFF}
+func CreateRegisters() CPURegisters {
+	return CPURegisters{0x00, 0x00, 0x00, 0x0000, 0xFF, false, false}
 }

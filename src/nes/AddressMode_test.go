@@ -224,7 +224,6 @@ func TestRelativeAddressModeNegative(t *testing.T) {
 	ram := RAM{}
 
 	// Write Operand
-	//operand := signedByteToUnsignedByte(-4)
 	ram.write(0x10, 0x100-4)
 
 	result := relative(AddressModeState{registers, &ram})

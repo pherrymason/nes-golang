@@ -2,7 +2,7 @@ package nes
 
 // AddressModeState is
 type AddressModeState struct {
-	registers Registers
+	registers CPURegisters
 	ram       *RAM
 }
 
