@@ -103,8 +103,21 @@ func preIndexedIndirect(state AddressModeState) Address {
 	return Address(finalAddress)
 }
 
-func postIndexedIndirect(state AddressModeState) {
+func postIndexedIndirect(state AddressModeState) Address {
+	registers := state.registers
+	ram := state.ram
 
+	lo := ram.read(registers.Pc)
+	//hi := ram.read(registers.Pc + 1)
+
+	opcodeOperand := CreateAddress(lo, 0x00)
+
+	offsetAddress := ram.read16(opcodeOperand)
+	offsetAddress += Word(registers.Y)
+
+	// Todo: Not sure if there is wrap around in adding Y
+
+	return Address(ram.read16(Address(offsetAddress)))
 }
 
 func relative(state AddressModeState) {

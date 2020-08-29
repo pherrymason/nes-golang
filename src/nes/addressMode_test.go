@@ -128,7 +128,10 @@ func TestPreIndexedIndirect(t *testing.T) {
 	registers.X = 4
 
 	ram := RAM{}
+	// Write Operand
 	ram.write(0, 0x10)
+
+	// Write Offset Table
 	ram.write(0x0014, 0x25)
 
 	result := preIndexedIndirect(AddressModeState{registers, &ram})
@@ -142,12 +145,61 @@ func TestPreIndexedIndirectWithWrapAround(t *testing.T) {
 	registers.Pc = 0x00
 	registers.X = 21
 	ram := RAM{}
+	// Write Operan
 	ram.write(0x0000, 250)
-	ram.write(0x0001, 0x01)
+
+	// Write Offset Table
 	ram.write(0x000F, 0x10)
 
 	result := preIndexedIndirect(AddressModeState{registers, &ram})
 
 	expected := Address(0x0010)
+	assert.Equal(t, expected, result)
+}
+
+func TestPostIndexedIndirect(t *testing.T) {
+	registers := CreateRegisters()
+
+	expected := Address(0xF0)
+
+	registers.Y = 0x05
+
+	ram := RAM{}
+	// Opcode Operand
+	ram.write(0x0000, 0x05)
+
+	// Indexed Table Pointers
+	ram.write(0x05, 0x20)
+	ram.write(0x06, 0x00)
+
+	// Offset pointer
+	ram.write(0x0025, byte(expected))
+
+	result := postIndexedIndirect(AddressModeState{registers, &ram})
+
+	assert.Equal(t, expected, result)
+}
+
+func TestPostIndexedIndirectWithWrapAround(t *testing.T) {
+	t.Skip()
+	registers := CreateRegisters()
+
+	expected := Address(0xF0)
+
+	registers.Y = 15
+
+	ram := RAM{}
+	// Opcode Operand
+	ram.write(0x0000, 0x05)
+
+	// Indexed Table Pointers
+	ram.write(0x05, 0xFB)
+	ram.write(0x06, 0x00)
+
+	// Offset pointer
+	ram.write(0x000A, byte(expected))
+
+	result := postIndexedIndirect(AddressModeState{registers, &ram})
+
 	assert.Equal(t, expected, result)
 }
