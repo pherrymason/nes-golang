@@ -9,7 +9,7 @@ import (
 
 func TestImmediate(t *testing.T) {
 	state := AddressModeState{CreateRegisters(), &RAM{}}
-	result := immediate(state)
+	result := evalImmediate(state)
 
 	assert.Equal(t, Address(0), result, "Immediate address mode failed to evaluate address")
 }
@@ -19,7 +19,7 @@ func TestZeroPage(t *testing.T) {
 	ram.write(0x00, 0x40)
 	state := AddressModeState{CreateRegisters(), &ram}
 
-	result := zeroPage(state)
+	result := evalZeroPage(state)
 	expected := Address(0x4000)
 	assert.Equal(t, expected, result, fmt.Sprintf("ZeroPage address mode decoded wrongly, expected %d, got %d", expected, result))
 }
@@ -31,7 +31,7 @@ func TestZeroPageX(t *testing.T) {
 	registers.X = 0x10
 
 	state := AddressModeState{registers, &ram}
-	result := zeroPageX(state)
+	result := evalZeroPageX(state)
 
 	expected := Address(0x15)
 	assert.Equal(t, expected, result, fmt.Sprintf("ZeroPageX address mode decoded wrongly, expected %d, got %d", expected, result))
@@ -44,7 +44,7 @@ func TestZeroPageY(t *testing.T) {
 	registers.Pc = Address(0x0000)
 	ram.write(registers.Pc, 0xF0)
 
-	result := zeroPageY(AddressModeState{registers, &ram})
+	result := evalZeroPageY(AddressModeState{registers, &ram})
 
 	expected := Address(0x00)
 
@@ -58,7 +58,7 @@ func TestAbsolute(t *testing.T) {
 
 	registers := CreateRegisters()
 
-	result := absolute(AddressModeState{registers, &ram})
+	result := evalAbsolute(AddressModeState{registers, &ram})
 
 	assert.Equal(t, Address(0x0130), result, "Error")
 }
@@ -71,7 +71,7 @@ func TestAbsoluteXIndexed(t *testing.T) {
 	ram.write(0x0000, 0x01)
 	ram.write(0x0001, 0x01)
 
-	result := absoluteXIndexed(AddressModeState{registers, &ram})
+	result := evalAbsoluteXIndexed(AddressModeState{registers, &ram})
 
 	assert.Equal(t, Address(0x106), result)
 }
@@ -84,7 +84,7 @@ func TestAbsoluteYIndexed(t *testing.T) {
 	ram.write(0x0000, 0x01)
 	ram.write(0x0001, 0x01)
 
-	result := absoluteYIndexed(AddressModeState{registers, &ram})
+	result := evalAbsoluteYIndexed(AddressModeState{registers, &ram})
 
 	assert.Equal(t, Address(0x106), result)
 }
@@ -100,7 +100,7 @@ func TestIndirect(t *testing.T) {
 	ram.write(Address(0x134), 0x00)
 	ram.write(Address(0x135), 0x02)
 
-	result := indirect(AddressModeState{registers, &ram})
+	result := evalIndirect(AddressModeState{registers, &ram})
 	expected := Address(0x200)
 
 	assert.Equal(t, expected, result, "Indirect error")
@@ -117,7 +117,7 @@ func TestIndirectBug(t *testing.T) {
 	ram.write(Address(0x1FF), 0x32)
 	ram.write(Address(0x200), 0x04)
 
-	result := indirect(AddressModeState{registers, &ram})
+	result := evalIndirect(AddressModeState{registers, &ram})
 	expected := Address(0x432)
 
 	assert.Equal(t, expected, result, "Indirect error")
@@ -134,7 +134,7 @@ func TestPreIndexedIndirect(t *testing.T) {
 	// Write Offset Table
 	ram.write(0x0014, 0x25)
 
-	result := preIndexedIndirect(AddressModeState{registers, &ram})
+	result := evalPreIndexedIndirect(AddressModeState{registers, &ram})
 
 	expected := Address(0x0025)
 	assert.Equal(t, expected, result)
@@ -151,7 +151,7 @@ func TestPreIndexedIndirectWithWrapAround(t *testing.T) {
 	// Write Offset Table
 	ram.write(0x000F, 0x10)
 
-	result := preIndexedIndirect(AddressModeState{registers, &ram})
+	result := evalPreIndexedIndirect(AddressModeState{registers, &ram})
 
 	expected := Address(0x0010)
 	assert.Equal(t, expected, result)
@@ -175,7 +175,7 @@ func TestPostIndexedIndirect(t *testing.T) {
 	// Offset pointer
 	ram.write(0x0025, byte(expected))
 
-	result := postIndexedIndirect(AddressModeState{registers, &ram})
+	result := evalPostIndexedIndirect(AddressModeState{registers, &ram})
 
 	assert.Equal(t, expected, result)
 }
@@ -199,7 +199,7 @@ func TestPostIndexedIndirectWithWrapAround(t *testing.T) {
 	// Offset pointer
 	ram.write(0x000A, byte(expected))
 
-	result := postIndexedIndirect(AddressModeState{registers, &ram})
+	result := evalPostIndexedIndirect(AddressModeState{registers, &ram})
 
 	assert.Equal(t, expected, result)
 }
@@ -213,7 +213,7 @@ func TestRelativeAddressMode(t *testing.T) {
 	//operand := signedByteToUnsignedByte(-3)
 	ram.write(0x10, 0x04)
 
-	result := relative(AddressModeState{registers, &ram})
+	result := evalRelative(AddressModeState{registers, &ram})
 
 	assert.Equal(t, Address(0x16), result)
 }
@@ -226,7 +226,7 @@ func TestRelativeAddressModeNegative(t *testing.T) {
 	// Write Operand
 	ram.write(0x10, 0x100-4)
 
-	result := relative(AddressModeState{registers, &ram})
+	result := evalRelative(AddressModeState{registers, &ram})
 
 	assert.Equal(t, Address(0x0E), result)
 }

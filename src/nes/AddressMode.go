@@ -1,37 +1,56 @@
 package nes
 
+// AddressMode is an enum of the available Addressing Modes in this cpu
+type AddressMode int
+
+const (
+	implicit AddressMode = iota
+	accumulator
+	immediate
+	zeroPage
+	zeroPageX
+	zeroPageY
+	absolute
+	absoluteXIndexed
+	absoluteYIndexed
+	indirect
+	preIndexedIndirect
+	postIndexedIndirect
+	relative
+)
+
 // AddressModeState is
 type AddressModeState struct {
 	registers CPURegisters
 	ram       *RAM
 }
 
-func immediate(state AddressModeState) Address {
+func evalImmediate(state AddressModeState) Address {
 	return state.registers.Pc
 }
 
-func zeroPage(state AddressModeState) Address {
+func evalZeroPage(state AddressModeState) Address {
 	// 2 bytes
 	var low = state.ram.read(state.registers.Pc)
 
 	return Address(low) << 8
 }
 
-func zeroPageX(state AddressModeState) Address {
+func evalZeroPageX(state AddressModeState) Address {
 	registers := state.registers
 	var low = state.ram.read(registers.Pc) + registers.X
 
 	return Address(low) & 0xFF
 }
 
-func zeroPageY(state AddressModeState) Address {
+func evalZeroPageY(state AddressModeState) Address {
 	registers := state.registers
 	var low = state.ram.read(registers.Pc) + registers.Y
 
 	return Address(low) & 0xFF
 }
 
-func absolute(state AddressModeState) Address {
+func evalAbsolute(state AddressModeState) Address {
 	registers := state.registers
 	low := state.ram.read(registers.Pc)
 
@@ -41,7 +60,7 @@ func absolute(state AddressModeState) Address {
 	return CreateAddress(low, high)
 }
 
-func absoluteXIndexed(state AddressModeState) Address {
+func evalAbsoluteXIndexed(state AddressModeState) Address {
 	registers := state.registers
 	low := state.ram.read(registers.Pc)
 	high := state.ram.read(registers.Pc + 1)
@@ -52,7 +71,7 @@ func absoluteXIndexed(state AddressModeState) Address {
 	return address
 }
 
-func absoluteYIndexed(state AddressModeState) Address {
+func evalAbsoluteYIndexed(state AddressModeState) Address {
 	registers := state.registers
 	low := state.ram.read(registers.Pc)
 	high := state.ram.read(registers.Pc + 1)
@@ -77,7 +96,7 @@ func absoluteYIndexed(state AddressModeState) Address {
 // then the LSB will be read from 0x01FF and the MSB will be read from 0x0100.
 // This is an actual hardware bug in early revisions of the 6502 which happen to be present
 // in the 2A03 used by the NES.
-func indirect(state AddressModeState) Address {
+func evalIndirect(state AddressModeState) Address {
 	registers := state.registers
 	ram := state.ram
 
@@ -91,7 +110,7 @@ func indirect(state AddressModeState) Address {
 	return Address(finalAddress)
 }
 
-func preIndexedIndirect(state AddressModeState) Address {
+func evalPreIndexedIndirect(state AddressModeState) Address {
 	registers := state.registers
 	ram := state.ram
 
@@ -103,7 +122,7 @@ func preIndexedIndirect(state AddressModeState) Address {
 	return Address(finalAddress)
 }
 
-func postIndexedIndirect(state AddressModeState) Address {
+func evalPostIndexedIndirect(state AddressModeState) Address {
 	registers := state.registers
 	ram := state.ram
 
@@ -120,7 +139,7 @@ func postIndexedIndirect(state AddressModeState) Address {
 	return Address(ram.read16(Address(offsetAddress)))
 }
 
-func relative(state AddressModeState) Address {
+func evalRelative(state AddressModeState) Address {
 	registers := state.registers
 	ram := state.ram
 
