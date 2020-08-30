@@ -29,10 +29,11 @@ type CPURegisters struct {
 	// to or from the index register X (see below) with the TSX and TXS
 	// this register is decremented every time a byte is pushed onto the stack,
 	// and incremented when a byte is popped off the stack.
-	Sp byte //: NesByte = NesByte(0xFF);
+	Sp byte
 
 	NegativeFlag bool
 	ZeroFlag     bool
+	CarryFlag    bool
 }
 
 func (registers *CPURegisters) reset() {
@@ -53,5 +54,5 @@ func (registers *CPURegisters) updateZeroFlag(value byte) {
 
 // CreateRegisters creates a properly initialized CPU Register
 func CreateRegisters() CPURegisters {
-	return CPURegisters{0x00, 0x00, 0x00, 0x0000, 0xFF, false, false}
+	return CPURegisters{0x00, 0x00, 0x00, 0x0000, 0xFF, false, false, false}
 }
