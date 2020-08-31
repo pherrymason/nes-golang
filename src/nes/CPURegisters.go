@@ -48,6 +48,11 @@ func (registers *CPURegisters) reset() {
 	registers.Y = 0x00
 	registers.Sp = 0xFF
 	registers.Pc = Address(0x0000)
+
+	registers.NegativeFlag = false
+	registers.ZeroFlag = false
+	registers.CarryFlag = 0
+	registers.OverflowFlag = 0
 }
 
 func (registers *CPURegisters) updateNegativeFlag(value byte) {
