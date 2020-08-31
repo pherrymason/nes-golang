@@ -217,3 +217,17 @@ func TestBIT(t *testing.T) {
 		assert.Equal(t, dp.expectedRegister, cpu.registers)
 	}
 }
+
+func TestBMI(t *testing.T) {
+	cpu := CreateCPU()
+	cpu.registers.NegativeFlag = true
+
+	cpu.bmi(operation{relative, 0x0010})
+
+	assert.Equal(t, Address(0x0010), cpu.registers.Pc)
+
+	cpu.registers.reset()
+	cpu.bmi(operation{relative, 0x0010})
+
+	assert.Equal(t, Address(0x0000), cpu.registers.Pc)
+}

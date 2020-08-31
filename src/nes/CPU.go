@@ -181,6 +181,22 @@ func (cpu *CPU) bit(info operation) {
 	cpu.registers.ZeroFlag = value&cpu.registers.A == 0
 }
 
+/*
+	BMI  Branch on Result Minus
+
+	branch on N = 1                 N Z C I D V
+									- - - - - -
+
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	relative      BMI oper      30    2     2**
+*/
+func (cpu *CPU) bmi(info operation) {
+	if cpu.registers.NegativeFlag {
+		cpu.registers.Pc = info.operandAddress
+	}
+}
+
 // CreateCPU a CPU
 func CreateCPU() CPU {
 
