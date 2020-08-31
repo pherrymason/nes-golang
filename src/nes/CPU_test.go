@@ -184,3 +184,36 @@ func TestBEQ(t *testing.T) {
 
 	assert.Equal(t, Address(0x0000), cpu.registers.Pc)
 }
+
+func TestBIT(t *testing.T) {
+	type dataProvider struct {
+		accumulator      byte
+		operand          byte
+		expectedRegister CPURegisters
+	}
+	expectedRegisters := func(accumulator byte, negativeFlag bool, zeroFlag bool, overflowFlag byte) CPURegisters {
+		return CPURegisters{accumulator, 0, 0, 0, 0xFF, negativeFlag, zeroFlag, 0, overflowFlag}
+	}
+
+	dataProviders := [...]dataProvider{
+		// All disabled
+		{0b00001111, 0b00001111, expectedRegisters(0b00001111, false, false, 0)},
+		// Negative true
+		{0b10001111, 0b10001111, expectedRegisters(0b10001111, true, false, 0)},
+		// Overflow true
+		{0b01001111, 0b01001111, expectedRegisters(0b01001111, false, false, 1)},
+		// Zero Flag true
+		{0, 0, expectedRegisters(0, false, true, 0)},
+	}
+
+	for i := 0; i < len(dataProviders); i++ {
+		dp := dataProviders[i]
+		cpu := CreateCPU()
+		cpu.registers.A = dp.accumulator
+		cpu.ram.write(0x0001, dp.operand)
+
+		cpu.bit(operation{zeroPage, 0x0001})
+
+		assert.Equal(t, dp.expectedRegister, cpu.registers)
+	}
+}

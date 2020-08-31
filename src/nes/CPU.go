@@ -159,6 +159,28 @@ func (cpu *CPU) beq(info operation) {
 	}
 }
 
+/*
+	BIT  Test Bits in Memory with Accumulator
+
+	bits 7 and 6 of operand are transfered to bit 7 and 6 of SR (N,V);
+	the zeroflag is set to the result of operand AND accumulator.
+	The result is not kept.
+
+	A AND M, M7 -> N, M6 -> V        N Z C I D V
+									M7 + - - - M6
+
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	zeropage      BIT oper      24    2     3
+	absolute      BIT oper      2C    3     4
+*/
+func (cpu *CPU) bit(info operation) {
+	value := cpu.ram.read(info.operandAddress)
+	cpu.registers.NegativeFlag = value&0x80 == 0x80
+	cpu.registers.OverflowFlag = (value >> 6) & 0x01
+	cpu.registers.ZeroFlag = value&cpu.registers.A == 0
+}
+
 // CreateCPU a CPU
 func CreateCPU() CPU {
 
