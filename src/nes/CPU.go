@@ -111,6 +111,22 @@ func (cpu *CPU) asl(info operation) {
 	}
 }
 
+/*
+	BCC  Branch on Carry Clear
+
+	branch on C = 0                  N Z C I D V
+									- - - - - -
+
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	relative      BCC oper      90    2     2**
+*/
+func (cpu *CPU) bcc(info operation) {
+	if cpu.registers.CarryFlag == 0 {
+		cpu.registers.Pc = info.operandAddress
+	}
+}
+
 // CreateCPU a CPU
 func CreateCPU() CPU {
 

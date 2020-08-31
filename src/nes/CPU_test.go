@@ -130,3 +130,29 @@ func TestADC(t *testing.T) {
 		assert.Equal(t, dp.expectedRegister.OverflowFlag, cpu.registers.OverflowFlag, fmt.Sprintf("Iteration %d failed, unexpected OverflowFlag", i))
 	}
 }
+
+func TestBCC(t *testing.T) {
+	type dataProvider struct {
+		carryFlag     byte
+		pc            Address
+		branchAddress Address
+		expectedPc    Address
+	}
+
+	dataProviders := [...]dataProvider{
+		{0, 0x02, 0x0004, 0x04},
+		{1, 0x02, 0x00FF, 0x02},
+	}
+
+	for i := 0; i < len(dataProviders); i++ {
+		dp := dataProviders[i]
+
+		cpu := CreateCPU()
+		cpu.registers.CarryFlag = dp.carryFlag
+		cpu.registers.Pc = dp.pc
+
+		cpu.bcc(operation{relative, Address(dp.branchAddress)})
+
+		assert.Equal(t, Address(dp.expectedPc), cpu.registers.Pc)
+	}
+}
