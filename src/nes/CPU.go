@@ -22,6 +22,48 @@ type operation struct {
 
 // --- Operations
 
+/*
+	ADC  Add Memory to Accumulator with Carry
+
+     A + M + C -> A, C                N Z C I D V
+                                      + + + - - +
+
+     addressing    assembler    opc  bytes  cyles
+     --------------------------------------------
+     immidiate     ADC #oper     69    2     2
+     zeropage      ADC oper      65    2     3
+     zeropage,X    ADC oper,X    75    2     4
+     absolute      ADC oper      6D    3     4
+     absolute,X    ADC oper,X    7D    3     4*
+     absolute,Y    ADC oper,Y    79    3     4*
+     (indirect,X)  ADC (oper,X)  61    2     6
+	 (indirect),Y  ADC (oper),Y  71    2     5*
+*/
+func (cpu *CPU) adc(info operation) {
+	carryIn := cpu.registers.CarryFlag
+	a := cpu.registers.A
+	value := cpu.ram.read(info.operandAddress)
+	adc := uint16(a) + uint16(value) + uint16(carryIn)
+	adc8 := cpu.registers.A + value + cpu.registers.CarryFlag
+
+	cpu.registers.A = adc8
+	cpu.registers.updateNegativeFlag(cpu.registers.A)
+	cpu.registers.updateZeroFlag(cpu.registers.A)
+
+	if (adc) > 0xFF {
+		cpu.registers.CarryFlag = 1
+	} else {
+		cpu.registers.CarryFlag = 0
+	}
+
+	// If the sign of the sum matches either the sign of A or the sign of v, then you don't overflow
+	if ((uint16(a) ^ adc) & (uint16(value) ^ adc) & 0x80) > 0 {
+		cpu.registers.OverflowFlag = 1
+	} else {
+		cpu.registers.OverflowFlag = 0
+	}
+}
+
 //	Performs a logical AND on the operand and the accumulator and stores the result in the accumulator
 //
 // 	Addressing Mode 	Assembly Language Form 	Opcode 	# Bytes 	# Cycles
@@ -55,13 +97,13 @@ func (cpu *CPU) and(operandAddress Address) {
 */
 func (cpu *CPU) asl(info operation) {
 	if info.addressMode == accumulator {
-		cpu.registers.CarryFlag = cpu.registers.A>>7 == 1
+		cpu.registers.CarryFlag = cpu.registers.A >> 7 & 0x01
 		cpu.registers.A = cpu.registers.A << 1
 		cpu.registers.updateNegativeFlag(cpu.registers.A)
 		cpu.registers.updateZeroFlag(cpu.registers.A)
 	} else {
 		value := cpu.ram.read(info.operandAddress)
-		cpu.registers.CarryFlag = value>>7 == 1
+		cpu.registers.CarryFlag = value >> 7 & 0x01
 		value = value << 1
 		cpu.ram.write(info.operandAddress, value)
 		cpu.registers.updateNegativeFlag(value)

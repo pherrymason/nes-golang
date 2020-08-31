@@ -31,9 +31,15 @@ type CPURegisters struct {
 	// and incremented when a byte is popped off the stack.
 	Sp byte
 
+	// Processor Status flag
 	NegativeFlag bool
 	ZeroFlag     bool
-	CarryFlag    bool
+
+	// Unsigned overflow
+	CarryFlag byte
+
+	// Signed overflow
+	OverflowFlag byte
 }
 
 func (registers *CPURegisters) reset() {
@@ -54,5 +60,5 @@ func (registers *CPURegisters) updateZeroFlag(value byte) {
 
 // CreateRegisters creates a properly initialized CPU Register
 func CreateRegisters() CPURegisters {
-	return CPURegisters{0x00, 0x00, 0x00, 0x0000, 0xFF, false, false, false}
+	return CPURegisters{0x00, 0x00, 0x00, 0x0000, 0xFF, false, false, 0, 0}
 }
