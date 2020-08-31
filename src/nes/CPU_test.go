@@ -170,3 +170,17 @@ func TestBCS(t *testing.T) {
 
 	assert.Equal(t, Address(0x0000), cpu.registers.Pc)
 }
+
+func TestBEQ(t *testing.T) {
+	cpu := CreateCPU()
+	cpu.registers.ZeroFlag = true
+
+	cpu.beq(operation{relative, 0x0010})
+
+	assert.Equal(t, Address(0x0010), cpu.registers.Pc)
+
+	cpu.registers.reset()
+	cpu.beq(operation{relative, 0x0010})
+
+	assert.Equal(t, Address(0x0000), cpu.registers.Pc)
+}
