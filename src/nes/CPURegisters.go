@@ -1,5 +1,22 @@
 package nes
 
+type StatusRegister struct {
+	// Unsigned overflow
+	CarryFlag byte
+
+	ZeroFlag bool
+
+	InterruptDisable bool
+
+	BreakCommand bool
+
+	// Signed overflow
+	OverflowFlag byte
+
+	// Processor Status flag
+	NegativeFlag bool
+}
+
 // CPURegisters is a representation of the registers of the NES cpu
 type CPURegisters struct {
 	// Accumulator
@@ -31,15 +48,25 @@ type CPURegisters struct {
 	// and incremented when a byte is popped off the stack.
 	Sp byte
 
-	// Processor Status flag
-	NegativeFlag bool
-	ZeroFlag     bool
-
+	// Status Processor
 	// Unsigned overflow
 	CarryFlag byte
 
+	ZeroFlag bool
+
+	InterruptDisable bool
+
+	BreakCommand bool
+
 	// Signed overflow
 	OverflowFlag byte
+
+	// Processor Status flag
+	NegativeFlag bool
+}
+
+func CreateStatusRegister(carryFlag byte, zeroFlag bool, interruptDisable bool, breakCommand bool, overflowFlag byte, negativeFlag bool) StatusRegister {
+	return StatusRegister{carryFlag, zeroFlag, interruptDisable, breakCommand, overflowFlag, negativeFlag}
 }
 
 func (registers *CPURegisters) reset() {
@@ -49,10 +76,24 @@ func (registers *CPURegisters) reset() {
 	registers.Sp = 0xFF
 	registers.Pc = Address(0x0000)
 
-	registers.NegativeFlag = false
-	registers.ZeroFlag = false
 	registers.CarryFlag = 0
+	registers.ZeroFlag = false
+	registers.InterruptDisable = false
+	registers.BreakCommand = false
 	registers.OverflowFlag = 0
+	registers.NegativeFlag = false
+}
+
+func (registers *CPURegisters) spAddress() Address {
+	return Address(0x100 + uint16(registers.Sp))
+}
+
+func (registers *CPURegisters) spPushed() {
+	if registers.Sp > 0x00 {
+		registers.Sp--
+	} else {
+		registers.Sp = 0xFF
+	}
 }
 
 func (registers *CPURegisters) updateNegativeFlag(value byte) {
@@ -65,5 +106,18 @@ func (registers *CPURegisters) updateZeroFlag(value byte) {
 
 // CreateRegisters creates a properly initialized CPU Register
 func CreateRegisters() CPURegisters {
-	return CPURegisters{0x00, 0x00, 0x00, 0x0000, 0xFF, false, false, 0, 0}
+	return CPURegisters{
+		0x00,   // A
+		0x00,   // X
+		0x00,   // Y
+		0x0000, // Program Counter
+		0xFF,   // Stack Pointer
+
+		0,     // Carry Flag
+		false, // Zero Flag
+		false, // Interrupt Disable
+		false, // Break Command
+		0,     // Overflow Flag
+		false, // Negative Flag
+	}
 }
