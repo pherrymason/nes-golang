@@ -44,7 +44,7 @@ func TestASL_Accumulator(t *testing.T) {
 	}
 
 	expectedRegisters := func(negativeFlag bool, zeroFlag bool, carryFlag byte) CPURegisters {
-		return CPURegisters{0, 0, 0, 0, 0, carryFlag, zeroFlag, false, false, 0, negativeFlag}
+		return CPURegisters{0, 0, 0, 0, 0, carryFlag, zeroFlag, false, false, false, 0, negativeFlag}
 	}
 
 	var dataProviders [4]dataProvider
@@ -74,7 +74,7 @@ func TestASL_Memory(t *testing.T) {
 
 	expectedRegisters := func(negativeFlag bool, zeroFlag bool, carryFlag byte) CPURegisters {
 		return CPURegisters{0, 0, 0, 0, 0,
-			carryFlag, zeroFlag, false, false, 0, negativeFlag}
+			carryFlag, zeroFlag, false, false, false, 0, negativeFlag}
 	}
 
 	var dataProviders [4]dataProvider
@@ -109,7 +109,7 @@ func TestADC(t *testing.T) {
 	}
 	expectedRegisters := func(accumulator byte, negativeFlag bool, zeroFlag bool, carryFlag byte, overflowFlag byte) CPURegisters {
 		return CPURegisters{accumulator, 0, 0, 0, 0,
-			carryFlag, zeroFlag, false, false, overflowFlag, negativeFlag}
+			carryFlag, zeroFlag, false, false, false, overflowFlag, negativeFlag}
 	}
 	dataProviders := [...]dataProvider{
 		{0x05, 0, 0x10, expectedRegisters(0x15, false, false, 0, 0)},
@@ -195,7 +195,7 @@ func TestBIT(t *testing.T) {
 	}
 	expectedRegisters := func(accumulator byte, negativeFlag bool, zeroFlag bool, overflowFlag byte) CPURegisters {
 		return CPURegisters{accumulator, 0, 0, 0, 0xFF,
-			0, zeroFlag, false, false, overflowFlag, negativeFlag}
+			0, zeroFlag, false, false, false, overflowFlag, negativeFlag}
 	}
 
 	dataProviders := [...]dataProvider{
@@ -264,6 +264,26 @@ func TestBPL(t *testing.T) {
 }
 
 func TestBRK(t *testing.T) {
-	t.SkipNow()
-	//cpu := CreateCPU()
+	programCounter := Address(0x2020)
+	expectedPc := Address(0x9999)
+	cpu := CreateCPU()
+	cpu.registers.Pc = programCounter
+	cpu.registers.CarryFlag = 1
+	cpu.registers.ZeroFlag = true
+	cpu.registers.InterruptDisable = false
+	cpu.registers.OverflowFlag = 1
+	cpu.registers.NegativeFlag = true
+	cpu.ram.write(Address(0xFFFE), 0x99)
+	cpu.ram.write(Address(0xFFFF), 0x99)
+
+	cpu.brk(operation{implicit, 0x0000})
+
+	assert.Equal(t, true, cpu.registers.BreakCommand)
+	assert.Equal(t, Word(programCounter), cpu.ram.read16(0x1FE))
+	assert.Equal(t, byte(0b11110011), cpu.ram.read(0x1FD))
+
+	assert.Equal(t, true, cpu.registers.InterruptDisable)
+	assert.Equal(t, true, cpu.registers.BreakCommand)
+
+	assert.Equal(t, expectedPc, cpu.registers.Pc)
 }

@@ -56,6 +56,8 @@ type CPURegisters struct {
 
 	InterruptDisable bool
 
+	DecimalFlag bool
+
 	BreakCommand bool
 
 	// Signed overflow
@@ -63,10 +65,6 @@ type CPURegisters struct {
 
 	// Processor Status flag
 	NegativeFlag bool
-}
-
-func CreateStatusRegister(carryFlag byte, zeroFlag bool, interruptDisable bool, breakCommand bool, overflowFlag byte, negativeFlag bool) StatusRegister {
-	return StatusRegister{carryFlag, zeroFlag, interruptDisable, breakCommand, overflowFlag, negativeFlag}
 }
 
 func (registers *CPURegisters) reset() {
@@ -104,6 +102,46 @@ func (registers *CPURegisters) updateZeroFlag(value byte) {
 	registers.ZeroFlag = value == 0x00
 }
 
+func (registers *CPURegisters) statusRegister() byte {
+	var value byte = 0x00
+
+	if registers.CarryFlag == 1 {
+		value |= 0x01
+	}
+
+	if registers.ZeroFlag {
+		value |= 0x02
+	}
+
+	if registers.InterruptDisable {
+		value |= 0x04
+	}
+
+	// Decimal mode
+	if registers.DecimalFlag {
+		value |= 0x08
+	}
+
+	if registers.BreakCommand {
+		value |= 0x10
+	}
+
+	// Alway 1 flag
+	value |= 0x20
+
+	// Signed overflow
+	if registers.OverflowFlag == 1 {
+		value |= 0x40
+	}
+
+	// Processor Status flag
+	if registers.NegativeFlag {
+		value |= 0x80
+	}
+
+	return value
+}
+
 // CreateRegisters creates a properly initialized CPU Register
 func CreateRegisters() CPURegisters {
 	return CPURegisters{
@@ -117,6 +155,7 @@ func CreateRegisters() CPURegisters {
 		false, // Zero Flag
 		false, // Interrupt Disable
 		false, // Break Command
+		false, // Decimal Flag
 		0,     // Overflow Flag
 		false, // Negative Flag
 	}

@@ -222,4 +222,13 @@ func (cpu *CPU) bpl(info operation) {
 */
 func (cpu *CPU) brk(info operation) {
 
+	cpu.pushStack(byte(cpu.registers.Pc & 0xFF))
+	cpu.pushStack(byte(cpu.registers.Pc >> 8))
+
+	cpu.registers.BreakCommand = true
+	cpu.pushStack(cpu.registers.statusRegister())
+
+	cpu.registers.InterruptDisable = true
+
+	cpu.registers.Pc = Address(cpu.ram.read16(0xFFFE))
 }

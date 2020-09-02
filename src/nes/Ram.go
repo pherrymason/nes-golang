@@ -2,7 +2,7 @@ package nes
 
 // RAM is
 type RAM struct {
-	memory [0xFFFF]byte
+	memory [0xFFFF + 1]byte
 }
 
 func (ram *RAM) read(address Address) byte {
