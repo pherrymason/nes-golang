@@ -561,20 +561,97 @@ func (cpu *CPU) jsr(info operation) {
 	cpu.registers.Pc = Address(value)
 }
 
+/*
+	LDA  Load Accumulator with Memory
+	M -> A                        N Z C I D V
+								  + + - - - -
+
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	immediate     LDA #oper     A9    2     2
+	zeropage      LDA oper      A5    2     3
+	zeropage,X    LDA oper,X    B5    2     4
+	absolute      LDA oper      AD    3     4
+	absolute,X    LDA oper,X    BD    3     4*
+	absolute,Y    LDA oper,Y    B9    3     4*
+	(indirect,X)  LDA (oper,X)  A1    2     6
+	(indirect),Y  LDA (oper),Y  B1    2     5*
+*/
 func (cpu *CPU) lda(info operation) {
-
+	cpu.registers.A = cpu.ram.read(info.operandAddress)
+	cpu.registers.ZeroFlag = cpu.registers.A == 0
+	cpu.registers.NegativeFlag = cpu.registers.A&0x80 == 0x80
 }
 
+/*
+	LDX  Load Index X with Memory
+	M -> X                    N Z C I D V
+							  + + - - - -
+
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	immediate     LDX #oper     A2    2     2
+	zeropage      LDX oper      A6    2     3
+	zeropage,Y    LDX oper,Y    B6    2     4
+	absolute      LDX oper      AE    3     4
+	absolute,Y    LDX oper,Y    BE    3     4*
+*/
 func (cpu *CPU) ldx(info operation) {
-
+	cpu.registers.X = cpu.ram.read(info.operandAddress)
+	cpu.registers.ZeroFlag = cpu.registers.X == 0
+	cpu.registers.NegativeFlag = cpu.registers.X&0x80 == 0x80
 }
 
+/*
+	LDY  Load Index Y with Memory
+	M -> Y                N Z C I D V
+						  + + - - - -
+
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	immidiate     LDY #oper     A0    2     2
+	zeropage      LDY oper      A4    2     3
+	zeropage,X    LDY oper,X    B4    2     4
+	absolute      LDY oper      AC    3     4
+	absolute,X    LDY oper,X    BC    3     4*
+*/
 func (cpu *CPU) ldy(info operation) {
-
+	cpu.registers.Y = cpu.ram.read(info.operandAddress)
+	cpu.registers.ZeroFlag = cpu.registers.Y == 0
+	cpu.registers.NegativeFlag = cpu.registers.Y&0x80 == 0x80
 }
 
-func (cpu *CPU) lsr(info operation) {
+/*
+	LSR  Shift One Bit Right (Memory or Accumulator)
+	0 -> [76543210] -> C      N Z C I D V
+							  0 + + - - -
 
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	accumulator   LSR A         4A    1     2
+	zeropage      LSR oper      46    2     5
+	zeropage,X    LSR oper,X    56    2     6
+	absolute      LSR oper      4E    3     6
+	absolute,X    LSR oper,X    5E    3     7
+*/
+func (cpu *CPU) lsr(info operation) {
+	var value byte
+	if info.addressMode == accumulator {
+		value = cpu.registers.A
+	} else {
+		value = cpu.ram.read(info.operandAddress)
+	}
+
+	cpu.registers.CarryFlag = value & 0x01
+
+	value >>= 1
+	cpu.registers.ZeroFlag = value == 0
+
+	if info.addressMode == accumulator {
+		cpu.registers.A = value
+	} else {
+		cpu.ram.write(info.operandAddress, value)
+	}
 }
 
 func (cpu *CPU) nop(info operation) {

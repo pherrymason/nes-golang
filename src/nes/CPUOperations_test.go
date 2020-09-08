@@ -578,3 +578,114 @@ func TestJSR(t *testing.T) {
 	assert.Equal(t, byte(0x02), cpu.popStack())
 	assert.Equal(t, byte(0x01), cpu.popStack())
 }
+
+func TestLDA(t *testing.T) {
+	type dataProvider struct {
+		value            byte
+		expectedZero     bool
+		expectedNegative bool
+	}
+	dataProviders := [...]dataProvider{
+		{0x20, false, false},
+		{0x00, true, false},
+		{0x80, false, true},
+	}
+
+	for i := 0; i < len(dataProviders); i++ {
+		dp := dataProviders[i]
+		cpu := CreateCPU()
+		cpu.ram.write(Address(0x00), dp.value)
+
+		cpu.lda(operation{immediate, 0x00})
+
+		assert.Equal(t, dp.value, cpu.registers.A)
+		assert.Equal(t, dp.expectedZero, cpu.registers.ZeroFlag)
+		assert.Equal(t, dp.expectedNegative, cpu.registers.NegativeFlag)
+	}
+}
+
+func TestLDX(t *testing.T) {
+	type dataProvider struct {
+		value            byte
+		expectedZero     bool
+		expectedNegative bool
+	}
+	dataProviders := [...]dataProvider{
+		{0x20, false, false},
+		{0x00, true, false},
+		{0x80, false, true},
+	}
+
+	for i := 0; i < len(dataProviders); i++ {
+		dp := dataProviders[i]
+		cpu := CreateCPU()
+		cpu.ram.write(Address(0x00), dp.value)
+
+		cpu.ldx(operation{immediate, 0x00})
+
+		assert.Equal(t, dp.value, cpu.registers.X)
+		assert.Equal(t, dp.expectedZero, cpu.registers.ZeroFlag)
+		assert.Equal(t, dp.expectedNegative, cpu.registers.NegativeFlag)
+	}
+}
+
+func TestLDY(t *testing.T) {
+	type dataProvider struct {
+		value            byte
+		expectedZero     bool
+		expectedNegative bool
+	}
+	dataProviders := [...]dataProvider{
+		{0x20, false, false},
+		{0x00, true, false},
+		{0x80, false, true},
+	}
+
+	for i := 0; i < len(dataProviders); i++ {
+		dp := dataProviders[i]
+		cpu := CreateCPU()
+		cpu.ram.write(Address(0x00), dp.value)
+
+		cpu.ldy(operation{immediate, 0x00})
+
+		assert.Equal(t, dp.value, cpu.registers.Y)
+		assert.Equal(t, dp.expectedZero, cpu.registers.ZeroFlag)
+		assert.Equal(t, dp.expectedNegative, cpu.registers.NegativeFlag)
+	}
+}
+
+func TestLSR(t *testing.T) {
+	type dataProvider struct {
+		addressingMode AddressMode
+		value          byte
+		expectedResult byte
+		expectedZero   bool
+		expectedCarry  byte
+	}
+	dataProviders := [...]dataProvider{
+		{accumulator, 0b00000010, 0b00000001, false, 0},
+		{accumulator, 0b00000011, 0b00000001, false, 1},
+		{accumulator, 0b00000001, 0b00000000, true, 1},
+		{zeroPage, 0b00000010, 0b00000001, false, 0},
+		{zeroPage, 0b00000011, 0b00000001, false, 1},
+		{zeroPage, 0b00000001, 0b00000000, true, 1},
+	}
+
+	for i := 0; i < len(dataProviders); i++ {
+		dp := dataProviders[i]
+		cpu := CreateCPU()
+		cpu.registers.A = dp.value
+		cpu.ram.write(Address(0x00), dp.value)
+
+		cpu.lsr(operation{dp.addressingMode, 0x00})
+
+		if dp.addressingMode == accumulator {
+			assert.Equal(t, dp.expectedResult, cpu.registers.A)
+		} else {
+			assert.Equal(t, dp.expectedResult, cpu.ram.read(0x00))
+		}
+		assert.Equal(t, dp.expectedZero, cpu.registers.ZeroFlag, fmt.Sprintf("Iteration[%d] unexpected ZeroFlag", i))
+		assert.Equal(t, dp.expectedCarry, cpu.registers.CarryFlag)
+		assert.False(t, cpu.registers.NegativeFlag)
+	}
+}
