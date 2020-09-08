@@ -994,3 +994,126 @@ func TestSTY(t *testing.T) {
 
 	assert.Equal(t, byte(0xFF), cpu.ram.read(0x522))
 }
+
+func TestTAX_TAY(t *testing.T) {
+	type dataProvider struct {
+		name             string
+		op               func(info operation)
+		a                byte
+		expectedNegative bool
+		expectedZero     bool
+	}
+
+	cpu := CreateCPU()
+	dataProviders := [...]dataProvider{
+		{"tax", cpu.tax, 0x00, false, true},
+		{"tax", cpu.tax, 0x80, true, false},
+		{"tax", cpu.tax, 0x20, false, false},
+		{"tay", cpu.tay, 0x00, false, true},
+		{"tay", cpu.tay, 0x80, true, false},
+		{"tay", cpu.tay, 0x20, false, false},
+	}
+
+	for i := 0; i < len(dataProviders); i++ {
+		dp := dataProviders[i]
+		cpu.registers.reset()
+		cpu.registers.A = dp.a
+
+		dp.op(operation{implicit, 0x00})
+
+		if dp.name == "tax" {
+			assert.Equal(t, cpu.registers.A, cpu.registers.X)
+		} else {
+			assert.Equal(t, cpu.registers.A, cpu.registers.Y)
+		}
+		assert.Equal(t, dp.expectedNegative, cpu.registers.NegativeFlag)
+		assert.Equal(t, dp.expectedZero, cpu.registers.ZeroFlag)
+	}
+}
+
+func TestTSX(t *testing.T) {
+	type dataProvider struct {
+		sp               byte
+		expectedNegative bool
+		expectedZero     bool
+	}
+
+	dataProviders := [...]dataProvider{
+		{0x00, false, true},
+		{0x80, true, false},
+		{0x20, false, false},
+	}
+
+	for i := 0; i < len(dataProviders); i++ {
+		dp := dataProviders[i]
+		cpu := CreateCPU()
+		cpu.pushStack(dp.sp)
+
+		cpu.tsx(operation{implicit, 0x00})
+
+		assert.Equal(t, dp.sp, cpu.registers.X)
+		assert.Equal(t, dp.expectedZero, cpu.registers.ZeroFlag)
+		assert.Equal(t, dp.expectedNegative, cpu.registers.NegativeFlag)
+	}
+}
+
+func TestTXA(t *testing.T) {
+	type dataProvider struct {
+		x                byte
+		expectedNegative bool
+		expectedZero     bool
+	}
+
+	dataProviders := [...]dataProvider{
+		{0x00, false, true},
+		{0x80, true, false},
+		{0x20, false, false},
+	}
+
+	for i := 0; i < len(dataProviders); i++ {
+		dp := dataProviders[i]
+		cpu := CreateCPU()
+		cpu.registers.X = dp.x
+
+		cpu.txa(operation{implicit, 0x00})
+
+		assert.Equal(t, dp.x, cpu.registers.A)
+		assert.Equal(t, dp.expectedZero, cpu.registers.ZeroFlag)
+		assert.Equal(t, dp.expectedNegative, cpu.registers.NegativeFlag)
+	}
+}
+
+func TestTXS(t *testing.T) {
+	cpu := CreateCPU()
+	cpu.registers.X = 0xFF
+
+	cpu.txs(operation{implicit, 0x00})
+
+	assert.Equal(t, byte(0xFF), cpu.registers.Sp)
+}
+
+func TestTYA(t *testing.T) {
+	type dataProvider struct {
+		y                byte
+		expectedNegative bool
+		expectedZero     bool
+	}
+
+	dataProviders := [...]dataProvider{
+		{0x00, false, true},
+		{0x80, true, false},
+		{0x20, false, false},
+	}
+
+	for i := 0; i < len(dataProviders); i++ {
+		dp := dataProviders[i]
+		cpu := CreateCPU()
+		cpu.registers.Y = dp.y
+
+		cpu.tya(operation{implicit, 0x00})
+
+		assert.Equal(t, cpu.registers.Y, cpu.registers.A)
+		assert.Equal(t, dp.expectedZero, cpu.registers.ZeroFlag)
+		assert.Equal(t, dp.expectedNegative, cpu.registers.NegativeFlag)
+	}
+}

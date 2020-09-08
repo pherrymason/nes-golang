@@ -934,26 +934,105 @@ func (cpu *CPU) sty(info operation) {
 	cpu.ram.write(info.operandAddress, cpu.registers.Y)
 }
 
+/*
+	TAX  Transfer Accumulator to Index X
+	A -> X                        N Z C I D V
+								  + + - - - -
+
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	implied       TAX           AA    1     2
+*/
 func (cpu *CPU) tax(info operation) {
-
+	cpu.registers.X = cpu.registers.A
+	cpu.registers.updateNegativeFlag(cpu.registers.X)
+	cpu.registers.updateZeroFlag(cpu.registers.X)
 }
 
+/*
+	TAY  Transfer Accumulator to Index Y
+	A -> Y                    N Z C I D V
+							  + + - - - -
+
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	implied       TAY           A8    1     2
+*/
 func (cpu *CPU) tay(info operation) {
-
+	cpu.registers.Y = cpu.registers.A
+	cpu.registers.updateNegativeFlag(cpu.registers.Y)
+	cpu.registers.updateZeroFlag(cpu.registers.Y)
 }
 
+/*
+	TSX  Transfer Stack Pointer to Index X
+	SP -> X                       N Z C I D V
+								  + + - - - -
+
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	implied       TSX           BA    1     2
+*/
 func (cpu *CPU) tsx(info operation) {
-
+	cpu.registers.X = cpu.popStack()
+	cpu.registers.updateZeroFlag(cpu.registers.X)
+	cpu.registers.updateNegativeFlag(cpu.registers.X)
 }
 
+/*
+	TXA  Transfer Index X to Accumulator
+	X -> A                        N Z C I D V
+								  + + - - - -
+
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	implied       TXA           8A    1     2
+*/
 func (cpu *CPU) txa(info operation) {
-
+	cpu.registers.A = cpu.registers.X
+	cpu.registers.updateZeroFlag(cpu.registers.A)
+	cpu.registers.updateNegativeFlag(cpu.registers.A)
 }
 
+/*
+	TXS  Transfer Index X to Stack Pointer
+	X -> SP                       N Z C I D V
+								  - - - - - -
+
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	implied       TXS           9A    1     2
+*/
 func (cpu *CPU) txs(info operation) {
-
+	cpu.registers.Sp = cpu.registers.X
 }
 
-func (cpu *CPU) tya(info operation) {
+/*
+	TYA  Transfer Index Y to Accumulator
+	 Y -> A                           N Z C I D V
+									  + + - - - -
+	 addressing    assembler    opc  bytes  cyles
+	 --------------------------------------------
+	 implied       TYA           98    1     2
 
+	*  add 1 to cycles if page boundery is crossed
+	** add 1 to cycles if branch occurs on same page
+	 add 2 to cycles if branch occurs to different page
+
+
+	 Legend to Flags:  + .... modified
+					   - .... not modified
+					   1 .... set
+					   0 .... cleared
+					  M6 .... memory bit 6
+					  M7 .... memory bit 7
+
+
+	Note on assembler syntax:
+	Most assemblers employ "OPC *oper" for forced zeropage addressing.
+*/
+func (cpu *CPU) tya(info operation) {
+	cpu.registers.A = cpu.registers.Y
+	cpu.registers.updateZeroFlag(cpu.registers.A)
+	cpu.registers.updateNegativeFlag(cpu.registers.A)
 }
