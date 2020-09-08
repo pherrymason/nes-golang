@@ -232,3 +232,439 @@ func (cpu *CPU) brk(info operation) {
 
 	cpu.registers.Pc = Address(cpu.ram.read16(0xFFFE))
 }
+
+/*
+	BVC  Branch on Overflow Clear
+	branch on V = 0               N Z C I D V
+								  - - - - - -
+
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	relative      BVC oper      50    2     2**
+*/
+func (cpu *CPU) bvc(info operation) {
+	if cpu.registers.OverflowFlag == byte(1) {
+		return
+	}
+
+	cpu.registers.Pc = info.operandAddress
+}
+
+/*
+	BVS  Branch on Overflow Set
+	branch on V = 1               N Z C I D V
+								  - - - - - -
+
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	relative      BVC oper      70    2     2**
+*/
+func (cpu *CPU) bvs(info operation) {
+	if cpu.registers.OverflowFlag == 0 {
+		return
+	}
+
+	cpu.registers.Pc = info.operandAddress
+}
+
+/*
+	CLC  Clear Carry Flag
+	0 -> C                        N Z C I D V
+								  - - 0 - - -
+
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	implied       CLC           18    1     2
+*/
+func (cpu *CPU) clc(info operation) {
+	cpu.registers.CarryFlag = 0
+}
+
+/*
+	CLD  Clear Decimal Mode
+	0 -> D                        N Z C I D V
+								  - - - - 0 -
+
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	implied       CLD           D8    1     2
+*/
+func (cpu *CPU) cld(info operation) {
+	cpu.registers.DecimalFlag = false
+}
+
+/*
+	CLI  Clear Interrupt Disable Bit
+	0 -> I                        N Z C I D V
+								  - - - 0 - -
+
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	implied       CLI           58    1     2
+*/
+func (cpu *CPU) cli(info operation) {
+	cpu.registers.InterruptDisable = false
+}
+
+/*
+	CLV  Clear Overflow Flag
+	0 -> V                        N Z C I D V
+								  - - - - - 0
+
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	implied       CLV           B8    1     2
+*/
+func (cpu *CPU) clv(info operation) {
+	cpu.registers.OverflowFlag = 0
+}
+
+/*
+	CMP (CoMPare accumulator)
+
+	Affects Flags: S Z C
+
+	MODE           SYNTAX       HEX LEN TIM
+	Immediate     CMP #$44      $C9  2   2
+	Zero Page     CMP $44       $C5  2   3
+	Zero Page,X   CMP $44,X     $D5  2   4
+	Absolute      CMP $4400     $CD  3   4
+	Absolute,X    CMP $4400,X   $DD  3   4+
+	Absolute,Y    CMP $4400,Y   $D9  3   4+
+	Indirect,X    CMP ($44,X)   $C1  2   6
+	Indirect,Y    CMP ($44),Y   $D1  2   5+
+
+	+ add 1 cycle if page boundary crossed
+
+	Compare sets flags as if a subtraction had been carried out. If the value in the accumulator is equal or greater than the compared value, the Carry will be set. The equal (Z) and sign (S) flags will be set based on equality or lack thereof and the sign (i.e. A>=$80) of the accumulator.
+*/
+func (cpu *CPU) cmp(info operation) {
+	operand := cpu.ram.read(info.operandAddress)
+	cpu.compare(cpu.registers.A, operand)
+}
+
+/*
+	CPX (ComPare X register)
+
+	Affects Flags: S Z C
+
+	MODE           SYNTAX       HEX LEN TIM
+	Immediate     CPX #$44      $E0  2   2
+	Zero Page     CPX $44       $E4  2   3
+	Absolute      CPX $4400     $EC  3   4
+*/
+func (cpu *CPU) cpx(info operation) {
+	operand := cpu.ram.read(info.operandAddress)
+	cpu.compare(cpu.registers.X, operand)
+}
+
+/*
+	CPY (ComPare Y register)
+
+	Affects Flags: S Z C
+
+	MODE           SYNTAX       HEX LEN TIM
+	Immediate     CPY #$44      $C0  2   2
+	Zero Page     CPY $44       $C4  2   3
+	Absolute      CPY $4400     $CC  3   4
+*/
+func (cpu *CPU) cpy(info operation) {
+	operand := cpu.ram.read(info.operandAddress)
+	cpu.compare(cpu.registers.Y, operand)
+}
+
+func (cpu *CPU) compare(register byte, operand byte) {
+	substraction := register - operand
+
+	cpu.registers.ZeroFlag = false
+	cpu.registers.CarryFlag = 0
+	cpu.registers.NegativeFlag = false
+
+	if register >= operand {
+		cpu.registers.CarryFlag = 1
+	}
+
+	if register == operand {
+		cpu.registers.ZeroFlag = true
+	}
+
+	if substraction&0x80 == 0x80 {
+		cpu.registers.NegativeFlag = true
+	}
+}
+
+func (cpu *CPU) dec(info operation) {
+	address := info.operandAddress
+	operand := cpu.ram.read(address)
+
+	operand--
+	cpu.ram.write(address, operand)
+
+	if operand == 0 {
+		cpu.registers.ZeroFlag = true
+	} else {
+		cpu.registers.ZeroFlag = false
+	}
+
+	if operand == 0xFF {
+		cpu.registers.NegativeFlag = true
+	} else {
+		cpu.registers.NegativeFlag = false
+	}
+}
+
+func (cpu *CPU) dex(info operation) {
+	cpu.registers.X--
+	operand := cpu.registers.X
+
+	if operand == 0 {
+		cpu.registers.ZeroFlag = true
+	} else {
+		cpu.registers.ZeroFlag = false
+	}
+
+	if operand == 0xFF {
+		cpu.registers.NegativeFlag = true
+	} else {
+		cpu.registers.NegativeFlag = false
+	}
+}
+
+func (cpu *CPU) dey(info operation) {
+	operand := cpu.registers.Y
+
+	operand--
+	cpu.registers.Y = operand
+
+	if operand == 0 {
+		cpu.registers.ZeroFlag = true
+	} else {
+		cpu.registers.ZeroFlag = false
+	}
+
+	if operand == 0xFF {
+		cpu.registers.NegativeFlag = true
+	} else {
+		cpu.registers.NegativeFlag = false
+	}
+}
+
+/*
+	EOR (bitwise Exclusive OR)
+	Affects Flags: S Z
+	A EOR M -> A                     N Z C I D V
+                                     + + - - - -
+
+	MODE           SYNTAX       HEX LEN TIM
+	Immediate     EOR #$44      $49  2   2
+	Zero Page     EOR $44       $45  2   3
+	Zero Page,X   EOR $44,X     $55  2   4
+	Absolute      EOR $4400     $4D  3   4
+	Absolute,X    EOR $4400,X   $5D  3   4+
+	Absolute,Y    EOR $4400,Y   $59  3   4+
+	Indirect,X    EOR ($44,X)   $41  2   6
+	Indirect,Y    EOR ($44),Y   $51  2   5+
+
+	+ add 1 cycle if page boundary crossed
+*/
+func (cpu *CPU) eor(info operation) {
+	value := cpu.ram.read(info.operandAddress)
+
+	cpu.registers.A = cpu.registers.A ^ value
+	cpu.registers.ZeroFlag = cpu.registers.A == 0
+	cpu.registers.NegativeFlag = cpu.registers.A&0x80 == 0x80
+}
+
+/*
+	INC  Increment Memory by One
+	M + 1 -> M                    N Z C I D V
+								  + + - - - -
+
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	zeropage      INC oper      E6    2     5
+	zeropage,X    INC oper,X    F6    2     6
+	absolute      INC oper      EE    3     6
+	absolute,X    INC oper,X    FE    3     7
+*/
+func (cpu *CPU) inc(info operation) {
+	value := cpu.ram.read(info.operandAddress)
+	value += 1
+
+	cpu.ram.write(info.operandAddress, value)
+	cpu.registers.NegativeFlag = value&0x80 == 0x80
+	cpu.registers.ZeroFlag = value == 0
+}
+
+/*
+	INX  Increment Index X by One
+	X + 1 -> X                N Z C I D V
+							  + + - - - -
+
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	implied       INX           E8    1     2
+*/
+func (cpu *CPU) inx(info operation) {
+	cpu.registers.X += 1
+	cpu.registers.NegativeFlag = cpu.registers.X&0x80 == 0x80
+	cpu.registers.ZeroFlag = cpu.registers.X == 0
+}
+
+/*
+	INY  Increment Index Y by One
+	Y + 1 -> Y                    N Z C I D V
+								  + + - - - -
+
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	implied       INY           C8    1     2
+*/
+func (cpu *CPU) iny(info operation) {
+	cpu.registers.Y += 1
+	cpu.registers.NegativeFlag = cpu.registers.Y&0x80 == 0x80
+	cpu.registers.ZeroFlag = cpu.registers.Y == 0
+}
+
+/*
+	JMP  Jump to New Location
+	(PC+1) -> PCL                    N Z C I D V
+	(PC+2) -> PCH                    - - - - - -
+
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	absolute      JMP oper      4C    3     3
+	indirect      JMP (oper)    6C    3     5
+*/
+func (cpu *CPU) jmp(info operation) {
+	cpu.registers.Pc = info.operandAddress
+}
+
+/*
+	JSR  Jump to New Location Saving Return Address
+	push (PC+2),                     N Z C I D V
+	(PC+1) -> PCL                    - - - - - -
+	(PC+2) -> PCH
+
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	absolute      JSR oper      20    3     6
+*/
+func (cpu *CPU) jsr(info operation) {
+	value := cpu.ram.read16(info.operandAddress)
+
+	// TODO CHECK HERE because ProgramCounter should point to Opcode
+	cpu.registers.Pc -= 3
+	cpu.pushStack(byte(cpu.registers.Pc & 0xFF))
+	cpu.pushStack(byte(cpu.registers.Pc >> 8))
+
+	cpu.registers.Pc = Address(value)
+}
+
+func (cpu *CPU) lda(info operation) {
+
+}
+
+func (cpu *CPU) ldx(info operation) {
+
+}
+
+func (cpu *CPU) ldy(info operation) {
+
+}
+
+func (cpu *CPU) lsr(info operation) {
+
+}
+
+func (cpu *CPU) nop(info operation) {
+
+}
+
+func (cpu *CPU) ora(info operation) {
+
+}
+
+func (cpu *CPU) pha(info operation) {
+
+}
+
+func (cpu *CPU) php(info operation) {
+
+}
+
+func (cpu *CPU) pla(info operation) {
+
+}
+
+func (cpu *CPU) plp(info operation) {
+
+}
+
+func (cpu *CPU) rol(info operation) {
+
+}
+
+func (cpu *CPU) ror(info operation) {
+
+}
+
+func (cpu *CPU) rti(info operation) {
+
+}
+
+func (cpu *CPU) rts(info operation) {
+
+}
+
+func (cpu *CPU) sbc(info operation) {
+
+}
+
+func (cpu *CPU) sec(info operation) {
+
+}
+
+func (cpu *CPU) sed(info operation) {
+
+}
+
+func (cpu *CPU) sei(info operation) {
+
+}
+
+func (cpu *CPU) sta(info operation) {
+
+}
+
+func (cpu *CPU) stx(info operation) {
+
+}
+
+func (cpu *CPU) sty(info operation) {
+
+}
+
+func (cpu *CPU) tax(info operation) {
+
+}
+
+func (cpu *CPU) tay(info operation) {
+
+}
+
+func (cpu *CPU) tsx(info operation) {
+
+}
+
+func (cpu *CPU) txa(info operation) {
+
+}
+
+func (cpu *CPU) txs(info operation) {
+
+}
+
+func (cpu *CPU) tya(info operation) {
+
+}

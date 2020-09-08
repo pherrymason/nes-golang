@@ -94,6 +94,12 @@ func (registers *CPURegisters) spPushed() {
 	}
 }
 
+func (registers *CPURegisters) spPopped() {
+	if registers.Sp < 0xFF {
+		registers.Sp++
+	}
+}
+
 func (registers *CPURegisters) updateNegativeFlag(value byte) {
 	registers.NegativeFlag = value&0x80 == 0x80
 }

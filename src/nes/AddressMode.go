@@ -145,7 +145,7 @@ func evalRelative(state AddressModeState) Address {
 
 	opcodeOperand := ram.read(registers.Pc)
 
-	address := registers.Pc + 2
+	address := registers.Pc + 1
 	if opcodeOperand < 0x80 {
 		address += Address(opcodeOperand)
 	} else {

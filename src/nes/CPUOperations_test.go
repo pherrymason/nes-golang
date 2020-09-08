@@ -287,3 +287,294 @@ func TestBRK(t *testing.T) {
 
 	assert.Equal(t, expectedPc, cpu.registers.Pc)
 }
+
+func TestBVC_overflow_is_not_clear(t *testing.T) {
+	cpu := CreateCPU()
+	cpu.registers.OverflowFlag = 1
+	cpu.bvc(operation{relative, 0x5})
+
+	assert.Equal(t, Address(0), cpu.registers.Pc)
+}
+
+func TestBVC_overflow_is_clear(t *testing.T) {
+	cpu := CreateCPU()
+	cpu.registers.OverflowFlag = 0
+	cpu.bvc(operation{relative, 0x5})
+
+	assert.Equal(t, Address(0x5), cpu.registers.Pc)
+}
+
+func TestBVS_overflow_is_clear(t *testing.T) {
+	cpu := CreateCPU()
+	cpu.registers.OverflowFlag = 0
+	cpu.bvs(operation{relative, 0x5})
+
+	assert.Equal(t, Address(0x0), cpu.registers.Pc)
+}
+
+func TestBVS_overflow_is_set(t *testing.T) {
+	cpu := CreateCPU()
+	cpu.registers.OverflowFlag = 1
+	cpu.bvs(operation{relative, 0x5})
+
+	assert.Equal(t, Address(0x5), cpu.registers.Pc)
+}
+
+func TestCLC(t *testing.T) {
+	cpu := CreateCPU()
+	cpu.registers.CarryFlag = 1
+
+	cpu.clc(operation{implicit, 0x00})
+
+	assert.Zero(t, cpu.registers.CarryFlag)
+}
+
+func TestCLD(t *testing.T) {
+	cpu := CreateCPU()
+	cpu.registers.DecimalFlag = true
+
+	cpu.cld(operation{implicit, 0x00})
+
+	assert.False(t, cpu.registers.DecimalFlag)
+}
+
+func TestCLI(t *testing.T) {
+	cpu := CreateCPU()
+	cpu.registers.InterruptDisable = true
+
+	cpu.cli(operation{implicit, 0x00})
+
+	assert.False(t, cpu.registers.InterruptDisable)
+}
+
+func TestCLV(t *testing.T) {
+	cpu := CreateCPU()
+	cpu.registers.OverflowFlag = 1
+
+	cpu.clv(operation{implicit, 0x00})
+
+	assert.Zero(t, cpu.registers.OverflowFlag)
+}
+
+func TestCompareOperations(t *testing.T) {
+	cpu := CreateCPU()
+	cpu.registers.X = 0x10
+	cpu.registers.A = 0x10
+	cpu.registers.Y = 0x10
+
+	type dataProvider struct {
+		title            string
+		operand          byte
+		op               func(operation)
+		expectedCarry    byte
+		expectedZero     bool
+		expectedNegative bool
+	}
+
+	dps := [...]dataProvider{
+		{"A>M", byte(0x09), cpu.cmp, 1, false, false},
+		{"A<M", byte(0x15), cpu.cmp, 0, false, true},
+		{"A=M", byte(0x10), cpu.cmp, 1, true, false},
+		{"X>M", byte(0x09), cpu.cpx, 1, false, false},
+		{"X<M", byte(0x15), cpu.cpx, 0, false, true},
+		{"X=M", byte(0x10), cpu.cpx, 1, true, false},
+		{"Y>M", byte(0x09), cpu.cpy, 1, false, false},
+		{"Y<M", byte(0x15), cpu.cpy, 0, false, true},
+		{"Y=M", byte(0x10), cpu.cpy, 1, true, false},
+	}
+
+	for i := 0; i < len(dps); i++ {
+		dp := dps[i]
+
+		cpu.ram.write(0x00, dp.operand)
+
+		dp.op(operation{zeroPage, Address(0x00)})
+
+		assert.Equal(t, dp.expectedCarry, cpu.registers.CarryFlag, dp.title+": Carry")
+		assert.Equal(t, dp.expectedZero, cpu.registers.ZeroFlag, dp.title+": Zero")
+		assert.Equal(t, dp.expectedNegative, cpu.registers.NegativeFlag, dp.title+": Negative")
+	}
+}
+
+func TestDEC(t *testing.T) {
+	cpu := CreateCPU()
+
+	cpu.ram.write(0x0000, 0x02)
+
+	cpu.dec(operation{zeroPage, Address(0x0000)})
+
+	assert.Equal(t, byte(0x01), cpu.ram.read(0))
+	assert.Equal(t, false, cpu.registers.NegativeFlag)
+	assert.Equal(t, false, cpu.registers.ZeroFlag)
+
+	// Zero result
+	cpu.dec(operation{zeroPage, Address(0x0000)})
+
+	assert.Equal(t, byte(0x00), cpu.ram.read(0))
+	assert.Equal(t, false, cpu.registers.NegativeFlag)
+	assert.Equal(t, true, cpu.registers.ZeroFlag)
+
+	// Negative result
+	cpu.dec(operation{zeroPage, Address(0x0000)})
+
+	assert.Equal(t, byte(0xFF), cpu.ram.read(0))
+	assert.Equal(t, true, cpu.registers.NegativeFlag)
+	assert.Equal(t, false, cpu.registers.ZeroFlag)
+}
+
+func TestDECXY(t *testing.T) {
+	type dataProvider struct {
+		title            string
+		op               func(operation)
+		expectedX        byte
+		expectedY        byte
+		expectedZero     bool
+		expectedNegative bool
+	}
+
+	cpu := CreateCPU()
+	cpu.registers.X = 2
+	cpu.registers.Y = 2
+
+	dps := [...]dataProvider{
+		{"X=2", cpu.dex, 1, 2, false, false},
+		{"X=1", cpu.dex, 0, 2, true, false},
+		{"X=0", cpu.dex, 0xFF, 2, false, true},
+		{"Y=2", cpu.dey, 0xFF, 1, false, false},
+		{"Y=1", cpu.dey, 0xFF, 0, true, false},
+		{"Y=0", cpu.dey, 0xFF, 0xFF, false, true},
+	}
+
+	for i := 0; i < len(dps); i++ {
+		dp := dps[i]
+		msg := fmt.Sprintf("%s: Unexpected when value is X:%X Y:%X", dp.title, cpu.registers.X, cpu.registers.Y)
+
+		dp.op(operation{implicit, 0})
+		assert.Equal(t, dp.expectedX, cpu.registers.X, dp.title)
+		assert.Equal(t, dp.expectedY, cpu.registers.Y, dp.title)
+		assert.Equal(t, dp.expectedNegative, cpu.registers.NegativeFlag, msg)
+		assert.Equal(t, dp.expectedZero, cpu.registers.ZeroFlag, msg)
+	}
+}
+
+func TestEOR(t *testing.T) {
+	type dataProvider struct {
+		value            byte
+		a                byte
+		expectedA        byte
+		expectedZero     bool
+		expectedNegative bool
+	}
+	dps := [...]dataProvider{
+		{0x00, 0x00, 0x00, true, false},
+		{0x01, 0x00, 0x01, false, false},
+		{0x80, 0x00, 0x80, false, true},
+	}
+
+	cpu := CreateCPU()
+	for i := 0; i < len(dps); i++ {
+		dp := dps[i]
+		cpu.registers.A = dp.a
+		cpu.ram.write(0x05, dp.value)
+		cpu.eor(operation{immediate, 0x05})
+
+		assert.Equal(t, dp.expectedA, cpu.registers.A)
+		assert.Equal(t, dp.expectedZero, cpu.registers.ZeroFlag)
+		assert.Equal(t, dp.expectedNegative, cpu.registers.NegativeFlag)
+	}
+}
+
+func TestINC(t *testing.T) {
+	type dataProvider struct {
+		value            byte
+		expectedValue    byte
+		expectedZero     bool
+		expectedNegative bool
+	}
+	dps := [...]dataProvider{
+		{0x00, 0x01, false, false},
+		{0x7F, 0x80, false, true},
+		{0xFF, 0x00, true, false},
+	}
+
+	for i := 0; i < len(dps); i++ {
+		dp := dps[i]
+		cpu := CreateCPU()
+		cpu.ram.write(0x00, dp.value)
+
+		cpu.inc(operation{zeroPage, 0x00})
+		assert.Equal(t, dp.expectedValue, cpu.ram.read(0x00))
+		assert.Equal(t, dp.expectedNegative, cpu.registers.NegativeFlag)
+		assert.Equal(t, dp.expectedZero, cpu.registers.ZeroFlag)
+	}
+}
+
+func TestINX(t *testing.T) {
+	type dataProvider struct {
+		value            byte
+		expectedValue    byte
+		expectedZero     bool
+		expectedNegative bool
+	}
+	dps := [...]dataProvider{
+		{0x00, 0x01, false, false},
+		{0x7F, 0x80, false, true},
+		{0xFF, 0x00, true, false},
+	}
+
+	for i := 0; i < len(dps); i++ {
+		dp := dps[i]
+		cpu := CreateCPU()
+		cpu.registers.X = dp.value
+
+		cpu.inx(operation{zeroPage, 0x00})
+		assert.Equal(t, dp.expectedValue, cpu.registers.X)
+		assert.Equal(t, dp.expectedNegative, cpu.registers.NegativeFlag)
+		assert.Equal(t, dp.expectedZero, cpu.registers.ZeroFlag)
+	}
+}
+func TestINY(t *testing.T) {
+	type dataProvider struct {
+		value            byte
+		expectedValue    byte
+		expectedZero     bool
+		expectedNegative bool
+	}
+	dps := [...]dataProvider{
+		{0x00, 0x01, false, false},
+		{0x7F, 0x80, false, true},
+		{0xFF, 0x00, true, false},
+	}
+
+	for i := 0; i < len(dps); i++ {
+		dp := dps[i]
+		cpu := CreateCPU()
+		cpu.registers.Y = dp.value
+
+		cpu.iny(operation{zeroPage, 0x00})
+		assert.Equal(t, dp.expectedValue, cpu.registers.Y)
+		assert.Equal(t, dp.expectedNegative, cpu.registers.NegativeFlag)
+		assert.Equal(t, dp.expectedZero, cpu.registers.ZeroFlag)
+	}
+}
+
+func TestJMP(t *testing.T) {
+	cpu := CreateCPU()
+
+	cpu.jmp(operation{absolute, 0x100})
+
+	assert.Equal(t, Address(0x100), cpu.registers.Pc)
+}
+
+func TestJSR(t *testing.T) {
+	cpu := CreateCPU()
+	cpu.registers.Pc = 0x0204
+	cpu.ram.write(Address(0x201), 0x20) // Opcode
+	cpu.ram.write(Address(0x202), 0x55) // LSB
+	cpu.ram.write(Address(0x203), 0x05) // MSB
+	cpu.jsr(operation{absolute, 0x202})
+
+	assert.Equal(t, Address(0x0555), cpu.registers.Pc)
+	assert.Equal(t, byte(0x02), cpu.popStack())
+	assert.Equal(t, byte(0x01), cpu.popStack())
+}

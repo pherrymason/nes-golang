@@ -25,6 +25,12 @@ func (cpu *CPU) pushStack(value byte) {
 	cpu.registers.spPushed()
 }
 
+func (cpu *CPU) popStack() byte {
+	cpu.registers.spPopped()
+	address := cpu.registers.spAddress()
+	return cpu.ram.read(address)
+}
+
 type operation struct {
 	addressMode    AddressMode
 	operandAddress Address

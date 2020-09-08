@@ -210,12 +210,12 @@ func TestRelativeAddressMode(t *testing.T) {
 	ram := RAM{}
 
 	// Write Operand
-	//operand := signedByteToUnsignedByte(-3)
-	ram.write(0x10, 0x04)
+	ram.write(0x09, 0xFF) // OpCode
+	ram.write(0x10, 0x04) // Operand
 
 	result := evalRelative(AddressModeState{registers, &ram})
 
-	assert.Equal(t, Address(0x16), result)
+	assert.Equal(t, Address(0x15), result)
 }
 
 func TestRelativeAddressModeNegative(t *testing.T) {
@@ -228,9 +228,5 @@ func TestRelativeAddressModeNegative(t *testing.T) {
 
 	result := evalRelative(AddressModeState{registers, &ram})
 
-	assert.Equal(t, Address(0x0E), result)
-}
-
-func signedByteToUnsignedByte(value int8) byte {
-	return byte(uint8(value) + 128)
+	assert.Equal(t, Address(0x0D), result)
 }
