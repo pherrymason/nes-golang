@@ -689,3 +689,308 @@ func TestLSR(t *testing.T) {
 		assert.False(t, cpu.registers.NegativeFlag)
 	}
 }
+
+func TestORA(t *testing.T) {
+	type dataProvider struct {
+		a                byte
+		value            byte
+		expectedResult   byte
+		expectedZero     bool
+		expectedNegative bool
+	}
+	dataProviders := [...]dataProvider{
+		{0x00, 0x00, 0x00, true, false},
+		{0x80, 0x00, 0x80, false, true},
+	}
+
+	for i := 0; i < len(dataProviders); i++ {
+		dp := dataProviders[i]
+		cpu := CreateCPU()
+		cpu.registers.A = dp.a
+		cpu.ram.write(0x00, dp.value)
+
+		cpu.ora(operation{immediate, 0x00})
+
+		assert.Equal(t, dp.expectedResult, cpu.registers.A)
+		assert.Equal(t, dp.expectedZero, cpu.registers.ZeroFlag)
+		assert.Equal(t, dp.expectedNegative, cpu.registers.NegativeFlag)
+	}
+}
+
+func TestPHA(t *testing.T) {
+	cpu := CreateCPU()
+	cpu.registers.A = 0x30
+	cpu.pha(operation{implicit, 0x00})
+
+	assert.Equal(t, byte(0x30), cpu.popStack())
+}
+
+func TestPHP(t *testing.T) {
+	cpu := CreateCPU()
+	cpu.registers.NegativeFlag = true
+	cpu.registers.ZeroFlag = true
+	cpu.registers.CarryFlag = 1
+	cpu.registers.OverflowFlag = 1
+	cpu.registers.InterruptDisable = true
+	cpu.registers.DecimalFlag = true
+	cpu.registers.BreakCommand = true
+
+	cpu.php(operation{implicit, 0x00})
+
+	assert.Equal(t, byte(0xFF), cpu.popStack())
+}
+
+func TestPLA(t *testing.T) {
+	type dataProvider struct {
+		pulledValue      byte
+		expectedNegative bool
+		expectedZero     bool
+	}
+
+	dataProviders := [...]dataProvider{
+		{0x00, false, true},
+		{0x80, true, false},
+		{0x20, false, false},
+	}
+
+	for i := 0; i < len(dataProviders); i++ {
+		dp := dataProviders[i]
+		cpu := CreateCPU()
+		cpu.pushStack(dp.pulledValue)
+
+		cpu.pla(operation{implicit, 0x00})
+
+		assert.Equal(t, dp.pulledValue, cpu.registers.A)
+		assert.Equal(t, dp.expectedNegative, cpu.registers.NegativeFlag)
+		assert.Equal(t, dp.expectedZero, cpu.registers.ZeroFlag)
+		assert.Equal(t, byte(0xFF), cpu.registers.Sp)
+	}
+}
+
+func TestPLP(t *testing.T) {
+	cpu := CreateCPU()
+	cpu.pushStack(0xFF)
+
+	cpu.plp(operation{implicit, 0x00})
+
+	assert.True(t, cpu.registers.NegativeFlag)
+	assert.True(t, cpu.registers.ZeroFlag)
+	assert.True(t, cpu.registers.InterruptDisable)
+	assert.True(t, cpu.registers.BreakCommand)
+	assert.True(t, cpu.registers.DecimalFlag)
+	assert.Equal(t, byte(1), cpu.registers.OverflowFlag)
+	assert.Equal(t, byte(1), cpu.registers.CarryFlag)
+	assert.Equal(t, byte(0xFF), cpu.registers.Sp)
+}
+
+func TestROL(t *testing.T) {
+	type dataProvider struct {
+		addressingMode   AddressMode
+		value            byte
+		carry            byte
+		expectedResult   byte
+		expectedZero     bool
+		expectedNegative bool
+		expectedCarry    byte
+	}
+	dataProviders := [...]dataProvider{
+		{accumulator, 0b00000000, 0, 0, true, false, 0},
+		{accumulator, 0b00000000, 1, 1, false, false, 0},
+		{accumulator, 0b00000001, 0, 0b10, false, false, 0},
+		{accumulator, 0b10000000, 0, 0, true, false, 1},
+		{accumulator, 0b01000000, 0, 0x80, false, true, 0},
+
+		{zeroPage, 0b00000000, 0, 0, true, false, 0},
+		{zeroPage, 0b00000000, 1, 1, false, false, 0},
+		{zeroPage, 0b00000001, 0, 0b10, false, false, 0},
+		{zeroPage, 0b10000000, 0, 0, true, false, 1},
+		{zeroPage, 0b01000000, 0, 0x80, false, true, 0},
+	}
+
+	for i := 0; i < len(dataProviders); i++ {
+		dp := dataProviders[i]
+		cpu := CreateCPU()
+		cpu.registers.A = dp.value
+		cpu.registers.CarryFlag = dp.carry
+		cpu.ram.write(Address(0x00), dp.value)
+
+		cpu.rol(operation{dp.addressingMode, 0x00})
+
+		if dp.addressingMode == accumulator {
+			assert.Equal(t, dp.expectedResult, cpu.registers.A)
+		} else {
+			assert.Equal(t, dp.expectedResult, cpu.ram.read(0x00))
+		}
+		assert.Equal(t, dp.expectedCarry, cpu.registers.CarryFlag)
+		assert.Equal(t, dp.expectedZero, cpu.registers.ZeroFlag, fmt.Sprintf("Iteration[%d] unexpected ZeroFlag", i))
+		assert.Equal(t, dp.expectedNegative, cpu.registers.NegativeFlag, fmt.Sprintf("Iteration[%d] unexpected Negative", i))
+		assert.Equal(t, dp.expectedCarry, cpu.registers.CarryFlag)
+	}
+}
+
+func TestROR(t *testing.T) {
+	type dataProvider struct {
+		addressingMode   AddressMode
+		value            byte
+		carry            byte
+		expectedResult   byte
+		expectedZero     bool
+		expectedNegative bool
+		expectedCarry    byte
+	}
+	dataProviders := [...]dataProvider{
+		{accumulator, 0b00000000, 0, 0, true, false, 0},
+		{accumulator, 0b00000001, 0, 0, true, false, 1},
+		{accumulator, 0b00000000, 1, 0x80, false, true, 0},
+		{accumulator, 0b10000000, 0, 0x40, false, false, 0},
+		{accumulator, 0b10000001, 1, 0xC0, false, true, 1},
+
+		{zeroPage, 0b00000000, 0, 0, true, false, 0},
+		{zeroPage, 0b00000001, 0, 0, true, false, 1},
+		{zeroPage, 0b00000000, 1, 0x80, false, true, 0},
+		{zeroPage, 0b10000000, 0, 0x40, false, false, 0},
+		{zeroPage, 0b10000001, 1, 0xC0, false, true, 1},
+	}
+
+	for i := 0; i < len(dataProviders); i++ {
+		dp := dataProviders[i]
+		cpu := CreateCPU()
+		cpu.registers.A = dp.value
+		cpu.registers.CarryFlag = dp.carry
+		cpu.ram.write(Address(0x00), dp.value)
+
+		cpu.ror(operation{dp.addressingMode, 0x00})
+
+		if dp.addressingMode == accumulator {
+			assert.Equal(t, dp.expectedResult, cpu.registers.A)
+		} else {
+			assert.Equal(t, dp.expectedResult, cpu.ram.read(0x00))
+		}
+		assert.Equal(t, dp.expectedCarry, cpu.registers.CarryFlag)
+		assert.Equal(t, dp.expectedZero, cpu.registers.ZeroFlag, fmt.Sprintf("Iteration[%d] unexpected ZeroFlag", i))
+		assert.Equal(t, dp.expectedNegative, cpu.registers.NegativeFlag, fmt.Sprintf("Iteration[%d] unexpected Negative", i))
+		assert.Equal(t, dp.expectedCarry, cpu.registers.CarryFlag)
+	}
+}
+
+func TestRTI(t *testing.T) {
+	cpu := CreateCPU()
+	// Push an Address into Stack
+	expectedProgramCounter := Address(0x532)
+	cpu.pushStack(byte(expectedProgramCounter & 0xFF))
+	cpu.pushStack(byte(expectedProgramCounter >> 8))
+	// Push a StatusRegister into stack
+	cpu.pushStack(0xFF)
+
+	cpu.rti(operation{implicit, 0xFF})
+
+	assert.Equal(t, expectedProgramCounter, cpu.registers.Pc)
+	assert.True(t, cpu.registers.ZeroFlag)
+	assert.True(t, cpu.registers.NegativeFlag)
+	assert.True(t, cpu.registers.DecimalFlag)
+	assert.True(t, cpu.registers.InterruptDisable)
+	assert.True(t, cpu.registers.BreakCommand)
+	assert.Equal(t, byte(1), cpu.registers.CarryFlag)
+	assert.Equal(t, byte(1), cpu.registers.OverflowFlag)
+}
+
+func TestRTS(t *testing.T) {
+	cpu := CreateCPU()
+	// Push an Address into Stack
+	expectedProgramCounter := Address(0x532)
+	cpu.pushStack(byte(expectedProgramCounter & 0xFF))
+	cpu.pushStack(byte(expectedProgramCounter >> 8))
+
+	cpu.rts(operation{implicit, 0x00})
+
+	assert.Equal(t, expectedProgramCounter, cpu.registers.Pc)
+}
+
+func TestSBC(t *testing.T) {
+	type dataProvider struct {
+		a     byte
+		value byte
+		carry byte
+
+		expectedResult   byte
+		expectedZero     bool
+		expectedNegative bool
+		expectedCarry    byte
+		expectedOverflow byte
+	}
+	// Fixtures taken from http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html (section SBC)
+	// TODO: Improve these fixtures by adding more (if really needed)
+	dataProviders := [...]dataProvider{
+		{0x01, 1, 1, 0, true, false, 1, 0},
+		{0x50, 0xF0, 1, 0x60, false, false, 0, 0},
+		{0x50, 0xB0, 1, 0xA0, false, true, 0, 1},
+		{0x50, 0x70, 1, 0xE0, false, true, 0, 0},
+	}
+
+	for i := 0; i < len(dataProviders); i++ {
+		dp := dataProviders[i]
+		cpu := CreateCPU()
+		cpu.registers.A = dp.a
+		cpu.registers.CarryFlag = dp.carry
+		cpu.ram.write(0x00, dp.value)
+
+		cpu.sbc(operation{immediate, 0x00})
+
+		assert.Equal(t, dp.expectedResult, cpu.registers.A, "Invalid subtraction result")
+		assert.Equal(t, dp.expectedCarry, cpu.registers.CarryFlag, "Invalid CarryFlag")
+		assert.Equal(t, dp.expectedZero, cpu.registers.ZeroFlag, "Invalid zeroflag")
+		assert.Equal(t, dp.expectedNegative, cpu.registers.NegativeFlag, "Invalid negative Flag")
+		assert.Equal(t, dp.expectedOverflow, cpu.registers.OverflowFlag, "Invalid Overflow Flag")
+	}
+}
+
+func TestSEC(t *testing.T) {
+	cpu := CreateCPU()
+
+	cpu.sec(operation{implicit, 0x00})
+
+	assert.Equal(t, byte(1), cpu.registers.CarryFlag)
+}
+
+func TestSED(t *testing.T) {
+	cpu := CreateCPU()
+
+	cpu.sed(operation{implicit, 0x00})
+
+	assert.True(t, cpu.registers.DecimalFlag)
+}
+
+func TestSEI(t *testing.T) {
+	cpu := CreateCPU()
+
+	cpu.sei(operation{implicit, 0x00})
+
+	assert.True(t, cpu.registers.InterruptDisable)
+}
+
+func TestSTA(t *testing.T) {
+	cpu := CreateCPU()
+	cpu.registers.A = 0xFF
+
+	cpu.sta(operation{implicit, 0x522})
+
+	assert.Equal(t, byte(0xFF), cpu.ram.read(0x522))
+}
+
+func TestSTX(t *testing.T) {
+	cpu := CreateCPU()
+	cpu.registers.X = 0xFF
+
+	cpu.stx(operation{implicit, 0x522})
+
+	assert.Equal(t, byte(0xFF), cpu.ram.read(0x522))
+}
+
+func TestSTY(t *testing.T) {
+	cpu := CreateCPU()
+	cpu.registers.Y = 0xFF
+
+	cpu.sty(operation{implicit, 0x522})
+
+	assert.Equal(t, byte(0xFF), cpu.ram.read(0x522))
+}

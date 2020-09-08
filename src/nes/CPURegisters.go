@@ -148,6 +148,17 @@ func (registers *CPURegisters) statusRegister() byte {
 	return value
 }
 
+func (registers *CPURegisters) loadStatusRegister(value byte) {
+	registers.CarryFlag = value & 0x01
+	registers.ZeroFlag = (value & 0x02) == 0x02
+	registers.InterruptDisable = value&0x04 == 0x04
+	registers.DecimalFlag = value&0x08 == 0x08
+	registers.BreakCommand = value&0x10 == 0x10
+
+	registers.OverflowFlag = value & 0x40 >> 6
+	registers.NegativeFlag = value&0x80 == 0x80
+}
+
 // CreateRegisters creates a properly initialized CPU Register
 func CreateRegisters() CPURegisters {
 	return CPURegisters{

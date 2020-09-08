@@ -18,6 +18,9 @@ package nes
      absolute,Y    ADC oper,Y    79    3     4*
      (indirect,X)  ADC (oper,X)  61    2     6
 	 (indirect),Y  ADC (oper),Y  71    2     5*
+
+	http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
+	https://forums.nesdev.com/viewtopic.php?t=6331
 */
 func (cpu *CPU) adc(info operation) {
 	carryIn := cpu.registers.CarryFlag
@@ -654,72 +657,281 @@ func (cpu *CPU) lsr(info operation) {
 	}
 }
 
+/*
+	NOP  No Operation
+	---                           N Z C I D V
+								  - - - - - -
+
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	implied       NOP           EA    1     2
+*/
 func (cpu *CPU) nop(info operation) {
 
 }
 
+/*
+	ORA  OR Memory with Accumulator
+	A OR M -> A               N Z C I D V
+							  + + - - - -
+
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	immidiate     ORA #oper     09    2     2
+	zeropage      ORA oper      05    2     3
+	zeropage,X    ORA oper,X    15    2     4
+	absolute      ORA oper      0D    3     4
+	absolute,X    ORA oper,X    1D    3     4*
+	absolute,Y    ORA oper,Y    19    3     4*
+	(indirect,X)  ORA (oper,X)  01    2     6
+	(indirect),Y  ORA (oper),Y  11    2     5*
+*/
 func (cpu *CPU) ora(info operation) {
-
+	value := cpu.ram.read(info.operandAddress)
+	cpu.registers.A |= value
+	cpu.registers.ZeroFlag = cpu.registers.A == 0
+	cpu.registers.NegativeFlag = cpu.registers.A&0x80 == 0x80
 }
 
+/*
+	PHA  Push Accumulator on Stack
+	push A                        N Z C I D V
+								  - - - - - -
+
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	implied       PHA           48    1     3
+*/
 func (cpu *CPU) pha(info operation) {
-
+	cpu.pushStack(cpu.registers.A)
 }
 
+/*
+	PHP  Push Processor Status on Stack
+	push SR                       N Z C I D V
+								  - - - - - -
+
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	implied       PHP           08    1     3
+*/
 func (cpu *CPU) php(info operation) {
-
+	value := cpu.registers.statusRegister()
+	cpu.pushStack(value)
 }
 
+/*
+	PLA  Pull Accumulator from Stack
+	pull A                        N Z C I D V
+								  + + - - - -
+
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	implied       PLA           68    1     4
+*/
 func (cpu *CPU) pla(info operation) {
-
+	cpu.registers.A = cpu.popStack()
+	cpu.registers.updateNegativeFlag(cpu.registers.A)
+	cpu.registers.updateZeroFlag(cpu.registers.A)
 }
 
+/*
+	PLP  Pull Processor Status from Stack
+	pull SR                       N Z C I D V
+								  from stack
+
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	implied       PLP           28    1     4
+*/
 func (cpu *CPU) plp(info operation) {
+	value := cpu.popStack()
 
+	cpu.registers.loadStatusRegister(value)
 }
 
+/*
+	ROL  Rotate One Bit Left (Memory or Accumulator)
+	C <- [76543210] <- C          N Z C I D V
+								  + + + - - -
+
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	accumulator   ROL A         2A    1     2
+	zeropage      ROL oper      26    2     5
+	zeropage,X    ROL oper,X    36    2     6
+	absolute      ROL oper      2E    3     6
+	absolute,X    ROL oper,X    3E    3     7
+*/
 func (cpu *CPU) rol(info operation) {
+	var newCarry byte
+	var value byte
+	if info.addressMode == accumulator {
+		newCarry = cpu.registers.A & 0x80 >> 7
+		cpu.registers.A <<= 1
+		cpu.registers.A |= cpu.registers.CarryFlag
+		value = cpu.registers.A
+	} else {
+		value = cpu.ram.read(info.operandAddress)
+		newCarry = value & 0x80 >> 7
+		value <<= 1
+		value |= cpu.registers.CarryFlag
+		cpu.ram.write(info.operandAddress, value)
+	}
 
+	cpu.registers.updateNegativeFlag(value)
+	cpu.registers.updateZeroFlag(value)
+	cpu.registers.CarryFlag = newCarry
 }
 
+/*
+	ROR  Rotate One Bit Right (Memory or Accumulator)
+	C -> [76543210] -> C          N Z C I D V
+								  + + + - - -
+
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	accumulator   ROR A         6A    1     2
+	zeropage      ROR oper      66    2     5
+	zeropage,X    ROR oper,X    76    2     6
+	absolute      ROR oper      6E    3     6
+	absolute,X    ROR oper,X    7E    3     7
+*/
 func (cpu *CPU) ror(info operation) {
+	var newCarry byte
+	var value byte
+	if info.addressMode == accumulator {
+		newCarry = cpu.registers.A & 0x01
+		cpu.registers.A >>= 1
+		cpu.registers.A |= cpu.registers.CarryFlag << 7
+		value = cpu.registers.A
+	} else {
+		value = cpu.ram.read(info.operandAddress)
+		newCarry = value & 0x01
+		value >>= 1
+		value |= cpu.registers.CarryFlag << 7
+		cpu.ram.write(info.operandAddress, value)
+	}
 
+	cpu.registers.updateNegativeFlag(value)
+	cpu.registers.updateZeroFlag(value)
+	cpu.registers.CarryFlag = newCarry
 }
 
+/*
+	RTI  Return from Interrupt
+
+	pull SR, pull PC              N Z C I D V
+								  from stack
+
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	implied       RTI           40    1     6
+*/
 func (cpu *CPU) rti(info operation) {
+	statusRegister := cpu.popStack()
+	cpu.registers.loadStatusRegister(statusRegister)
 
+	msb := cpu.popStack()
+	lsb := cpu.popStack()
+	cpu.registers.Pc = CreateAddress(lsb, msb)
 }
 
+/*
+	RTS  Return from Subroutine
+	pull PC, PC+1 -> PC           N Z C I D V
+								  - - - - - -
+
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	implied       RTS           60    1     6
+*/
 func (cpu *CPU) rts(info operation) {
-
+	msb := cpu.popStack()
+	lsb := cpu.popStack()
+	cpu.registers.Pc = CreateAddress(lsb, msb)
 }
 
+/*
+	SBC  Subtract Memory from Accumulator with Borrow
+	A - M - C -> A                N Z C I D V
+								  + + + - - +
+
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	immidiate     SBC #oper     E9    2     2
+	zeropage      SBC oper      E5    2     3
+	zeropage,X    SBC oper,X    F5    2     4
+	absolute      SBC oper      ED    3     4
+	absolute,X    SBC oper,X    FD    3     4*
+	absolute,Y    SBC oper,Y    F9    3     4*
+	(indirect,X)  SBC (oper,X)  E1    2     6
+	(indirect),Y  SBC (oper),Y  F1    2     5*
+*/
 func (cpu *CPU) sbc(info operation) {
+	value := cpu.ram.read(info.operandAddress)
+	borrow := (1 - cpu.registers.CarryFlag) & 0x01 // == !CarryFlag
+	a := cpu.registers.A
+	result := a - value - borrow
+	cpu.registers.A = result
 
+	cpu.registers.updateZeroFlag(byte(result))
+	cpu.registers.updateNegativeFlag(byte(result))
+
+	// Set overflow flag
+	if (a^cpu.registers.A)&0x80 != 0 && (a^value)&0x80 != 0 {
+		cpu.registers.OverflowFlag = 1
+	} else {
+		cpu.registers.OverflowFlag = 0
+	}
+
+	if int(a)-int(value)-int(borrow) < 0 {
+		cpu.registers.CarryFlag = 0
+	} else {
+		cpu.registers.CarryFlag = 1
+	}
 }
 
+/*
+	SEC  Set Carry Flag
+	1 -> C                        N Z C I D V
+								  - - 1 - - -
+
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	implied       SEC           38    1     2
+*/
 func (cpu *CPU) sec(info operation) {
-
+	cpu.registers.CarryFlag = 1
 }
 
-func (cpu *CPU) sed(info operation) {
+/*
+	SED  Set Decimal Flag
+	1 -> D                    N Z C I D V
+							  - - - - 1 -
 
+	addressing    assembler    opc  bytes  cyles
+	--------------------------------------------
+	implied       SED           F8    1     2
+*/
+func (cpu *CPU) sed(info operation) {
+	cpu.registers.DecimalFlag = true
 }
 
 func (cpu *CPU) sei(info operation) {
-
+	cpu.registers.InterruptDisable = true
 }
 
 func (cpu *CPU) sta(info operation) {
-
+	cpu.ram.write(info.operandAddress, cpu.registers.A)
 }
 
 func (cpu *CPU) stx(info operation) {
-
+	cpu.ram.write(info.operandAddress, cpu.registers.X)
 }
 
 func (cpu *CPU) sty(info operation) {
-
+	cpu.ram.write(info.operandAddress, cpu.registers.Y)
 }
 
 func (cpu *CPU) tax(info operation) {
