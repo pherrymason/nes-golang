@@ -1,6 +1,10 @@
 package nes
 
 // --- Operations
+type operation struct {
+	addressMode    AddressMode
+	operandAddress Address
+}
 
 /*
 	ADC  Add Memory to Accumulator with Carry
@@ -59,8 +63,8 @@ func (cpu *CPU) adc(info operation) {
 //	(Indirect, X) 		AND (Operand, X)	 	21 		2 			6
 //	(Indirect), Y 		AND (Operand), Y 		31 		2 			5*
 //	* Add 1 if page boundary is crossed.
-func (cpu *CPU) and(operandAddress Address) {
-	cpu.registers.A &= cpu.read(operandAddress)
+func (cpu *CPU) and(info operation) {
+	cpu.registers.A &= cpu.read(info.operandAddress)
 	cpu.registers.updateNegativeFlag(cpu.registers.A)
 	cpu.registers.updateZeroFlag(cpu.registers.A)
 }

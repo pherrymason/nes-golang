@@ -29,9 +29,9 @@ func TestAND(t *testing.T) {
 		cpu.write(0x100, dp.operand)
 		cpu.registers.A = dp.A
 
-		cpu.and(0x100)
+		cpu.and(operation{immediate, 0x100})
 
-		assert.Equal(t, byte(dp.expectedA), cpu.registers.A, fmt.Sprintf("Iteration %d failed, unexpected register A result", i))
+		assert.Equal(t, dp.expectedA, cpu.registers.A, fmt.Sprintf("Iteration %d failed, unexpected register A result", i))
 		assert.Equal(t, dp.expectedNegativeFlag, cpu.registers.negativeFlag(), fmt.Sprintf("Iteration %d failed, unexpected NegativeFlag result", i))
 		assert.Equal(t, dp.expectedZeroFlag, cpu.registers.zeroFlag(), fmt.Sprintf("Iteration %d failed, unexpected ZeroFlag result", i))
 	}
