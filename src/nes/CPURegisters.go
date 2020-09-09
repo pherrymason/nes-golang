@@ -46,23 +46,6 @@ type CPURegisters struct {
 
 	// Status Processor
 	Status byte
-
-	// Unsigned overflow
-	//CarryFlag byte
-	//
-	//ZeroFlag bool
-	//
-	//InterruptDisable bool
-	//
-	//DecimalFlag bool
-	//
-	//BreakCommand bool
-	//
-	//// Signed overflow
-	//OverflowFlag byte
-	//
-	//// Processor Status flag
-	//NegativeFlag bool
 }
 
 func (registers *CPURegisters) reset() {

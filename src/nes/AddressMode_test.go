@@ -139,7 +139,7 @@ func TestPreIndexedIndirect(t *testing.T) {
 	// Write Offset Table
 	bus.write(0x0014, 0x25)
 
-	result := evalPreIndexedIndirect(AddressModeState{registers, &bus})
+	result := evalIndirectX(AddressModeState{registers, &bus})
 
 	expected := Address(0x0025)
 	assert.Equal(t, expected, result)
@@ -156,7 +156,7 @@ func TestPreIndexedIndirectWithWrapAround(t *testing.T) {
 	// Write Offset Table
 	bus.write(0x000F, 0x10)
 
-	result := evalPreIndexedIndirect(AddressModeState{registers, &bus})
+	result := evalIndirectX(AddressModeState{registers, &bus})
 
 	expected := Address(0x0010)
 	assert.Equal(t, expected, result)
@@ -180,7 +180,7 @@ func TestPostIndexedIndirect(t *testing.T) {
 	// Offset pointer
 	bus.write(0x0025, byte(expected))
 
-	result := evalPostIndexedIndirect(AddressModeState{registers, &bus})
+	result := evalIndirectY(AddressModeState{registers, &bus})
 
 	assert.Equal(t, expected, result)
 }
@@ -204,7 +204,7 @@ func TestPostIndexedIndirectWithWrapAround(t *testing.T) {
 	// Offset pointer
 	bus.write(0x000A, byte(expected))
 
-	result := evalPostIndexedIndirect(AddressModeState{registers, &bus})
+	result := evalIndirectY(AddressModeState{registers, &bus})
 
 	assert.Equal(t, expected, result)
 }

@@ -1,5 +1,12 @@
 package nes
 
+type instruction struct {
+	name        string
+	addressMode AddressMode
+	method      func(info operation)
+	cycles      byte
+}
+
 // --- Operations
 type operation struct {
 	addressMode    AddressMode

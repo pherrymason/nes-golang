@@ -14,8 +14,8 @@ const (
 	absoluteXIndexed
 	absoluteYIndexed
 	indirect
-	preIndexedIndirect
-	postIndexedIndirect
+	indirectX
+	indirectY
 	relative
 )
 
@@ -110,7 +110,7 @@ func evalIndirect(state AddressModeState) Address {
 	return Address(finalAddress)
 }
 
-func evalPreIndexedIndirect(state AddressModeState) Address {
+func evalIndirectX(state AddressModeState) Address {
 	registers := state.registers
 	bus := state.bus
 
@@ -122,7 +122,7 @@ func evalPreIndexedIndirect(state AddressModeState) Address {
 	return Address(finalAddress)
 }
 
-func evalPostIndexedIndirect(state AddressModeState) Address {
+func evalIndirectY(state AddressModeState) Address {
 	registers := state.registers
 	bus := state.bus
 
