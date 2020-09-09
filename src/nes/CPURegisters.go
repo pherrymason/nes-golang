@@ -1,21 +1,17 @@
 package nes
 
-type StatusRegister struct {
-	// Unsigned overflow
-	CarryFlag byte
+type StatusRegisterFlag int
 
-	ZeroFlag bool
-
-	InterruptDisable bool
-
-	BreakCommand bool
-
-	// Signed overflow
-	OverflowFlag byte
-
-	// Processor Status flag
-	NegativeFlag bool
-}
+const (
+	carryFlag StatusRegisterFlag = iota
+	zeroFlag
+	interruptFlag
+	decimalFlag
+	breakCommandFlag
+	unusedFlag
+	overflowFlag
+	negativeFlag
+)
 
 // CPURegisters is a representation of the registers of the NES cpu
 type CPURegisters struct {
@@ -49,22 +45,24 @@ type CPURegisters struct {
 	Sp byte
 
 	// Status Processor
+	Status byte
+
 	// Unsigned overflow
-	CarryFlag byte
-
-	ZeroFlag bool
-
-	InterruptDisable bool
-
-	DecimalFlag bool
-
-	BreakCommand bool
-
-	// Signed overflow
-	OverflowFlag byte
-
-	// Processor Status flag
-	NegativeFlag bool
+	//CarryFlag byte
+	//
+	//ZeroFlag bool
+	//
+	//InterruptDisable bool
+	//
+	//DecimalFlag bool
+	//
+	//BreakCommand bool
+	//
+	//// Signed overflow
+	//OverflowFlag byte
+	//
+	//// Processor Status flag
+	//NegativeFlag bool
 }
 
 func (registers *CPURegisters) reset() {
@@ -73,20 +71,14 @@ func (registers *CPURegisters) reset() {
 	registers.Y = 0x00
 	registers.Sp = 0xFF
 	registers.Pc = Address(0x0000)
-
-	registers.CarryFlag = 0
-	registers.ZeroFlag = false
-	registers.InterruptDisable = false
-	registers.BreakCommand = false
-	registers.OverflowFlag = 0
-	registers.NegativeFlag = false
+	registers.Status = 0x20
 }
 
-func (registers *CPURegisters) spAddress() Address {
+func (registers *CPURegisters) stackPointerAddress() Address {
 	return Address(0x100 + uint16(registers.Sp))
 }
 
-func (registers *CPURegisters) spPushed() {
+func (registers *CPURegisters) stackPointerPushed() {
 	if registers.Sp > 0x00 {
 		registers.Sp--
 	} else {
@@ -94,41 +86,95 @@ func (registers *CPURegisters) spPushed() {
 	}
 }
 
-func (registers *CPURegisters) spPopped() {
+func (registers *CPURegisters) stackPointerPopped() {
 	if registers.Sp < 0xFF {
 		registers.Sp++
 	}
 }
 
+// Status register getters
+func (registers *CPURegisters) carryFlag() byte {
+	return registers.Status & 0x01
+}
+
+func (registers *CPURegisters) zeroFlag() byte {
+	return registers.Status & 0x02 >> 1
+}
+
+func (registers *CPURegisters) interruptFlag() byte {
+	return registers.Status & 0x04 >> 2
+}
+
+func (registers *CPURegisters) decimalFlag() byte {
+	return registers.Status & 0x08 >> 3
+}
+
+func (registers *CPURegisters) breakFlag() byte {
+	return registers.Status & 0x10 >> 4
+}
+
+func (registers *CPURegisters) overflowFlag() byte {
+	return registers.Status & 0x40 >> 6
+}
+
+func (registers *CPURegisters) negativeFlag() byte {
+	return registers.Status & 0x80 >> 7
+}
+
 func (registers *CPURegisters) updateNegativeFlag(value byte) {
-	registers.NegativeFlag = value&0x80 == 0x80
+	//registers.NegativeFlag = value&0x80 == 0x80
+	if value&0x80 == 0x80 {
+		registers.Status |= 1 << negativeFlag
+	} else {
+		registers.Status &= 0b01111111
+	}
 }
 
 func (registers *CPURegisters) updateZeroFlag(value byte) {
-	registers.ZeroFlag = value == 0x00
+	if value == 0x00 {
+		registers.Status |= 1 << zeroFlag
+	} else {
+		registers.Status &= 0b11111101
+	}
+}
+
+func (registers *CPURegisters) updateFlag(flag StatusRegisterFlag, state byte) {
+	if state == 1 {
+		registers.Status |= 1 << flag
+	} else {
+		registers.Status &= ^(1 << flag)
+	}
+}
+
+func (registers *CPURegisters) setFlag(flag StatusRegisterFlag) {
+	registers.Status |= 1 << flag
+}
+
+func (registers *CPURegisters) unsetFlag(flag StatusRegisterFlag) {
+	registers.Status &= ^(1 << flag)
 }
 
 func (registers *CPURegisters) statusRegister() byte {
 	var value byte = 0x00
 
-	if registers.CarryFlag == 1 {
+	if registers.carryFlag() == 1 {
 		value |= 0x01
 	}
 
-	if registers.ZeroFlag {
+	if registers.zeroFlag() == 1 {
 		value |= 0x02
 	}
 
-	if registers.InterruptDisable {
+	if registers.interruptFlag() == 1 {
 		value |= 0x04
 	}
 
 	// Decimal mode
-	if registers.DecimalFlag {
+	if registers.decimalFlag() == 1 {
 		value |= 0x08
 	}
 
-	if registers.BreakCommand {
+	if registers.breakFlag() == 1 {
 		value |= 0x10
 	}
 
@@ -136,12 +182,12 @@ func (registers *CPURegisters) statusRegister() byte {
 	value |= 0x20
 
 	// Signed overflow
-	if registers.OverflowFlag == 1 {
+	if registers.overflowFlag() == 1 {
 		value |= 0x40
 	}
 
 	// Processor Status flag
-	if registers.NegativeFlag {
+	if registers.negativeFlag() == 1 {
 		value |= 0x80
 	}
 
@@ -149,14 +195,7 @@ func (registers *CPURegisters) statusRegister() byte {
 }
 
 func (registers *CPURegisters) loadStatusRegister(value byte) {
-	registers.CarryFlag = value & 0x01
-	registers.ZeroFlag = (value & 0x02) == 0x02
-	registers.InterruptDisable = value&0x04 == 0x04
-	registers.DecimalFlag = value&0x08 == 0x08
-	registers.BreakCommand = value&0x10 == 0x10
-
-	registers.OverflowFlag = value & 0x40 >> 6
-	registers.NegativeFlag = value&0x80 == 0x80
+	registers.Status = value
 }
 
 // CreateRegisters creates a properly initialized CPU Register
@@ -168,12 +207,6 @@ func CreateRegisters() CPURegisters {
 		0x0000, // Program Counter
 		0xFF,   // Stack Pointer
 
-		0,     // Carry Flag
-		false, // Zero Flag
-		false, // Interrupt Disable
-		false, // Break Command
-		false, // Decimal Flag
-		0,     // Overflow Flag
-		false, // Negative Flag
+		0x20,
 	}
 }

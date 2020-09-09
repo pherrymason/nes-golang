@@ -29,24 +29,24 @@ func TestPushIntoStackWrapsAround(t *testing.T) {
 func TestGetStatusRegister(t *testing.T) {
 	cpu := CreateCPU()
 
-	cpu.registers.CarryFlag = 1
-	assert.Equal(t, byte(0x21), cpu.registers.statusRegister())
+	cpu.registers.setFlag(carryFlag)
+	assert.Equal(t, byte(0x21), cpu.registers.Status)
 
-	cpu.registers.ZeroFlag = true
-	assert.Equal(t, byte(0x23), cpu.registers.statusRegister())
+	cpu.registers.setFlag(zeroFlag)
+	assert.Equal(t, byte(0x23), cpu.registers.Status)
 
-	cpu.registers.InterruptDisable = true
-	assert.Equal(t, byte(0x27), cpu.registers.statusRegister())
+	cpu.registers.setFlag(interruptFlag)
+	assert.Equal(t, byte(0x27), cpu.registers.Status)
 
-	cpu.registers.DecimalFlag = true
-	assert.Equal(t, byte(0x2F), cpu.registers.statusRegister())
+	cpu.registers.setFlag(decimalFlag)
+	assert.Equal(t, byte(0x2F), cpu.registers.Status)
 
-	cpu.registers.BreakCommand = true
-	assert.Equal(t, byte(0x3F), cpu.registers.statusRegister())
+	cpu.registers.setFlag(breakCommandFlag)
+	assert.Equal(t, byte(0x3F), cpu.registers.Status)
 
-	cpu.registers.OverflowFlag = 1
-	assert.Equal(t, byte(0x7F), cpu.registers.statusRegister())
+	cpu.registers.setFlag(overflowFlag)
+	assert.Equal(t, byte(0x7F), cpu.registers.Status)
 
-	cpu.registers.NegativeFlag = true
-	assert.Equal(t, byte(0xFF), cpu.registers.statusRegister())
+	cpu.registers.setFlag(negativeFlag)
+	assert.Equal(t, byte(0xFF), cpu.registers.Status)
 }

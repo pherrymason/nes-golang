@@ -1,7 +1,10 @@
 package nes
 
 type Bus struct {
-	ram *RAM
+	ram *RAM // is $0000 -> $07FF
+	// APU $4000 -> $4017
+	// Cartridge -> $4020 -> $FFFF
+	// PPU -> $2000 -> $2007
 }
 
 func (bus *Bus) read(address Address) byte {

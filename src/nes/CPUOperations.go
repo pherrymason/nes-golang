@@ -22,28 +22,28 @@ package nes
 	https://forums.nesdev.com/viewtopic.php?t=6331
 */
 func (cpu *CPU) adc(info operation) {
-	carryIn := cpu.registers.CarryFlag
+	carryIn := cpu.registers.carryFlag()
 	a := cpu.registers.A
 	value := cpu.read(info.operandAddress)
 	adc := uint16(a) + uint16(value) + uint16(carryIn)
-	adc8 := cpu.registers.A + value + cpu.registers.CarryFlag
+	adc8 := cpu.registers.A + value + cpu.registers.carryFlag()
 
 	cpu.registers.A = adc8
 	cpu.registers.updateNegativeFlag(cpu.registers.A)
 	cpu.registers.updateZeroFlag(cpu.registers.A)
 
 	if (adc) > 0xFF {
-		cpu.registers.CarryFlag = 1
+		cpu.registers.setFlag(carryFlag)
 	} else {
-		cpu.registers.CarryFlag = 0
+		cpu.registers.unsetFlag(carryFlag)
 	}
 
 	// The exclusive-or bitwise operator is a neat little tool to check if the sign of two numbers is the same
 	// If the sign of the sum matches either the sign of A or the sign of v, then you don't overflow
 	if ((uint16(a) ^ adc) & (uint16(value) ^ adc) & 0x80) > 0 {
-		cpu.registers.OverflowFlag = 1
+		cpu.registers.setFlag(overflowFlag)
 	} else {
-		cpu.registers.OverflowFlag = 0
+		cpu.registers.unsetFlag(overflowFlag)
 	}
 }
 
@@ -80,13 +80,13 @@ func (cpu *CPU) and(operandAddress Address) {
 */
 func (cpu *CPU) asl(info operation) {
 	if info.addressMode == accumulator {
-		cpu.registers.CarryFlag = cpu.registers.A >> 7 & 0x01
+		cpu.registers.updateFlag(carryFlag, cpu.registers.A>>7&0x01)
 		cpu.registers.A = cpu.registers.A << 1
 		cpu.registers.updateNegativeFlag(cpu.registers.A)
 		cpu.registers.updateZeroFlag(cpu.registers.A)
 	} else {
 		value := cpu.read(info.operandAddress)
-		cpu.registers.CarryFlag = value >> 7 & 0x01
+		cpu.registers.updateFlag(carryFlag, value>>7&0x01)
 		value = value << 1
 		cpu.write(info.operandAddress, value)
 		cpu.registers.updateNegativeFlag(value)
@@ -105,7 +105,7 @@ func (cpu *CPU) asl(info operation) {
 	relative      BCC oper      90    2     2**
 */
 func (cpu *CPU) bcc(info operation) {
-	if cpu.registers.CarryFlag == 0 {
+	if cpu.registers.carryFlag() == 0 {
 		cpu.registers.Pc = info.operandAddress
 	}
 }
@@ -121,7 +121,7 @@ func (cpu *CPU) bcc(info operation) {
 	relative      BCS oper      B0    2     2**
 */
 func (cpu *CPU) bcs(info operation) {
-	if cpu.registers.CarryFlag == 1 {
+	if cpu.registers.carryFlag() == 1 {
 		cpu.registers.Pc = info.operandAddress
 	}
 }
@@ -137,7 +137,7 @@ func (cpu *CPU) bcs(info operation) {
 	relative      BEQ oper      F0    2     2**
 */
 func (cpu *CPU) beq(info operation) {
-	if cpu.registers.ZeroFlag {
+	if cpu.registers.zeroFlag() == 1 {
 		cpu.registers.Pc = info.operandAddress
 	}
 }
@@ -159,9 +159,9 @@ func (cpu *CPU) beq(info operation) {
 */
 func (cpu *CPU) bit(info operation) {
 	value := cpu.read(info.operandAddress)
-	cpu.registers.NegativeFlag = value&0x80 == 0x80
-	cpu.registers.OverflowFlag = (value >> 6) & 0x01
-	cpu.registers.ZeroFlag = value&cpu.registers.A == 0
+	cpu.registers.updateNegativeFlag(value)
+	cpu.registers.updateFlag(overflowFlag, (value>>6)&0x01)
+	cpu.registers.updateZeroFlag(value & cpu.registers.A)
 }
 
 /*
@@ -175,7 +175,7 @@ func (cpu *CPU) bit(info operation) {
 	relative      BMI oper      30    2     2**
 */
 func (cpu *CPU) bmi(info operation) {
-	if cpu.registers.NegativeFlag {
+	if cpu.registers.negativeFlag() == 1 {
 		cpu.registers.Pc = info.operandAddress
 	}
 }
@@ -191,7 +191,9 @@ func (cpu *CPU) bmi(info operation) {
 	relative      BNE oper      D0    2     2**
 */
 func (cpu *CPU) bne(info operation) {
-	if !cpu.registers.ZeroFlag {
+	// CHeck how to negate a bit and apply it here
+	//if !cpu.registers.zeroFlag() == 1 {
+	if cpu.registers.zeroFlag() == 0 {
 		cpu.registers.Pc = info.operandAddress
 	}
 }
@@ -207,14 +209,18 @@ func (cpu *CPU) bne(info operation) {
 	relative      BPL oper      10    2     2**
 */
 func (cpu *CPU) bpl(info operation) {
-	if !cpu.registers.NegativeFlag {
+	//if !cpu.registers.NegativeFlag {
+	if cpu.registers.negativeFlag() == 0 {
 		cpu.registers.Pc = info.operandAddress
 	}
 }
 
 /*
 	BRK Force Break
-	The BRK instruction forces the generation of an interrupt request. The program counter and processor status are pushed on the stack then the IRQ interrupt vector at $FFFE/F is loaded into the PC and the break flag in the status set to one.
+	The BRK instruction forces the generation of an interrupt request.
+    The program counter and processor status are pushed on the stack then
+    the IRQ interrupt vector at $FFFE/F is loaded into the PC and the break
+    flag in the status set to one.
 
 	interrupt,                       N Z C I D V
 	push PC+2, push SR               - - - 1 - -
@@ -224,14 +230,14 @@ func (cpu *CPU) bpl(info operation) {
 	implied       BRK           00    1     7
 */
 func (cpu *CPU) brk(info operation) {
-
+	// Store PC in stack
 	cpu.pushStack(byte(cpu.registers.Pc & 0xFF))
 	cpu.pushStack(byte(cpu.registers.Pc >> 8))
+	//
+	cpu.registers.updateFlag(breakCommandFlag, 1)
+	cpu.pushStack(cpu.registers.Status)
 
-	cpu.registers.BreakCommand = true
-	cpu.pushStack(cpu.registers.statusRegister())
-
-	cpu.registers.InterruptDisable = true
+	cpu.registers.updateFlag(interruptFlag, 1)
 
 	cpu.registers.Pc = Address(cpu.read16(0xFFFE))
 }
@@ -246,7 +252,7 @@ func (cpu *CPU) brk(info operation) {
 	relative      BVC oper      50    2     2**
 */
 func (cpu *CPU) bvc(info operation) {
-	if cpu.registers.OverflowFlag == byte(1) {
+	if cpu.registers.overflowFlag() == byte(1) {
 		return
 	}
 
@@ -263,7 +269,7 @@ func (cpu *CPU) bvc(info operation) {
 	relative      BVC oper      70    2     2**
 */
 func (cpu *CPU) bvs(info operation) {
-	if cpu.registers.OverflowFlag == 0 {
+	if cpu.registers.overflowFlag() == 0 {
 		return
 	}
 
@@ -280,7 +286,7 @@ func (cpu *CPU) bvs(info operation) {
 	implied       CLC           18    1     2
 */
 func (cpu *CPU) clc(info operation) {
-	cpu.registers.CarryFlag = 0
+	cpu.registers.updateFlag(carryFlag, 0)
 }
 
 /*
@@ -293,7 +299,7 @@ func (cpu *CPU) clc(info operation) {
 	implied       CLD           D8    1     2
 */
 func (cpu *CPU) cld(info operation) {
-	cpu.registers.DecimalFlag = false
+	cpu.registers.updateFlag(decimalFlag, 0)
 }
 
 /*
@@ -306,7 +312,7 @@ func (cpu *CPU) cld(info operation) {
 	implied       CLI           58    1     2
 */
 func (cpu *CPU) cli(info operation) {
-	cpu.registers.InterruptDisable = false
+	cpu.registers.updateFlag(interruptFlag, 0)
 }
 
 /*
@@ -319,7 +325,7 @@ func (cpu *CPU) cli(info operation) {
 	implied       CLV           B8    1     2
 */
 func (cpu *CPU) clv(info operation) {
-	cpu.registers.OverflowFlag = 0
+	cpu.registers.updateFlag(overflowFlag, 0)
 }
 
 /*
@@ -379,21 +385,21 @@ func (cpu *CPU) cpy(info operation) {
 func (cpu *CPU) compare(register byte, operand byte) {
 	substraction := register - operand
 
-	cpu.registers.ZeroFlag = false
-	cpu.registers.CarryFlag = 0
-	cpu.registers.NegativeFlag = false
+	cpu.registers.updateFlag(zeroFlag, 0)
+	cpu.registers.updateFlag(carryFlag, 0)
+	cpu.registers.updateFlag(negativeFlag, 0)
 
 	if register >= operand {
-		cpu.registers.CarryFlag = 1
+		cpu.registers.updateFlag(carryFlag, 1)
 	}
 
 	if register == operand {
-		cpu.registers.ZeroFlag = true
+		cpu.registers.updateFlag(zeroFlag, 1)
 	}
 
-	if substraction&0x80 == 0x80 {
-		cpu.registers.NegativeFlag = true
-	}
+	//if substraction&0x80 == 0x80 {
+	cpu.registers.updateNegativeFlag(substraction)
+	//	}
 }
 
 func (cpu *CPU) dec(info operation) {
@@ -403,34 +409,36 @@ func (cpu *CPU) dec(info operation) {
 	operand--
 	cpu.write(address, operand)
 
-	if operand == 0 {
-		cpu.registers.ZeroFlag = true
-	} else {
-		cpu.registers.ZeroFlag = false
-	}
-
-	if operand == 0xFF {
-		cpu.registers.NegativeFlag = true
-	} else {
-		cpu.registers.NegativeFlag = false
-	}
+	cpu.registers.updateZeroFlag(operand)
+	//if operand == 0 {
+	//	cpu.registers.ZeroFlag = true
+	//} else {
+	//	cpu.registers.ZeroFlag = false
+	//}
+	cpu.registers.updateNegativeFlag(operand)
+	//if operand == 0xFF {
+	//	cpu.registers.updateFlag(negativeFlag, 1)
+	//} else {
+	//	cpu.registers.updateFlag(negativeFlag, 0)
+	//}
 }
 
 func (cpu *CPU) dex(info operation) {
 	cpu.registers.X--
 	operand := cpu.registers.X
 
-	if operand == 0 {
-		cpu.registers.ZeroFlag = true
-	} else {
-		cpu.registers.ZeroFlag = false
-	}
-
-	if operand == 0xFF {
-		cpu.registers.NegativeFlag = true
-	} else {
-		cpu.registers.NegativeFlag = false
-	}
+	cpu.registers.updateZeroFlag(operand)
+	//if operand == 0 {
+	//	cpu.registers.ZeroFlag = true
+	//} else {
+	//	cpu.registers.ZeroFlag = false
+	//}
+	cpu.registers.updateNegativeFlag(operand)
+	//if operand == 0xFF {
+	//	cpu.registers.updateFlag(negativeFlag, 1)
+	//} else {
+	//	cpu.registers.updateFlag(negativeFlag, )NegativeFlag = false
+	//}
 }
 
 func (cpu *CPU) dey(info operation) {
@@ -439,17 +447,19 @@ func (cpu *CPU) dey(info operation) {
 	operand--
 	cpu.registers.Y = operand
 
-	if operand == 0 {
-		cpu.registers.ZeroFlag = true
-	} else {
-		cpu.registers.ZeroFlag = false
-	}
-
-	if operand == 0xFF {
-		cpu.registers.NegativeFlag = true
-	} else {
-		cpu.registers.NegativeFlag = false
-	}
+	cpu.registers.updateZeroFlag(operand)
+	cpu.registers.updateNegativeFlag(operand)
+	//if operand == 0 {
+	//	cpu.registers.ZeroFlag = true
+	//} else {
+	//	cpu.registers.ZeroFlag = false
+	//}
+	//
+	//if operand == 0xFF {
+	//	cpu.registers.NegativeFlag = true
+	//} else {
+	//	cpu.registers.NegativeFlag = false
+	//}
 }
 
 /*
@@ -474,8 +484,8 @@ func (cpu *CPU) eor(info operation) {
 	value := cpu.read(info.operandAddress)
 
 	cpu.registers.A = cpu.registers.A ^ value
-	cpu.registers.ZeroFlag = cpu.registers.A == 0
-	cpu.registers.NegativeFlag = cpu.registers.A&0x80 == 0x80
+	cpu.registers.updateZeroFlag(cpu.registers.A)
+	cpu.registers.updateNegativeFlag(cpu.registers.A)
 }
 
 /*
@@ -495,8 +505,8 @@ func (cpu *CPU) inc(info operation) {
 	value += 1
 
 	cpu.write(info.operandAddress, value)
-	cpu.registers.NegativeFlag = value&0x80 == 0x80
-	cpu.registers.ZeroFlag = value == 0
+	cpu.registers.updateZeroFlag(value)
+	cpu.registers.updateNegativeFlag(value)
 }
 
 /*
@@ -510,8 +520,9 @@ func (cpu *CPU) inc(info operation) {
 */
 func (cpu *CPU) inx(info operation) {
 	cpu.registers.X += 1
-	cpu.registers.NegativeFlag = cpu.registers.X&0x80 == 0x80
-	cpu.registers.ZeroFlag = cpu.registers.X == 0
+	cpu.registers.updateZeroFlag(cpu.registers.X)
+	cpu.registers.updateNegativeFlag(cpu.registers.X)
+
 }
 
 /*
@@ -525,8 +536,8 @@ func (cpu *CPU) inx(info operation) {
 */
 func (cpu *CPU) iny(info operation) {
 	cpu.registers.Y += 1
-	cpu.registers.NegativeFlag = cpu.registers.Y&0x80 == 0x80
-	cpu.registers.ZeroFlag = cpu.registers.Y == 0
+	cpu.registers.updateZeroFlag(cpu.registers.Y)
+	cpu.registers.updateNegativeFlag(cpu.registers.Y)
 }
 
 /*
@@ -582,8 +593,8 @@ func (cpu *CPU) jsr(info operation) {
 */
 func (cpu *CPU) lda(info operation) {
 	cpu.registers.A = cpu.read(info.operandAddress)
-	cpu.registers.ZeroFlag = cpu.registers.A == 0
-	cpu.registers.NegativeFlag = cpu.registers.A&0x80 == 0x80
+	cpu.registers.updateZeroFlag(cpu.registers.A)
+	cpu.registers.updateNegativeFlag(cpu.registers.A)
 }
 
 /*
@@ -601,8 +612,8 @@ func (cpu *CPU) lda(info operation) {
 */
 func (cpu *CPU) ldx(info operation) {
 	cpu.registers.X = cpu.read(info.operandAddress)
-	cpu.registers.ZeroFlag = cpu.registers.X == 0
-	cpu.registers.NegativeFlag = cpu.registers.X&0x80 == 0x80
+	cpu.registers.updateZeroFlag(cpu.registers.X)
+	cpu.registers.updateNegativeFlag(cpu.registers.X)
 }
 
 /*
@@ -620,8 +631,8 @@ func (cpu *CPU) ldx(info operation) {
 */
 func (cpu *CPU) ldy(info operation) {
 	cpu.registers.Y = cpu.read(info.operandAddress)
-	cpu.registers.ZeroFlag = cpu.registers.Y == 0
-	cpu.registers.NegativeFlag = cpu.registers.Y&0x80 == 0x80
+	cpu.registers.updateZeroFlag(cpu.registers.Y)
+	cpu.registers.updateNegativeFlag(cpu.registers.Y)
 }
 
 /*
@@ -645,10 +656,11 @@ func (cpu *CPU) lsr(info operation) {
 		value = cpu.read(info.operandAddress)
 	}
 
-	cpu.registers.CarryFlag = value & 0x01
+	//cpu.registers.CarryFlag = value & 0x01
+	cpu.registers.updateFlag(carryFlag, value&0x01)
 
 	value >>= 1
-	cpu.registers.ZeroFlag = value == 0
+	cpu.registers.updateZeroFlag(value)
 
 	if info.addressMode == accumulator {
 		cpu.registers.A = value
@@ -689,8 +701,8 @@ func (cpu *CPU) nop(info operation) {
 func (cpu *CPU) ora(info operation) {
 	value := cpu.read(info.operandAddress)
 	cpu.registers.A |= value
-	cpu.registers.ZeroFlag = cpu.registers.A == 0
-	cpu.registers.NegativeFlag = cpu.registers.A&0x80 == 0x80
+	cpu.registers.updateZeroFlag(cpu.registers.A)
+	cpu.registers.updateNegativeFlag(cpu.registers.A)
 }
 
 /*
@@ -769,19 +781,19 @@ func (cpu *CPU) rol(info operation) {
 	if info.addressMode == accumulator {
 		newCarry = cpu.registers.A & 0x80 >> 7
 		cpu.registers.A <<= 1
-		cpu.registers.A |= cpu.registers.CarryFlag
+		cpu.registers.A |= cpu.registers.carryFlag()
 		value = cpu.registers.A
 	} else {
 		value = cpu.read(info.operandAddress)
 		newCarry = value & 0x80 >> 7
 		value <<= 1
-		value |= cpu.registers.CarryFlag
+		value |= cpu.registers.carryFlag()
 		cpu.write(info.operandAddress, value)
 	}
 
 	cpu.registers.updateNegativeFlag(value)
 	cpu.registers.updateZeroFlag(value)
-	cpu.registers.CarryFlag = newCarry
+	cpu.registers.updateFlag(carryFlag, newCarry)
 }
 
 /*
@@ -803,19 +815,19 @@ func (cpu *CPU) ror(info operation) {
 	if info.addressMode == accumulator {
 		newCarry = cpu.registers.A & 0x01
 		cpu.registers.A >>= 1
-		cpu.registers.A |= cpu.registers.CarryFlag << 7
+		cpu.registers.A |= cpu.registers.carryFlag() << 7
 		value = cpu.registers.A
 	} else {
 		value = cpu.read(info.operandAddress)
 		newCarry = value & 0x01
 		value >>= 1
-		value |= cpu.registers.CarryFlag << 7
+		value |= cpu.registers.carryFlag() << 7
 		cpu.write(info.operandAddress, value)
 	}
 
 	cpu.registers.updateNegativeFlag(value)
 	cpu.registers.updateZeroFlag(value)
-	cpu.registers.CarryFlag = newCarry
+	cpu.registers.updateFlag(carryFlag, newCarry)
 }
 
 /*
@@ -870,7 +882,7 @@ func (cpu *CPU) rts(info operation) {
 */
 func (cpu *CPU) sbc(info operation) {
 	value := cpu.read(info.operandAddress)
-	borrow := (1 - cpu.registers.CarryFlag) & 0x01 // == !CarryFlag
+	borrow := (1 - cpu.registers.carryFlag()) & 0x01 // == !CarryFlag
 	a := cpu.registers.A
 	result := a - value - borrow
 	cpu.registers.A = result
@@ -880,15 +892,15 @@ func (cpu *CPU) sbc(info operation) {
 
 	// Set overflow flag
 	if (a^cpu.registers.A)&0x80 != 0 && (a^value)&0x80 != 0 {
-		cpu.registers.OverflowFlag = 1
+		cpu.registers.updateFlag(overflowFlag, 1)
 	} else {
-		cpu.registers.OverflowFlag = 0
+		cpu.registers.updateFlag(overflowFlag, 0)
 	}
 
 	if int(a)-int(value)-int(borrow) < 0 {
-		cpu.registers.CarryFlag = 0
+		cpu.registers.updateFlag(carryFlag, 0)
 	} else {
-		cpu.registers.CarryFlag = 1
+		cpu.registers.updateFlag(carryFlag, 1)
 	}
 }
 
@@ -902,7 +914,7 @@ func (cpu *CPU) sbc(info operation) {
 	implied       SEC           38    1     2
 */
 func (cpu *CPU) sec(info operation) {
-	cpu.registers.CarryFlag = 1
+	cpu.registers.updateFlag(carryFlag, 1)
 }
 
 /*
@@ -915,11 +927,11 @@ func (cpu *CPU) sec(info operation) {
 	implied       SED           F8    1     2
 */
 func (cpu *CPU) sed(info operation) {
-	cpu.registers.DecimalFlag = true
+	cpu.registers.updateFlag(decimalFlag, 1)
 }
 
 func (cpu *CPU) sei(info operation) {
-	cpu.registers.InterruptDisable = true
+	cpu.registers.updateFlag(interruptFlag, 1)
 }
 
 func (cpu *CPU) sta(info operation) {

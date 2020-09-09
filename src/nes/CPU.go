@@ -16,18 +16,18 @@ func (cpu *CPU) tick() {
 }
 
 func (cpu *CPU) pushStack(value byte) {
-	address := cpu.registers.spAddress()
+	address := cpu.registers.stackPointerAddress()
 	cpu.bus.write(
 		address,
 		value,
 	)
 
-	cpu.registers.spPushed()
+	cpu.registers.stackPointerPushed()
 }
 
 func (cpu *CPU) popStack() byte {
-	cpu.registers.spPopped()
-	address := cpu.registers.spAddress()
+	cpu.registers.stackPointerPopped()
+	address := cpu.registers.stackPointerAddress()
 	return cpu.bus.read(address)
 }
 
