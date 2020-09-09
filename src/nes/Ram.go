@@ -1,6 +1,6 @@
 package nes
 
-// RAM is
+// RAM is $0000 -> $07FF
 type RAM struct {
 	memory [0xFFFF + 1]byte
 }
@@ -16,6 +16,7 @@ func (ram *RAM) read16(address Address) Word {
 	return CreateWord(low, high)
 }
 
+/*
 // Emulates page boundary hardware bug
 func (ram *RAM) read16Bugged(address Address) Word {
 	lsb := address
@@ -25,7 +26,7 @@ func (ram *RAM) read16Bugged(address Address) Word {
 	fmsb := ram.read(msb)
 
 	return CreateWord(flsb, fmsb)
-}
+}*/
 
 func (ram *RAM) write(address Address, data byte) {
 	ram.memory[address] = data

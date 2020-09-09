@@ -3,7 +3,7 @@ package nes
 // CPU Represents a NES cpu
 type CPU struct {
 	registers CPURegisters
-	ram       *RAM
+	bus       *Bus
 }
 
 func (cpu *CPU) tick() {
@@ -17,7 +17,7 @@ func (cpu *CPU) tick() {
 
 func (cpu *CPU) pushStack(value byte) {
 	address := cpu.registers.spAddress()
-	cpu.ram.write(
+	cpu.bus.write(
 		address,
 		value,
 	)
@@ -28,7 +28,22 @@ func (cpu *CPU) pushStack(value byte) {
 func (cpu *CPU) popStack() byte {
 	cpu.registers.spPopped()
 	address := cpu.registers.spAddress()
-	return cpu.ram.read(address)
+	return cpu.bus.read(address)
+}
+
+func (cpu *CPU) read(address Address) byte {
+	return cpu.bus.read(address)
+}
+
+func (cpu *CPU) read16(address Address) Word {
+	low := cpu.bus.read(address)
+	high := cpu.bus.read(address + 1)
+
+	return CreateWord(low, high)
+}
+
+func (cpu *CPU) write(address Address, value byte) {
+	cpu.bus.write(address, value)
 }
 
 type operation struct {
@@ -40,7 +55,10 @@ type operation struct {
 func CreateCPU() CPU {
 
 	registers := CreateRegisters()
+
 	ram := RAM{}
 
-	return CPU{registers, &ram}
+	bus := CreateBus(&ram)
+
+	return CPU{registers, &bus}
 }

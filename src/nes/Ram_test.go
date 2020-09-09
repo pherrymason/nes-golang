@@ -1,11 +1,6 @@
 package nes
 
-import (
-	"testing"
-
-	"github.com/stretchr/testify/assert"
-)
-
+/*
 func TestRead16Bugged(t *testing.T) {
 	ram := RAM{}
 
@@ -17,3 +12,4 @@ func TestRead16Bugged(t *testing.T) {
 
 	assert.Equal(t, expected, result)
 }
+*/

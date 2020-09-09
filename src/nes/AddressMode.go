@@ -22,7 +22,7 @@ const (
 // AddressModeState is
 type AddressModeState struct {
 	registers CPURegisters
-	ram       *RAM
+	bus       *Bus
 }
 
 func evalImmediate(state AddressModeState) Address {
@@ -31,39 +31,39 @@ func evalImmediate(state AddressModeState) Address {
 
 func evalZeroPage(state AddressModeState) Address {
 	// 2 bytes
-	var low = state.ram.read(state.registers.Pc)
+	var low = state.bus.read(state.registers.Pc)
 
 	return Address(low) << 8
 }
 
 func evalZeroPageX(state AddressModeState) Address {
 	registers := state.registers
-	var low = state.ram.read(registers.Pc) + registers.X
+	var low = state.bus.read(registers.Pc) + registers.X
 
 	return Address(low) & 0xFF
 }
 
 func evalZeroPageY(state AddressModeState) Address {
 	registers := state.registers
-	var low = state.ram.read(registers.Pc) + registers.Y
+	var low = state.bus.read(registers.Pc) + registers.Y
 
 	return Address(low) & 0xFF
 }
 
 func evalAbsolute(state AddressModeState) Address {
 	registers := state.registers
-	low := state.ram.read(registers.Pc)
+	low := state.bus.read(registers.Pc)
 
 	// Bug: Missing incrementing programCounter
-	high := state.ram.read(registers.Pc + 1)
+	high := state.bus.read(registers.Pc + 1)
 
 	return CreateAddress(low, high)
 }
 
 func evalAbsoluteXIndexed(state AddressModeState) Address {
 	registers := state.registers
-	low := state.ram.read(registers.Pc)
-	high := state.ram.read(registers.Pc + 1)
+	low := state.bus.read(registers.Pc)
+	high := state.bus.read(registers.Pc + 1)
 
 	address := CreateAddress(low, high)
 	address += Address(registers.X)
@@ -73,8 +73,8 @@ func evalAbsoluteXIndexed(state AddressModeState) Address {
 
 func evalAbsoluteYIndexed(state AddressModeState) Address {
 	registers := state.registers
-	low := state.ram.read(registers.Pc)
-	high := state.ram.read(registers.Pc + 1)
+	low := state.bus.read(registers.Pc)
+	high := state.bus.read(registers.Pc + 1)
 
 	address := CreateAddress(low, high)
 	address += Address(registers.Y)
@@ -98,52 +98,52 @@ func evalAbsoluteYIndexed(state AddressModeState) Address {
 // in the 2A03 used by the NES.
 func evalIndirect(state AddressModeState) Address {
 	registers := state.registers
-	ram := state.ram
+	bus := state.bus
 
 	// Get Pointer Address
-	ptrLow := ram.read(registers.Pc)
-	ptrHigh := ram.read(registers.Pc + 1)
+	ptrLow := bus.read(registers.Pc)
+	ptrHigh := bus.read(registers.Pc + 1)
 	ptrAddress := CreateAddress(ptrLow, ptrHigh)
 
-	finalAddress := ram.read16Bugged(ptrAddress)
+	finalAddress := bus.read16Bugged(ptrAddress)
 
 	return Address(finalAddress)
 }
 
 func evalPreIndexedIndirect(state AddressModeState) Address {
 	registers := state.registers
-	ram := state.ram
+	bus := state.bus
 
-	low := state.ram.read(registers.Pc)
+	low := state.bus.read(registers.Pc)
 	address := (uint16(low) + uint16(registers.X)) & 0xFF
 
-	finalAddress := ram.read16(Address(address))
+	finalAddress := bus.read16(Address(address))
 
 	return Address(finalAddress)
 }
 
 func evalPostIndexedIndirect(state AddressModeState) Address {
 	registers := state.registers
-	ram := state.ram
+	bus := state.bus
 
-	lo := ram.read(registers.Pc)
-	//hi := ram.read(registers.Pc + 1)
+	lo := bus.read(registers.Pc)
+	//hi := bus.read(registers.Pc + 1)
 
 	opcodeOperand := CreateAddress(lo, 0x00)
 
-	offsetAddress := ram.read16(opcodeOperand)
+	offsetAddress := bus.read16(opcodeOperand)
 	offsetAddress += Word(registers.Y)
 
 	// Todo: Not sure if there is wrap around in adding Y
 
-	return Address(ram.read16(Address(offsetAddress)))
+	return Address(bus.read16(Address(offsetAddress)))
 }
 
 func evalRelative(state AddressModeState) Address {
 	registers := state.registers
-	ram := state.ram
+	bus := state.bus
 
-	opcodeOperand := ram.read(registers.Pc)
+	opcodeOperand := bus.read(registers.Pc)
 
 	address := registers.Pc + 1
 	if opcodeOperand < 0x80 {

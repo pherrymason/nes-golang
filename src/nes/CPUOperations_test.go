@@ -26,7 +26,7 @@ func TestAND(t *testing.T) {
 	for i := 0; i < len(dataProviders); i++ {
 		dp := dataProviders[i]
 		cpu := CreateCPU()
-		cpu.ram.write(0x100, dp.operand)
+		cpu.write(0x100, dp.operand)
 		cpu.registers.A = dp.A
 
 		cpu.and(0x100)
@@ -87,10 +87,10 @@ func TestASL_Memory(t *testing.T) {
 		cpu := CreateCPU()
 		cpu.registers.A = dataProviders[i].operand
 
-		cpu.ram.write(0x0000, dataProviders[i].operand)
+		cpu.write(0x0000, dataProviders[i].operand)
 		cpu.asl(operation{zeroPage, 0x0000})
 
-		assert.Equal(t, dataProviders[i].operand<<1, cpu.ram.read(0x0000), fmt.Sprintf("Iteration %d failed @ expected operand", i))
+		assert.Equal(t, dataProviders[i].operand<<1, cpu.read(0x0000), fmt.Sprintf("Iteration %d failed @ expected operand", i))
 		assert.Equal(t, dataProviders[i].expectedRegister.CarryFlag, cpu.registers.CarryFlag, fmt.Sprintf("Iteration %d failed @ expected CarryFlag", i))
 		assert.Equal(t, dataProviders[i].expectedRegister.ZeroFlag, cpu.registers.ZeroFlag, fmt.Sprintf("Iteration %d failed @ expected ZeroFlag", i))
 		assert.Equal(t, dataProviders[i].expectedRegister.NegativeFlag, cpu.registers.NegativeFlag, fmt.Sprintf("Iteration %d failed @ expected NegativeFlag", i))
@@ -122,7 +122,7 @@ func TestADC(t *testing.T) {
 		dp := dataProviders[i]
 		cpu.registers.A = dp.accumulator
 		cpu.registers.CarryFlag = dp.carryFlag
-		cpu.ram.write(0x0000, dp.operand)
+		cpu.write(0x0000, dp.operand)
 		cpu.adc(operation{immediate, 0x0000})
 
 		assert.Equal(t, dp.expectedRegister.A, cpu.registers.A, fmt.Sprintf("Iteration %d failed, unexpected A", i))
@@ -213,7 +213,7 @@ func TestBIT(t *testing.T) {
 		dp := dataProviders[i]
 		cpu := CreateCPU()
 		cpu.registers.A = dp.accumulator
-		cpu.ram.write(0x0001, dp.operand)
+		cpu.write(0x0001, dp.operand)
 
 		cpu.bit(operation{zeroPage, 0x0001})
 
@@ -273,14 +273,14 @@ func TestBRK(t *testing.T) {
 	cpu.registers.InterruptDisable = false
 	cpu.registers.OverflowFlag = 1
 	cpu.registers.NegativeFlag = true
-	cpu.ram.write(Address(0xFFFE), 0x99)
-	cpu.ram.write(Address(0xFFFF), 0x99)
+	cpu.write(Address(0xFFFE), 0x99)
+	cpu.write(Address(0xFFFF), 0x99)
 
 	cpu.brk(operation{implicit, 0x0000})
 
 	assert.Equal(t, true, cpu.registers.BreakCommand)
-	assert.Equal(t, Word(programCounter), cpu.ram.read16(0x1FE))
-	assert.Equal(t, byte(0b11110011), cpu.ram.read(0x1FD))
+	assert.Equal(t, Word(programCounter), cpu.read16(0x1FE))
+	assert.Equal(t, byte(0b11110011), cpu.read(0x1FD))
 
 	assert.Equal(t, true, cpu.registers.InterruptDisable)
 	assert.Equal(t, true, cpu.registers.BreakCommand)
@@ -386,7 +386,7 @@ func TestCompareOperations(t *testing.T) {
 	for i := 0; i < len(dps); i++ {
 		dp := dps[i]
 
-		cpu.ram.write(0x00, dp.operand)
+		cpu.write(0x00, dp.operand)
 
 		dp.op(operation{zeroPage, Address(0x00)})
 
@@ -399,25 +399,25 @@ func TestCompareOperations(t *testing.T) {
 func TestDEC(t *testing.T) {
 	cpu := CreateCPU()
 
-	cpu.ram.write(0x0000, 0x02)
+	cpu.write(0x0000, 0x02)
 
 	cpu.dec(operation{zeroPage, Address(0x0000)})
 
-	assert.Equal(t, byte(0x01), cpu.ram.read(0))
+	assert.Equal(t, byte(0x01), cpu.read(0))
 	assert.Equal(t, false, cpu.registers.NegativeFlag)
 	assert.Equal(t, false, cpu.registers.ZeroFlag)
 
 	// Zero result
 	cpu.dec(operation{zeroPage, Address(0x0000)})
 
-	assert.Equal(t, byte(0x00), cpu.ram.read(0))
+	assert.Equal(t, byte(0x00), cpu.read(0))
 	assert.Equal(t, false, cpu.registers.NegativeFlag)
 	assert.Equal(t, true, cpu.registers.ZeroFlag)
 
 	// Negative result
 	cpu.dec(operation{zeroPage, Address(0x0000)})
 
-	assert.Equal(t, byte(0xFF), cpu.ram.read(0))
+	assert.Equal(t, byte(0xFF), cpu.read(0))
 	assert.Equal(t, true, cpu.registers.NegativeFlag)
 	assert.Equal(t, false, cpu.registers.ZeroFlag)
 }
@@ -475,7 +475,7 @@ func TestEOR(t *testing.T) {
 	for i := 0; i < len(dps); i++ {
 		dp := dps[i]
 		cpu.registers.A = dp.a
-		cpu.ram.write(0x05, dp.value)
+		cpu.write(0x05, dp.value)
 		cpu.eor(operation{immediate, 0x05})
 
 		assert.Equal(t, dp.expectedA, cpu.registers.A)
@@ -500,10 +500,10 @@ func TestINC(t *testing.T) {
 	for i := 0; i < len(dps); i++ {
 		dp := dps[i]
 		cpu := CreateCPU()
-		cpu.ram.write(0x00, dp.value)
+		cpu.write(0x00, dp.value)
 
 		cpu.inc(operation{zeroPage, 0x00})
-		assert.Equal(t, dp.expectedValue, cpu.ram.read(0x00))
+		assert.Equal(t, dp.expectedValue, cpu.read(0x00))
 		assert.Equal(t, dp.expectedNegative, cpu.registers.NegativeFlag)
 		assert.Equal(t, dp.expectedZero, cpu.registers.ZeroFlag)
 	}
@@ -569,9 +569,9 @@ func TestJMP(t *testing.T) {
 func TestJSR(t *testing.T) {
 	cpu := CreateCPU()
 	cpu.registers.Pc = 0x0204
-	cpu.ram.write(Address(0x201), 0x20) // Opcode
-	cpu.ram.write(Address(0x202), 0x55) // LSB
-	cpu.ram.write(Address(0x203), 0x05) // MSB
+	cpu.write(Address(0x201), 0x20) // Opcode
+	cpu.write(Address(0x202), 0x55) // LSB
+	cpu.write(Address(0x203), 0x05) // MSB
 	cpu.jsr(operation{absolute, 0x202})
 
 	assert.Equal(t, Address(0x0555), cpu.registers.Pc)
@@ -594,7 +594,7 @@ func TestLDA(t *testing.T) {
 	for i := 0; i < len(dataProviders); i++ {
 		dp := dataProviders[i]
 		cpu := CreateCPU()
-		cpu.ram.write(Address(0x00), dp.value)
+		cpu.write(Address(0x00), dp.value)
 
 		cpu.lda(operation{immediate, 0x00})
 
@@ -619,7 +619,7 @@ func TestLDX(t *testing.T) {
 	for i := 0; i < len(dataProviders); i++ {
 		dp := dataProviders[i]
 		cpu := CreateCPU()
-		cpu.ram.write(Address(0x00), dp.value)
+		cpu.write(Address(0x00), dp.value)
 
 		cpu.ldx(operation{immediate, 0x00})
 
@@ -644,7 +644,7 @@ func TestLDY(t *testing.T) {
 	for i := 0; i < len(dataProviders); i++ {
 		dp := dataProviders[i]
 		cpu := CreateCPU()
-		cpu.ram.write(Address(0x00), dp.value)
+		cpu.write(Address(0x00), dp.value)
 
 		cpu.ldy(operation{immediate, 0x00})
 
@@ -675,14 +675,14 @@ func TestLSR(t *testing.T) {
 		dp := dataProviders[i]
 		cpu := CreateCPU()
 		cpu.registers.A = dp.value
-		cpu.ram.write(Address(0x00), dp.value)
+		cpu.write(Address(0x00), dp.value)
 
 		cpu.lsr(operation{dp.addressingMode, 0x00})
 
 		if dp.addressingMode == accumulator {
 			assert.Equal(t, dp.expectedResult, cpu.registers.A)
 		} else {
-			assert.Equal(t, dp.expectedResult, cpu.ram.read(0x00))
+			assert.Equal(t, dp.expectedResult, cpu.read(0x00))
 		}
 		assert.Equal(t, dp.expectedZero, cpu.registers.ZeroFlag, fmt.Sprintf("Iteration[%d] unexpected ZeroFlag", i))
 		assert.Equal(t, dp.expectedCarry, cpu.registers.CarryFlag)
@@ -707,7 +707,7 @@ func TestORA(t *testing.T) {
 		dp := dataProviders[i]
 		cpu := CreateCPU()
 		cpu.registers.A = dp.a
-		cpu.ram.write(0x00, dp.value)
+		cpu.write(0x00, dp.value)
 
 		cpu.ora(operation{immediate, 0x00})
 
@@ -812,14 +812,14 @@ func TestROL(t *testing.T) {
 		cpu := CreateCPU()
 		cpu.registers.A = dp.value
 		cpu.registers.CarryFlag = dp.carry
-		cpu.ram.write(Address(0x00), dp.value)
+		cpu.write(Address(0x00), dp.value)
 
 		cpu.rol(operation{dp.addressingMode, 0x00})
 
 		if dp.addressingMode == accumulator {
 			assert.Equal(t, dp.expectedResult, cpu.registers.A)
 		} else {
-			assert.Equal(t, dp.expectedResult, cpu.ram.read(0x00))
+			assert.Equal(t, dp.expectedResult, cpu.read(0x00))
 		}
 		assert.Equal(t, dp.expectedCarry, cpu.registers.CarryFlag)
 		assert.Equal(t, dp.expectedZero, cpu.registers.ZeroFlag, fmt.Sprintf("Iteration[%d] unexpected ZeroFlag", i))
@@ -857,14 +857,14 @@ func TestROR(t *testing.T) {
 		cpu := CreateCPU()
 		cpu.registers.A = dp.value
 		cpu.registers.CarryFlag = dp.carry
-		cpu.ram.write(Address(0x00), dp.value)
+		cpu.write(Address(0x00), dp.value)
 
 		cpu.ror(operation{dp.addressingMode, 0x00})
 
 		if dp.addressingMode == accumulator {
 			assert.Equal(t, dp.expectedResult, cpu.registers.A)
 		} else {
-			assert.Equal(t, dp.expectedResult, cpu.ram.read(0x00))
+			assert.Equal(t, dp.expectedResult, cpu.read(0x00))
 		}
 		assert.Equal(t, dp.expectedCarry, cpu.registers.CarryFlag)
 		assert.Equal(t, dp.expectedZero, cpu.registers.ZeroFlag, fmt.Sprintf("Iteration[%d] unexpected ZeroFlag", i))
@@ -932,7 +932,7 @@ func TestSBC(t *testing.T) {
 		cpu := CreateCPU()
 		cpu.registers.A = dp.a
 		cpu.registers.CarryFlag = dp.carry
-		cpu.ram.write(0x00, dp.value)
+		cpu.write(0x00, dp.value)
 
 		cpu.sbc(operation{immediate, 0x00})
 
@@ -974,7 +974,7 @@ func TestSTA(t *testing.T) {
 
 	cpu.sta(operation{implicit, 0x522})
 
-	assert.Equal(t, byte(0xFF), cpu.ram.read(0x522))
+	assert.Equal(t, byte(0xFF), cpu.read(0x522))
 }
 
 func TestSTX(t *testing.T) {
@@ -983,7 +983,7 @@ func TestSTX(t *testing.T) {
 
 	cpu.stx(operation{implicit, 0x522})
 
-	assert.Equal(t, byte(0xFF), cpu.ram.read(0x522))
+	assert.Equal(t, byte(0xFF), cpu.read(0x522))
 }
 
 func TestSTY(t *testing.T) {
@@ -992,7 +992,7 @@ func TestSTY(t *testing.T) {
 
 	cpu.sty(operation{implicit, 0x522})
 
-	assert.Equal(t, byte(0xFF), cpu.ram.read(0x522))
+	assert.Equal(t, byte(0xFF), cpu.read(0x522))
 }
 
 func TestTAX_TAY(t *testing.T) {

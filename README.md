@@ -5,3 +5,4 @@
 - CPU: 100% of opcodes implemented
 - PPU: 0%
 - APU: 0%
+- MMU: 0%

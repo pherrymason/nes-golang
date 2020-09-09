@@ -4,7 +4,6 @@ package nes
 
 /*
 	ADC  Add Memory to Accumulator with Carry
-
      A + M + C -> A, C                N Z C I D V
                                       + + + - - +
 
@@ -25,7 +24,7 @@ package nes
 func (cpu *CPU) adc(info operation) {
 	carryIn := cpu.registers.CarryFlag
 	a := cpu.registers.A
-	value := cpu.ram.read(info.operandAddress)
+	value := cpu.read(info.operandAddress)
 	adc := uint16(a) + uint16(value) + uint16(carryIn)
 	adc8 := cpu.registers.A + value + cpu.registers.CarryFlag
 
@@ -39,6 +38,7 @@ func (cpu *CPU) adc(info operation) {
 		cpu.registers.CarryFlag = 0
 	}
 
+	// The exclusive-or bitwise operator is a neat little tool to check if the sign of two numbers is the same
 	// If the sign of the sum matches either the sign of A or the sign of v, then you don't overflow
 	if ((uint16(a) ^ adc) & (uint16(value) ^ adc) & 0x80) > 0 {
 		cpu.registers.OverflowFlag = 1
@@ -60,7 +60,7 @@ func (cpu *CPU) adc(info operation) {
 //	(Indirect), Y 		AND (Operand), Y 		31 		2 			5*
 //	* Add 1 if page boundary is crossed.
 func (cpu *CPU) and(operandAddress Address) {
-	cpu.registers.A &= cpu.ram.read(operandAddress)
+	cpu.registers.A &= cpu.read(operandAddress)
 	cpu.registers.updateNegativeFlag(cpu.registers.A)
 	cpu.registers.updateZeroFlag(cpu.registers.A)
 }
@@ -85,10 +85,10 @@ func (cpu *CPU) asl(info operation) {
 		cpu.registers.updateNegativeFlag(cpu.registers.A)
 		cpu.registers.updateZeroFlag(cpu.registers.A)
 	} else {
-		value := cpu.ram.read(info.operandAddress)
+		value := cpu.read(info.operandAddress)
 		cpu.registers.CarryFlag = value >> 7 & 0x01
 		value = value << 1
-		cpu.ram.write(info.operandAddress, value)
+		cpu.write(info.operandAddress, value)
 		cpu.registers.updateNegativeFlag(value)
 		cpu.registers.updateZeroFlag(value)
 	}
@@ -158,7 +158,7 @@ func (cpu *CPU) beq(info operation) {
 	absolute      BIT oper      2C    3     4
 */
 func (cpu *CPU) bit(info operation) {
-	value := cpu.ram.read(info.operandAddress)
+	value := cpu.read(info.operandAddress)
 	cpu.registers.NegativeFlag = value&0x80 == 0x80
 	cpu.registers.OverflowFlag = (value >> 6) & 0x01
 	cpu.registers.ZeroFlag = value&cpu.registers.A == 0
@@ -233,7 +233,7 @@ func (cpu *CPU) brk(info operation) {
 
 	cpu.registers.InterruptDisable = true
 
-	cpu.registers.Pc = Address(cpu.ram.read16(0xFFFE))
+	cpu.registers.Pc = Address(cpu.read16(0xFFFE))
 }
 
 /*
@@ -342,7 +342,7 @@ func (cpu *CPU) clv(info operation) {
 	Compare sets flags as if a subtraction had been carried out. If the value in the accumulator is equal or greater than the compared value, the Carry will be set. The equal (Z) and sign (S) flags will be set based on equality or lack thereof and the sign (i.e. A>=$80) of the accumulator.
 */
 func (cpu *CPU) cmp(info operation) {
-	operand := cpu.ram.read(info.operandAddress)
+	operand := cpu.read(info.operandAddress)
 	cpu.compare(cpu.registers.A, operand)
 }
 
@@ -357,7 +357,7 @@ func (cpu *CPU) cmp(info operation) {
 	Absolute      CPX $4400     $EC  3   4
 */
 func (cpu *CPU) cpx(info operation) {
-	operand := cpu.ram.read(info.operandAddress)
+	operand := cpu.read(info.operandAddress)
 	cpu.compare(cpu.registers.X, operand)
 }
 
@@ -372,7 +372,7 @@ func (cpu *CPU) cpx(info operation) {
 	Absolute      CPY $4400     $CC  3   4
 */
 func (cpu *CPU) cpy(info operation) {
-	operand := cpu.ram.read(info.operandAddress)
+	operand := cpu.read(info.operandAddress)
 	cpu.compare(cpu.registers.Y, operand)
 }
 
@@ -398,10 +398,10 @@ func (cpu *CPU) compare(register byte, operand byte) {
 
 func (cpu *CPU) dec(info operation) {
 	address := info.operandAddress
-	operand := cpu.ram.read(address)
+	operand := cpu.read(address)
 
 	operand--
-	cpu.ram.write(address, operand)
+	cpu.write(address, operand)
 
 	if operand == 0 {
 		cpu.registers.ZeroFlag = true
@@ -471,7 +471,7 @@ func (cpu *CPU) dey(info operation) {
 	+ add 1 cycle if page boundary crossed
 */
 func (cpu *CPU) eor(info operation) {
-	value := cpu.ram.read(info.operandAddress)
+	value := cpu.read(info.operandAddress)
 
 	cpu.registers.A = cpu.registers.A ^ value
 	cpu.registers.ZeroFlag = cpu.registers.A == 0
@@ -491,10 +491,10 @@ func (cpu *CPU) eor(info operation) {
 	absolute,X    INC oper,X    FE    3     7
 */
 func (cpu *CPU) inc(info operation) {
-	value := cpu.ram.read(info.operandAddress)
+	value := cpu.read(info.operandAddress)
 	value += 1
 
-	cpu.ram.write(info.operandAddress, value)
+	cpu.write(info.operandAddress, value)
 	cpu.registers.NegativeFlag = value&0x80 == 0x80
 	cpu.registers.ZeroFlag = value == 0
 }
@@ -554,7 +554,7 @@ func (cpu *CPU) jmp(info operation) {
 	absolute      JSR oper      20    3     6
 */
 func (cpu *CPU) jsr(info operation) {
-	value := cpu.ram.read16(info.operandAddress)
+	value := cpu.read16(info.operandAddress)
 
 	// TODO CHECK HERE because ProgramCounter should point to Opcode
 	cpu.registers.Pc -= 3
@@ -581,7 +581,7 @@ func (cpu *CPU) jsr(info operation) {
 	(indirect),Y  LDA (oper),Y  B1    2     5*
 */
 func (cpu *CPU) lda(info operation) {
-	cpu.registers.A = cpu.ram.read(info.operandAddress)
+	cpu.registers.A = cpu.read(info.operandAddress)
 	cpu.registers.ZeroFlag = cpu.registers.A == 0
 	cpu.registers.NegativeFlag = cpu.registers.A&0x80 == 0x80
 }
@@ -600,7 +600,7 @@ func (cpu *CPU) lda(info operation) {
 	absolute,Y    LDX oper,Y    BE    3     4*
 */
 func (cpu *CPU) ldx(info operation) {
-	cpu.registers.X = cpu.ram.read(info.operandAddress)
+	cpu.registers.X = cpu.read(info.operandAddress)
 	cpu.registers.ZeroFlag = cpu.registers.X == 0
 	cpu.registers.NegativeFlag = cpu.registers.X&0x80 == 0x80
 }
@@ -619,7 +619,7 @@ func (cpu *CPU) ldx(info operation) {
 	absolute,X    LDY oper,X    BC    3     4*
 */
 func (cpu *CPU) ldy(info operation) {
-	cpu.registers.Y = cpu.ram.read(info.operandAddress)
+	cpu.registers.Y = cpu.read(info.operandAddress)
 	cpu.registers.ZeroFlag = cpu.registers.Y == 0
 	cpu.registers.NegativeFlag = cpu.registers.Y&0x80 == 0x80
 }
@@ -642,7 +642,7 @@ func (cpu *CPU) lsr(info operation) {
 	if info.addressMode == accumulator {
 		value = cpu.registers.A
 	} else {
-		value = cpu.ram.read(info.operandAddress)
+		value = cpu.read(info.operandAddress)
 	}
 
 	cpu.registers.CarryFlag = value & 0x01
@@ -653,7 +653,7 @@ func (cpu *CPU) lsr(info operation) {
 	if info.addressMode == accumulator {
 		cpu.registers.A = value
 	} else {
-		cpu.ram.write(info.operandAddress, value)
+		cpu.write(info.operandAddress, value)
 	}
 }
 
@@ -687,7 +687,7 @@ func (cpu *CPU) nop(info operation) {
 	(indirect),Y  ORA (oper),Y  11    2     5*
 */
 func (cpu *CPU) ora(info operation) {
-	value := cpu.ram.read(info.operandAddress)
+	value := cpu.read(info.operandAddress)
 	cpu.registers.A |= value
 	cpu.registers.ZeroFlag = cpu.registers.A == 0
 	cpu.registers.NegativeFlag = cpu.registers.A&0x80 == 0x80
@@ -772,11 +772,11 @@ func (cpu *CPU) rol(info operation) {
 		cpu.registers.A |= cpu.registers.CarryFlag
 		value = cpu.registers.A
 	} else {
-		value = cpu.ram.read(info.operandAddress)
+		value = cpu.read(info.operandAddress)
 		newCarry = value & 0x80 >> 7
 		value <<= 1
 		value |= cpu.registers.CarryFlag
-		cpu.ram.write(info.operandAddress, value)
+		cpu.write(info.operandAddress, value)
 	}
 
 	cpu.registers.updateNegativeFlag(value)
@@ -806,11 +806,11 @@ func (cpu *CPU) ror(info operation) {
 		cpu.registers.A |= cpu.registers.CarryFlag << 7
 		value = cpu.registers.A
 	} else {
-		value = cpu.ram.read(info.operandAddress)
+		value = cpu.read(info.operandAddress)
 		newCarry = value & 0x01
 		value >>= 1
 		value |= cpu.registers.CarryFlag << 7
-		cpu.ram.write(info.operandAddress, value)
+		cpu.write(info.operandAddress, value)
 	}
 
 	cpu.registers.updateNegativeFlag(value)
@@ -869,7 +869,7 @@ func (cpu *CPU) rts(info operation) {
 	(indirect),Y  SBC (oper),Y  F1    2     5*
 */
 func (cpu *CPU) sbc(info operation) {
-	value := cpu.ram.read(info.operandAddress)
+	value := cpu.read(info.operandAddress)
 	borrow := (1 - cpu.registers.CarryFlag) & 0x01 // == !CarryFlag
 	a := cpu.registers.A
 	result := a - value - borrow
@@ -923,15 +923,15 @@ func (cpu *CPU) sei(info operation) {
 }
 
 func (cpu *CPU) sta(info operation) {
-	cpu.ram.write(info.operandAddress, cpu.registers.A)
+	cpu.write(info.operandAddress, cpu.registers.A)
 }
 
 func (cpu *CPU) stx(info operation) {
-	cpu.ram.write(info.operandAddress, cpu.registers.X)
+	cpu.write(info.operandAddress, cpu.registers.X)
 }
 
 func (cpu *CPU) sty(info operation) {
-	cpu.ram.write(info.operandAddress, cpu.registers.Y)
+	cpu.write(info.operandAddress, cpu.registers.Y)
 }
 
 /*
