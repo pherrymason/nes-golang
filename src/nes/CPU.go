@@ -1,20 +1,176 @@
 package nes
 
+import (
+	"fmt"
+
+	"github.com/raulferras/nes-golang/src/log"
+)
+
 // CPU Represents a NES cpu
 type CPU struct {
 	registers CPURegisters
 	bus       *Bus
 
 	instructions [256]instruction
+	debug        bool
+	logger       log.Logger
+}
+
+func CreateCPU(bus *Bus) CPU {
+	registers := CreateRegisters()
+	return CPU{
+		registers: registers,
+		bus:       bus,
+		debug:     false,
+	}
+}
+
+func CreateCPUDebuggable(bus *Bus, logger log.Logger) CPU {
+	registers := CreateRegisters()
+	return CPU{
+		registers: registers,
+		bus:       bus,
+		debug:     true,
+		logger:    logger,
+	}
+}
+
+// CreateCPUWithBus creates a CPU with a Bus, Useful for tests
+func CreateCPUWithBus() CPU {
+	registers := CreateRegisters()
+
+	ram := RAM{}
+	gamepak := GamePak{
+		header: Header{},
+		prgROM: make([]byte, 0xFFFF),
+	}
+
+	bus := CreateBus(&ram)
+	bus.attachCartridge(&gamepak)
+
+	return CPU{
+		registers: registers,
+		bus:       &bus,
+		debug:     false,
+	}
+}
+
+func (cpu *CPU) reset() {
+	cpu.registers.reset()
+
+	// Read Reset Vector
+	address := cpu.bus.read16(0xFFFC)
+	cpu.registers.Pc = Address(address)
 }
 
 func (cpu *CPU) tick() {
+
 	// Read opcode
+	if cpu.debug {
+		cpu.printStep()
+	}
+
+	opcode := cpu.read(cpu.registers.Pc)
+	cpu.registers.Pc++
+
+	instruction := cpu.instructions[opcode]
+	if instruction.method == nil {
+		msg := fmt.Errorf("Error: Opcode 0x%X not implemented!", opcode)
+		panic(msg)
+	}
+
+	infoStep := InfoStep{
+		instruction.addressMode,
+		0,
+	}
+	state := CreateAddressModeState(cpu)
+
+	switch instruction.addressMode {
+	case implicit:
+	case accumulator:
+		break
+	case immediate:
+		infoStep.operandAddress = cpu.evalImmediate(state)
+		break
+	case zeroPage:
+		infoStep.operandAddress = cpu.evalZeroPage(state)
+		break
+	case zeroPageX:
+		infoStep.operandAddress = cpu.evalZeroPageX(state)
+		break
+	case zeroPageY:
+		infoStep.operandAddress = cpu.evalZeroPageY(state)
+		break
+	case absolute:
+		infoStep.operandAddress = cpu.evalAbsolute(state)
+		break
+	case absoluteXIndexed:
+		infoStep.operandAddress = cpu.evalAbsoluteXIndexed(state)
+		break
+	case absoluteYIndexed:
+		infoStep.operandAddress = cpu.evalAbsoluteYIndexed(state)
+		break
+	case indirect:
+		infoStep.operandAddress = cpu.evalIndirect(state)
+		break
+	case indirectX:
+		infoStep.operandAddress = cpu.evalIndirectX(state)
+		break
+	case indirectY:
+		infoStep.operandAddress = cpu.evalIndirectY(state)
+		break
+	}
+	instruction.method(infoStep)
+
 	// -analyze opcode:
 	//	-address mode
 	//  -get operand
 	//  - update PC accordingly
-	//  - run operation
+	//  - run InfoStep
+
+}
+
+func (cpu *CPU) printStep() {
+
+	offset := cpu.registers.Pc
+	opcode := cpu.read(cpu.registers.Pc)
+	instruction := cpu.instructions[opcode]
+
+	var msg string
+	msg += fmt.Sprintf("%X", cpu.registers.Pc) + "  "
+	msg += fmt.Sprintf("%X ", opcode) + " "
+
+	for i := byte(0); i < (instruction.size - 1); i++ {
+		msg += fmt.Sprintf("%X ", cpu.read(offset+Address(i)+1))
+	}
+
+	for i := len(msg); i <= 16; i++ {
+		msg += " "
+	}
+
+	msg += instruction.name + " "
+
+	if instruction.addressMode == immediate {
+		msg += "#"
+	} else {
+		msg += fmt.Sprintf("$%X", 0)
+	}
+
+	for i := len(msg); i <= 48; i++ {
+		msg += " "
+	}
+
+	msg += fmt.Sprintf(
+		"A:%X X:%X Y:%X P:%X SP:%X PPU:___,___ CYC:%d",
+		cpu.registers.A,
+		cpu.registers.X,
+		cpu.registers.Y,
+		cpu.registers.Status,
+		cpu.registers.Sp,
+		0,
+	)
+
+	cpu.logger.Log(msg)
 }
 
 func (cpu *CPU) pushStack(value byte) {
@@ -48,308 +204,293 @@ func (cpu *CPU) write(address Address, value byte) {
 	cpu.bus.write(address, value)
 }
 
-// CreateCPU a CPU
-func CreateCPU() CPU {
-
-	registers := CreateRegisters()
-
-	ram := RAM{}
-
-	bus := CreateBus(&ram)
-
-	return CPU{
-		registers: registers,
-		bus:       &bus,
-	}
-}
-
 func (cpu *CPU) initInstructionsTable() {
 	cpu.instructions = [256]instruction{
-		{"BRK", implicit, cpu.brk, 0},
-		{"ORA", indirectX, cpu.ora, 0},
+		{"BRK", implicit, cpu.brk, 7, 1},
+		{"ORA", indirectX, cpu.ora, 6, 2},
 		{},
 		{},
 		{},
-		{"ORA", zeroPage, cpu.ora, 0},
-		{"ASL", zeroPage, cpu.asl, 0},
+		{"ORA", zeroPage, cpu.ora, 3, 2},
+		{"ASL", zeroPage, cpu.asl, 5, 2},
 		{},
-		{"PHP", implicit, cpu.php, 0},
-		{"ORA", immediate, cpu.ora, 0},
-		{"ASL", accumulator, cpu.asl, 0},
+		{"PHP", implicit, cpu.php, 3, 1},
+		{"ORA", immediate, cpu.ora, 2, 2},
+		{"ASL", accumulator, cpu.asl, 2, 1},
 		{},
 		{},
-		{"ORA", absolute, cpu.ora, 0},
-		{"ASL", absolute, cpu.asl, 0},
+		{"ORA", absolute, cpu.ora, 4, 3},
+		{"ASL", absolute, cpu.asl, 6, 3},
 		{},
 
 		// 0x10
-		{"BPL", relative, cpu.bpl, 0},
-		{"ORA", indirectY, cpu.ora, 0},
+		{"BPL", relative, cpu.bpl, 2, 2},
+		{"ORA", indirectY, cpu.ora, 5, 2},
 		{},
 		{},
 		{},
-		{"ORA", zeroPageX, cpu.ora, 0},
-		{"ASL", zeroPageX, cpu.asl, 0},
+		{"ORA", zeroPageX, cpu.ora, 4, 2},
+		{"ASL", zeroPageX, cpu.asl, 6, 2},
 		{},
-		{"CLC", implicit, cpu.clc, 0},
-		{"ORA", absoluteYIndexed, cpu.ora, 0},
+		{"CLC", implicit, cpu.clc, 2, 1},
+		{"ORA", absoluteYIndexed, cpu.ora, 4, 3},
 		{},
 		{},
 		{},
-		{"ORA", absoluteXIndexed, cpu.ora, 0},
-		{"ASL", absoluteXIndexed, cpu.asl, 0},
+		{"ORA", absoluteXIndexed, cpu.ora, 4, 3},
+		{"ASL", absoluteXIndexed, cpu.asl, 7, 3},
 		{},
 
 		// 0x20
-		{"JSR", absolute, cpu.jsr, 0},
-		{"AND", indirectX, cpu.and, 0},
+		{"JSR", absolute, cpu.jsr, 6, 3},
+		{"AND", indirectX, cpu.and, 6, 2},
 		{},
 		{},
-		{"BIT", zeroPage, cpu.bit, 0},
-		{"AND", zeroPage, cpu.and, 0},
-		{"ROL", zeroPage, cpu.rol, 0},
+		{"BIT", zeroPage, cpu.bit, 3, 2},
+		{"AND", zeroPage, cpu.and, 3, 2},
+		{"ROL", zeroPage, cpu.rol, 5, 2},
 		{},
-		{"PLP", implicit, cpu.plp, 0},
-		{"AND", immediate, cpu.and, 0},
-		{"ROL", accumulator, cpu.rol, 0},
+		{"PLP", implicit, cpu.plp, 4, 1},
+		{"AND", immediate, cpu.and, 2, 2},
+		{"ROL", accumulator, cpu.rol, 2, 1},
 		{},
-		{"BIT", absolute, cpu.bit, 0},
-		{"AND", absolute, cpu.and, 0},
-		{"ROL", absolute, cpu.rol, 0},
+		{"BIT", absolute, cpu.bit, 4, 3},
+		{"AND", absolute, cpu.and, 4, 3},
+		{"ROL", absolute, cpu.rol, 6, 3},
 		{},
 
 		// 0x30
-		{"BMI", relative, cpu.bmi, 0},
-		{"AND", indirectY, cpu.and, 0},
+		{"BMI", relative, cpu.bmi, 2, 2},
+		{"AND", indirectY, cpu.and, 5, 2},
 		{},
 		{},
 		{},
-		{"AND", zeroPageX, cpu.and, 0},
-		{"ROL", zeroPageX, cpu.rol, 0},
+		{"AND", zeroPageX, cpu.and, 4, 2},
+		{"ROL", zeroPageX, cpu.rol, 6, 2},
 		{},
-		{"SEC", implicit, cpu.sec, 0},
-		{"AND", absoluteYIndexed, cpu.and, 0},
+		{"SEC", implicit, cpu.sec, 2, 1},
+		{"AND", absoluteYIndexed, cpu.and, 4, 3},
 		{},
 		{},
 		{},
-		{"AND", absoluteXIndexed, cpu.and, 0},
-		{"ROL", absoluteXIndexed, cpu.rol, 0},
+		{"AND", absoluteXIndexed, cpu.and, 4, 3},
+		{"ROL", absoluteXIndexed, cpu.rol, 7, 3},
 		{},
 
 		// 0x40
-		{"RTI", implicit, cpu.bmi, 0},
-		{"EOR", indirectX, cpu.and, 0},
+		{"RTI", implicit, cpu.bmi, 6, 1},
+		{"EOR", indirectX, cpu.eor, 6, 2},
 		{},
 		{},
 		{},
-		{"EOR", zeroPage, cpu.eor, 0},
-		{"LSR", zeroPage, cpu.lsr, 0},
+		{"EOR", zeroPage, cpu.eor, 3, 2},
+		{"LSR", zeroPage, cpu.lsr, 5, 2},
 		{},
-		{"PHA", implicit, cpu.pha, 0},
-		{"EOR", immediate, cpu.eor, 0},
-		{"LSR", accumulator, cpu.lsr, 0},
+		{"PHA", implicit, cpu.pha, 3, 1},
+		{"EOR", immediate, cpu.eor, 2, 2},
+		{"LSR", accumulator, cpu.lsr, 2, 1},
 		{},
-		{"JPM", absolute, cpu.jmp, 0},
-		{"EOR", absolute, cpu.eor, 0},
-		{"LSR", absolute, cpu.lsr, 0},
+		{"JMP", absolute, cpu.jmp, 3, 3},
+		{"EOR", absolute, cpu.eor, 4, 3},
+		{"LSR", absolute, cpu.lsr, 6, 3},
 		{},
 
 		// 0x50
-		{"BVC", relative, cpu.bvc, 0},
-		{"EOR", indirectY, cpu.eor, 0},
+		{"BVC", relative, cpu.bvc, 2, 2},
+		{"EOR", indirectY, cpu.eor, 5, 2},
 		{},
 		{},
 		{},
-		{"EOR", zeroPageX, cpu.eor, 0},
-		{"LSR", zeroPageX, cpu.lsr, 0},
+		{"EOR", zeroPageX, cpu.eor, 4, 2},
+		{"LSR", zeroPageX, cpu.lsr, 6, 2},
 		{},
-		{"CLI", implicit, cpu.cli, 0},
-		{"EOR", absoluteYIndexed, cpu.eor, 0},
+		{"CLI", implicit, cpu.cli, 2, 1},
+		{"EOR", absoluteYIndexed, cpu.eor, 4, 3},
 		{},
 		{},
 		{},
-		{"EOR", absoluteXIndexed, cpu.eor, 0},
-		{"LSR", absoluteXIndexed, cpu.lsr, 0},
+		{"EOR", absoluteXIndexed, cpu.eor, 4, 3},
+		{"LSR", absoluteXIndexed, cpu.lsr, 7, 3},
 		{},
 
 		// 0x60
-		{"RTS", implicit, cpu.rts, 0},
-		{"ADC", indirectX, cpu.adc, 0},
+		{"RTS", implicit, cpu.rts, 6, 1},
+		{"ADC", indirectX, cpu.adc, 6, 2},
 		{},
 		{},
 		{},
-		{"ADC", zeroPage, cpu.adc, 0},
-		{"ROR", zeroPage, cpu.ror, 0},
+		{"ADC", zeroPage, cpu.adc, 3, 2},
+		{"ROR", zeroPage, cpu.ror, 5, 2},
 		{},
-		{"PLA", implicit, cpu.pla, 0},
-		{"ADC", immediate, cpu.adc, 0},
-		{"ROR", accumulator, cpu.ror, 0},
+		{"PLA", implicit, cpu.pla, 4, 1},
+		{"ADC", immediate, cpu.adc, 2, 2},
+		{"ROR", accumulator, cpu.ror, 2, 1},
 		{},
-		{"JMP", indirect, cpu.jmp, 0},
-		{"ADC", absolute, cpu.adc, 0},
-		{"ROR", absoluteXIndexed, cpu.ror, 0},
+		{"JMP", indirect, cpu.jmp, 5, 3},
+		{"ADC", absolute, cpu.adc, 4, 3},
+		{"ROR", absolute, cpu.ror, 6, 3},
 		{},
 
 		// 0x70
-		{"BVS", relative, cpu.bvs, 0},
-		{"ADC", indirectY, cpu.adc, 0},
+		{"BVS", relative, cpu.bvs, 2, 2},
+		{"ADC", indirectY, cpu.adc, 5, 2},
 		{},
 		{},
 		{},
-		{"ADC", zeroPageX, cpu.adc, 0},
-		{"ROR", zeroPageX, cpu.ror, 0},
+		{"ADC", zeroPageX, cpu.adc, 4, 2},
+		{"ROR", zeroPageX, cpu.ror, 6, 2},
 		{},
-		{"SEI", implicit, cpu.sei, 0},
-		{"ADC", absoluteYIndexed, cpu.adc, 0},
+		{"SEI", implicit, cpu.sei, 2, 1},
+		{"ADC", absoluteYIndexed, cpu.adc, 4, 3},
 		{},
 		{},
 		{},
-		{"ADC", absoluteXIndexed, cpu.adc, 0},
-		{"ROR", absoluteXIndexed, cpu.ror, 0},
+		{"ADC", absoluteXIndexed, cpu.adc, 4, 3},
+		{"ROR", absoluteXIndexed, cpu.ror, 7, 3},
 		{},
 
 		// 0x80
 		{},
-		{"STA", indirectX, cpu.sta, 0},
+		{"STA", indirectX, cpu.sta, 6, 2},
 		{},
 		{},
-		{"STY", zeroPage, cpu.sty, 0},
-		{"STA", zeroPage, cpu.sta, 0},
-		{"STX", zeroPage, cpu.stx, 0},
+		{"STY", zeroPage, cpu.sty, 3, 2},
+		{"STA", zeroPage, cpu.sta, 3, 2},
+		{"STX", zeroPage, cpu.stx, 3, 2},
 		{},
-		{"DEY", implicit, cpu.dey, 0},
+		{"DEY", implicit, cpu.dey, 2, 1},
 		{},
-		{"TXA", implicit, cpu.txa, 0},
+		{"TXA", implicit, cpu.txa, 2, 1},
 		{},
-		{"STY", absolute, cpu.sty, 0},
-		{"STA", absolute, cpu.sta, 0},
-		{"STX", absolute, cpu.stx, 0},
+		{"STY", absolute, cpu.sty, 4, 3},
+		{"STA", absolute, cpu.sta, 4, 3},
+		{"STX", absolute, cpu.stx, 4, 3},
 		{},
 
 		// 0x90
-		{"BCC", relative, cpu.bcc, 0},
-		{"STA", indirectY, cpu.sta, 0},
+		{"BCC", relative, cpu.bcc, 2, 2},
+		{"STA", indirectY, cpu.sta, 6, 2},
 		{},
 		{},
-		{"STY", zeroPageX, cpu.sty, 0},
-		{"STA", zeroPageX, cpu.sta, 0},
-		{"STX", zeroPageY, cpu.stx, 0},
+		{"STY", zeroPageX, cpu.sty, 4, 2},
+		{"STA", zeroPageX, cpu.sta, 4, 2},
+		{"STX", zeroPageY, cpu.stx, 4, 2},
 		{},
-		{"TYA", implicit, cpu.tya, 0},
-		{"STA", absoluteYIndexed, cpu.sta, 0},
-		{"TXS", implicit, cpu.txs, 0},
+		{"TYA", implicit, cpu.tya, 2, 1},
+		{"STA", absoluteYIndexed, cpu.sta, 5, 3},
+		{"TXS", implicit, cpu.txs, 2, 1},
 		{},
 		{},
-		{"STA", absoluteXIndexed, cpu.sta, 0},
+		{"STA", absoluteXIndexed, cpu.sta, 5, 3},
 		{},
 		{},
 
 		// 0xA0
-		{"LDY", immediate, cpu.ldy, 0},
-		{"LDA", indirectX, cpu.lda, 0},
-		{"LDX", immediate, cpu.ldx, 0},
+		{"LDY", immediate, cpu.ldy, 2, 2},
+		{"LDA", indirectX, cpu.lda, 6, 2},
+		{"LDX", immediate, cpu.ldx, 2, 2},
 		{},
-		{"LDY", zeroPage, cpu.ldy, 0},
-		{"LDA", zeroPage, cpu.lda, 0},
-		{"LDX", zeroPage, cpu.ldx, 0},
+		{"LDY", zeroPage, cpu.ldy, 3, 2},
+		{"LDA", zeroPage, cpu.lda, 3, 2},
+		{"LDX", zeroPage, cpu.ldx, 3, 2},
 		{},
-		{"TAY", implicit, cpu.tay, 0},
-		{"LDA", immediate, cpu.lda, 0},
-		{"TAX", implicit, cpu.tax, 0},
+		{"TAY", implicit, cpu.tay, 2, 1},
+		{"LDA", immediate, cpu.lda, 2, 2},
+		{"TAX", implicit, cpu.tax, 2, 1},
 		{},
-		{"LDY", absolute, cpu.ldy, 0},
-		{"LDA", absolute, cpu.lda, 0},
-		{"LDX", absolute, cpu.ldx, 0},
+		{"LDY", absolute, cpu.ldy, 4, 3},
+		{"LDA", absolute, cpu.lda, 4, 3},
+		{"LDX", absolute, cpu.ldx, 4, 3},
 		{},
 
 		// 0xB0
-		{"BCS", relative, cpu.bcs, 0},
-		{"LDA", indirectY, cpu.lda, 0},
+		{"BCS", relative, cpu.bcs, 2, 2},
+		{"LDA", indirectY, cpu.lda, 5, 2},
 		{},
 		{},
-		{"LDY", zeroPageX, cpu.ldy, 0},
-		{"LDA", zeroPageX, cpu.lda, 0},
-		{"LDX", zeroPageY, cpu.ldx, 0},
+		{"LDY", zeroPageX, cpu.ldy, 4, 2},
+		{"LDA", zeroPageX, cpu.lda, 4, 2},
+		{"LDX", zeroPageY, cpu.ldx, 4, 2},
 		{},
-		{"CLV", implicit, cpu.clv, 0},
-		{"LDA", absoluteYIndexed, cpu.lda, 0},
-		{"TSX", implicit, cpu.tsx, 0},
+		{"CLV", implicit, cpu.clv, 2, 1},
+		{"LDA", absoluteYIndexed, cpu.lda, 4, 3},
+		{"TSX", implicit, cpu.tsx, 2, 1},
 		{},
-		{"LDY", absoluteXIndexed, cpu.ldy, 0},
-		{"LDA", absoluteXIndexed, cpu.lda, 0},
-		{"LDX", absoluteYIndexed, cpu.ldx, 0},
+		{"LDY", absoluteXIndexed, cpu.ldy, 4, 3},
+		{"LDA", absoluteXIndexed, cpu.lda, 4, 3},
+		{"LDX", absoluteYIndexed, cpu.ldx, 4, 3},
 		{},
 
 		// 0xC0
-		{"CPY", immediate, cpu.cpy, 0},
-		{"CMP", indirectX, cpu.cmp, 0},
+		{"CPY", immediate, cpu.cpy, 2, 2},
+		{"CMP", indirectX, cpu.cmp, 6, 2},
 		{},
 		{},
-		{"CPY", zeroPage, cpu.cpy, 0},
-		{"CMP", zeroPage, cpu.cmp, 0},
-		{"DEC", zeroPage, cpu.dec, 0},
+		{"CPY", zeroPage, cpu.cpy, 3, 2},
+		{"CMP", zeroPage, cpu.cmp, 3, 2},
+		{"DEC", zeroPage, cpu.dec, 5, 2},
 		{},
-		{"INY", implicit, cpu.iny, 0},
-		{"CMP", immediate, cpu.cmp, 0},
-		{"DEX", implicit, cpu.dex, 0},
+		{"INY", implicit, cpu.iny, 2, 1},
+		{"CMP", immediate, cpu.cmp, 2, 2},
+		{"DEX", implicit, cpu.dex, 2, 1},
 		{},
-		{"CPY", absolute, cpu.cpy, 0},
-		{"CMP", absolute, cpu.cmp, 0},
-		{"DEC", absolute, cpu.dec, 0},
+		{"CPY", absolute, cpu.cpy, 4, 3},
+		{"CMP", absolute, cpu.cmp, 4, 3},
+		{"DEC", absolute, cpu.dec, 6, 3},
 		{},
 
 		// 0xD0
-		{"BNE", relative, cpu.bne, 0},
-		{"CMP", indirectY, cpu.cmp, 0},
+		{"BNE", relative, cpu.bne, 2, 2},
+		{"CMP", indirectY, cpu.cmp, 5, 2},
 		{},
 		{},
 		{},
-		{"CMP", zeroPageX, cpu.cmp, 0},
-		{"DEC", zeroPageX, cpu.dec, 0},
+		{"CMP", zeroPageX, cpu.cmp, 4, 2},
+		{"DEC", zeroPageX, cpu.dec, 6, 2},
 		{},
-		{"CLD", implicit, cpu.cld, 0},
-		{"CMP", absoluteYIndexed, cpu.cmp, 0},
+		{"CLD", implicit, cpu.cld, 2, 1},
+		{"CMP", absoluteYIndexed, cpu.cmp, 4, 3},
 		{},
 		{},
 		{},
-		{"CMP", absoluteXIndexed, cpu.cmp, 0},
-		{"DEC", absoluteXIndexed, cpu.dec, 0},
+		{"CMP", absoluteXIndexed, cpu.cmp, 4, 3},
+		{"DEC", absoluteXIndexed, cpu.dec, 7, 3},
 		{},
 
 		// 0xE0
-		{"CPX", implicit, cpu.cpx, 0},
-		{"SBC", indirectX, cpu.sbc, 0},
+		{"CPX", immediate, cpu.cpx, 2, 2},
+		{"SBC", indirectX, cpu.sbc, 6, 2},
 		{},
 		{},
-		{"CPX", zeroPage, cpu.cpx, 0},
-		{"SBC", zeroPage, cpu.sbc, 0},
-		{"INC", zeroPage, cpu.inc, 0},
+		{"CPX", zeroPage, cpu.cpx, 3, 2},
+		{"SBC", zeroPage, cpu.sbc, 3, 2},
+		{"INC", zeroPage, cpu.inc, 5, 2},
 		{},
-		{"INX", implicit, cpu.inx, 0},
-		{"SBC", immediate, cpu.sbc, 0},
-		{"NOP", implicit, cpu.nop, 0},
+		{"INX", implicit, cpu.inx, 2, 1},
+		{"SBC", immediate, cpu.sbc, 2, 2},
+		{"NOP", implicit, cpu.nop, 2, 1},
 		{},
-		{"CPX", absolute, cpu.cpx, 0},
-		{"SBC", absolute, cpu.sbc, 0},
-		{"INC", absolute, cpu.inc, 0},
+		{"CPX", absolute, cpu.cpx, 4, 3},
+		{"SBC", absolute, cpu.sbc, 4, 3},
+		{"INC", absolute, cpu.inc, 6, 3},
 		{},
 
 		// 0xF0
-		{"BEQ", relative, cpu.cpx, 0},
-		{"SBC", indirectY, cpu.sbc, 0},
+		{"BEQ", relative, cpu.cpx, 2, 2},
+		{"SBC", indirectY, cpu.sbc, 5, 2},
 		{},
 		{},
 		{},
-		{"SBC", zeroPageX, cpu.cpx, 0},
-		{"INC", zeroPageX, cpu.inc, 0},
+		{"SBC", zeroPageX, cpu.cpx, 4, 2},
+		{"INC", zeroPageX, cpu.inc, 6, 2},
 		{},
-		{"SED", implicit, cpu.inx, 0},
-		{"SBC", absoluteYIndexed, cpu.sbc, 0},
+		{"SED", implicit, cpu.inx, 2, 1},
+		{"SBC", absoluteYIndexed, cpu.sbc, 4, 3},
 		{},
 		{},
 		{},
-		{"SBC", absoluteXIndexed, cpu.sbc, 0},
-		{"INC", absoluteXIndexed, cpu.inc, 0},
+		{"SBC", absoluteXIndexed, cpu.sbc, 4, 3},
+		{"INC", absoluteXIndexed, cpu.inc, 7, 3},
 		{},
 	}
 }

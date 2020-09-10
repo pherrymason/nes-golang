@@ -7,7 +7,7 @@ import (
 )
 
 func TestPushIntoStack(t *testing.T) {
-	cpu := CreateCPU()
+	cpu := CreateCPUWithBus()
 
 	cpu.pushStack(0x20)
 
@@ -16,7 +16,7 @@ func TestPushIntoStack(t *testing.T) {
 }
 
 func TestPushIntoStackWrapsAround(t *testing.T) {
-	cpu := CreateCPU()
+	cpu := CreateCPUWithBus()
 	cpu.registers.Sp = 0x00
 	cpu.pushStack(0x20)
 	cpu.pushStack(0x21)
@@ -27,7 +27,7 @@ func TestPushIntoStackWrapsAround(t *testing.T) {
 }
 
 func TestGetStatusRegister(t *testing.T) {
-	cpu := CreateCPU()
+	cpu := CreateCPUWithBus()
 
 	cpu.registers.setFlag(carryFlag)
 	assert.Equal(t, byte(0x21), cpu.registers.Status)

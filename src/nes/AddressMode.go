@@ -21,37 +21,47 @@ const (
 
 // AddressModeState is
 type AddressModeState struct {
-	registers CPURegisters
+	Registers CPURegisters
 	bus       *Bus
 }
 
-func evalImmediate(state AddressModeState) Address {
-	return state.registers.Pc
+func CreateAddressModeState(cpu *CPU) AddressModeState {
+	return AddressModeState{
+		Registers: cpu.registers,
+		bus:       cpu.bus,
+	}
 }
 
-func evalZeroPage(state AddressModeState) Address {
+func (cpu *CPU) evalImmediate(state AddressModeState) Address {
+	address := state.Registers.Pc
+	state.Registers.Pc++
+
+	return address
+}
+
+func (cpu *CPU) evalZeroPage(state AddressModeState) Address {
 	// 2 bytes
-	var low = state.bus.read(state.registers.Pc)
+	var low = state.bus.read(state.Registers.Pc)
 
 	return Address(low) << 8
 }
 
-func evalZeroPageX(state AddressModeState) Address {
-	registers := state.registers
+func (cpu *CPU) evalZeroPageX(state AddressModeState) Address {
+	registers := state.Registers
 	var low = state.bus.read(registers.Pc) + registers.X
 
 	return Address(low) & 0xFF
 }
 
-func evalZeroPageY(state AddressModeState) Address {
-	registers := state.registers
+func (cpu *CPU) evalZeroPageY(state AddressModeState) Address {
+	registers := state.Registers
 	var low = state.bus.read(registers.Pc) + registers.Y
 
 	return Address(low) & 0xFF
 }
 
-func evalAbsolute(state AddressModeState) Address {
-	registers := state.registers
+func (cpu *CPU) evalAbsolute(state AddressModeState) Address {
+	registers := state.Registers
 	low := state.bus.read(registers.Pc)
 
 	// Bug: Missing incrementing programCounter
@@ -60,8 +70,8 @@ func evalAbsolute(state AddressModeState) Address {
 	return CreateAddress(low, high)
 }
 
-func evalAbsoluteXIndexed(state AddressModeState) Address {
-	registers := state.registers
+func (cpu *CPU) evalAbsoluteXIndexed(state AddressModeState) Address {
+	registers := state.Registers
 	low := state.bus.read(registers.Pc)
 	high := state.bus.read(registers.Pc + 1)
 
@@ -71,8 +81,8 @@ func evalAbsoluteXIndexed(state AddressModeState) Address {
 	return address
 }
 
-func evalAbsoluteYIndexed(state AddressModeState) Address {
-	registers := state.registers
+func (cpu *CPU) evalAbsoluteYIndexed(state AddressModeState) Address {
+	registers := state.Registers
 	low := state.bus.read(registers.Pc)
 	high := state.bus.read(registers.Pc + 1)
 
@@ -96,8 +106,8 @@ func evalAbsoluteYIndexed(state AddressModeState) Address {
 // then the LSB will be read from 0x01FF and the MSB will be read from 0x0100.
 // This is an actual hardware bug in early revisions of the 6502 which happen to be present
 // in the 2A03 used by the NES.
-func evalIndirect(state AddressModeState) Address {
-	registers := state.registers
+func (cpu *CPU) evalIndirect(state AddressModeState) Address {
+	registers := state.Registers
 	bus := state.bus
 
 	// Get Pointer Address
@@ -110,8 +120,8 @@ func evalIndirect(state AddressModeState) Address {
 	return Address(finalAddress)
 }
 
-func evalIndirectX(state AddressModeState) Address {
-	registers := state.registers
+func (cpu *CPU) evalIndirectX(state AddressModeState) Address {
+	registers := state.Registers
 	bus := state.bus
 
 	low := state.bus.read(registers.Pc)
@@ -122,12 +132,12 @@ func evalIndirectX(state AddressModeState) Address {
 	return Address(finalAddress)
 }
 
-func evalIndirectY(state AddressModeState) Address {
-	registers := state.registers
+func (cpu *CPU) evalIndirectY(state AddressModeState) Address {
+	registers := state.Registers
 	bus := state.bus
 
 	lo := bus.read(registers.Pc)
-	//hi := bus.read(registers.Pc + 1)
+	//hi := bus.read(Registers.Pc + 1)
 
 	opcodeOperand := CreateAddress(lo, 0x00)
 
@@ -139,8 +149,8 @@ func evalIndirectY(state AddressModeState) Address {
 	return Address(bus.read16(Address(offsetAddress)))
 }
 
-func evalRelative(state AddressModeState) Address {
-	registers := state.registers
+func (cpu *CPU) evalRelative(state AddressModeState) Address {
+	registers := state.Registers
 	bus := state.bus
 
 	opcodeOperand := bus.read(registers.Pc)

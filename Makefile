@@ -3,7 +3,7 @@ run:
 	go run src/main.go
 
 test:
-	go test ./src/nes
+	go test ./...
 
 build:
 	go build -o ./build/nes src/main.go 

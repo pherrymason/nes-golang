@@ -13,7 +13,7 @@ const (
 	negativeFlag
 )
 
-// CPURegisters is a representation of the registers of the NES cpu
+// CPURegisters is a representation of the Registers of the NES cpu
 type CPURegisters struct {
 	// Accumulator
 	// and along with the arithmetic logic unit (ALU), supports using the status register for carrying, overflow
@@ -44,7 +44,7 @@ type CPURegisters struct {
 	// and incremented when a byte is popped off the stack.
 	Sp byte
 
-	// Status Processor
+	// Status Processor [NV-BDIZC]
 	Status byte
 }
 
@@ -52,8 +52,8 @@ func (registers *CPURegisters) reset() {
 	registers.A = 0x00
 	registers.X = 0x00
 	registers.Y = 0x00
-	registers.Sp = 0xFF
-	registers.Pc = Address(0x0000)
+	registers.Sp = 0xFD
+	registers.Pc = Address(0xFFFC)
 	registers.Status = 0x20
 }
 
@@ -105,7 +105,7 @@ func (registers *CPURegisters) negativeFlag() byte {
 }
 
 func (registers *CPURegisters) updateNegativeFlag(value byte) {
-	//registers.NegativeFlag = value&0x80 == 0x80
+	//Registers.NegativeFlag = value&0x80 == 0x80
 	if value&0x80 == 0x80 {
 		registers.Status |= 1 << negativeFlag
 	} else {
@@ -187,7 +187,7 @@ func CreateRegisters() CPURegisters {
 		0x00,   // A
 		0x00,   // X
 		0x00,   // Y
-		0x0000, // Program Counter
+		0xFFFC, // Program Counter
 		0xFF,   // Stack Pointer
 
 		0x20,

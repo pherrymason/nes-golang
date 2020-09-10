@@ -1,14 +1,35 @@
 package nes
 
 type Bus struct {
-	ram *RAM // is $0000 -> $07FF
+	//
+	// 	0x0000 - 0x00FF  ZeroPage
+	//	0x0100 - 0x01FF  Stack
+	//	0x0200 - 0x0800  General Purpose RAM
+	//  0x0801 - 0x2000  Mirrors previous chunk of memory (0x0 - 0x7FF)
+	//  0x2000 - 0x2007  PPU registers
+	//  0x2008 - 0x4000  Mirrors PPU registers
+	//  0x4000 - 0x4020  I/O Registers
+	//  0x4020 - 0x5FFF  Expansion ROM
+	//  0x6000 - 0x7FFF  SRAM
+	//  0x8000 - 0xBFFF  GamePak prgROM lower bank
+	//  0xC000 - 0x10000 GamePak prgROM higher bank
+
+	Ram *RAM // is $0000 -> $07FF
+	// RAM mirrors $0800 -> $1FFF
+	Cartridge *GamePak // 0x8000 -> $FFFF
+
 	// APU $4000 -> $4017
-	// Cartridge -> $4020 -> $FFFF
 	// PPU -> $2000 -> $2007
 }
 
 func (bus *Bus) read(address Address) byte {
-	return bus.ram.read(address)
+	if address <= 0x7FF {
+		return bus.Ram.read(address)
+	} else if address >= 0x8000 {
+		return bus.Cartridge.read(address)
+	}
+
+	return 0
 }
 
 func (bus *Bus) read16(address Address) Word {
@@ -22,16 +43,24 @@ func (bus *Bus) read16Bugged(address Address) Word {
 	lsb := address
 	msb := (lsb & 0xFF00) | (lsb & 0xFF) + 1
 
-	low := bus.ram.read(lsb)
-	high := bus.ram.read(msb)
+	low := bus.read(lsb)
+	high := bus.read(msb)
 
 	return CreateWord(low, high)
 }
 
 func (bus *Bus) write(address Address, value byte) {
-	bus.ram.write(address, value)
+	if address <= 0x7FF {
+		bus.Ram.write(address, value)
+	} else if address >= 0x8000 {
+		bus.Cartridge.write(address, value)
+	}
+}
+
+func (bus *Bus) attachCartridge(cartridge *GamePak) {
+	bus.Cartridge = cartridge
 }
 
 func CreateBus(ram *RAM) Bus {
-	return Bus{ram}
+	return Bus{Ram: ram}
 }
