@@ -15,21 +15,22 @@ func createBus() Bus {
 func TestImmediate(t *testing.T) {
 	cpu := CreateCPUWithBus()
 	cpu.registers.Pc = Address(0x100)
-	state := CreateAddressModeState(&cpu)
-	result := cpu.evalImmediate(state)
 
-	assert.Equal(t, Address(0x100), result, "Immediate address mode failed to evaluate address")
+	pc, address, _ := cpu.evalImmediate(cpu.registers.Pc)
+
+	assert.Equal(t, Address(0x100), address, "Immediate address mode failed to evaluate address")
+	assert.Equal(t, cpu.registers.Pc+1, pc)
 }
 
 func TestZeroPage(t *testing.T) {
 	cpu := CreateCPUWithBus()
 	cpu.registers.Pc = 0x00
 	cpu.bus.write(0x00, 0x40)
-	state := CreateAddressModeState(&cpu)
 
-	result := cpu.evalZeroPage(state)
+	pc, result, _ := cpu.evalZeroPage(cpu.registers.Pc)
 	expected := Address(0x4000)
 	assert.Equal(t, expected, result, fmt.Sprintf("ZeroPage address mode decoded wrongly, expected %d, got %d", expected, result))
+	assert.Equal(t, cpu.registers.Pc+1, pc)
 }
 
 func TestZeroPageX(t *testing.T) {
@@ -38,11 +39,12 @@ func TestZeroPageX(t *testing.T) {
 	cpu.bus.write(0x00, 0x05)
 	cpu.registers.X = 0x10
 
-	state := CreateAddressModeState(&cpu)
-	result := cpu.evalZeroPageX(state)
+	state := cpu.registers.Pc
+	pc, result, _ := cpu.evalZeroPageX(state)
 
 	expected := Address(0x15)
 	assert.Equal(t, expected, result, fmt.Sprintf("ZeroPageX address mode decoded wrongly, expected %d, got %d", expected, result))
+	assert.Equal(t, cpu.registers.Pc+1, pc)
 }
 
 func TestZeroPageY(t *testing.T) {
@@ -51,11 +53,12 @@ func TestZeroPageY(t *testing.T) {
 	cpu.registers.Pc = Address(0x0000)
 	cpu.bus.write(cpu.registers.Pc, 0xF0)
 
-	result := cpu.evalZeroPageY(CreateAddressModeState(&cpu))
+	pc, result, _ := cpu.evalZeroPageY(cpu.registers.Pc)
 
 	expected := Address(0x00)
 
 	assert.Equal(t, expected, result, fmt.Sprintf("ZeroPageY address mode decoded wrongly, expected %d, got %d", expected, result))
+	assert.Equal(t, cpu.registers.Pc+1, pc)
 }
 
 func TestAbsolute(t *testing.T) {
@@ -64,9 +67,10 @@ func TestAbsolute(t *testing.T) {
 	cpu.bus.write(0x0000, 0x30)
 	cpu.bus.write(0x0001, 0x01)
 
-	result := cpu.evalAbsolute(CreateAddressModeState(&cpu))
+	pc, result, _ := cpu.evalAbsolute(cpu.registers.Pc)
 
 	assert.Equal(t, Address(0x0130), result, "Error")
+	assert.Equal(t, cpu.registers.Pc+2, pc)
 }
 
 func TestAbsoluteXIndexed(t *testing.T) {
@@ -76,9 +80,10 @@ func TestAbsoluteXIndexed(t *testing.T) {
 	cpu.bus.write(0x0000, 0x01)
 	cpu.bus.write(0x0001, 0x01)
 
-	result := cpu.evalAbsoluteXIndexed(CreateAddressModeState(&cpu))
+	pc, result, _ := cpu.evalAbsoluteXIndexed(cpu.registers.Pc)
 
 	assert.Equal(t, Address(0x106), result)
+	assert.Equal(t, cpu.registers.Pc+2, pc)
 }
 
 func TestAbsoluteYIndexed(t *testing.T) {
@@ -89,9 +94,10 @@ func TestAbsoluteYIndexed(t *testing.T) {
 	cpu.bus.write(0x0000, 0x01)
 	cpu.bus.write(0x0001, 0x01)
 
-	result := cpu.evalAbsoluteYIndexed(CreateAddressModeState(&cpu))
+	pc, result, _ := cpu.evalAbsoluteYIndexed(cpu.registers.Pc)
 
 	assert.Equal(t, Address(0x106), result)
+	assert.Equal(t, cpu.registers.Pc+2, pc)
 }
 
 func TestIndirect(t *testing.T) {
@@ -106,10 +112,11 @@ func TestIndirect(t *testing.T) {
 	cpu.bus.write(Address(0x134), 0x00)
 	cpu.bus.write(Address(0x135), 0x02)
 
-	result := cpu.evalIndirect(CreateAddressModeState(&cpu))
+	pc, result, _ := cpu.evalIndirect(cpu.registers.Pc)
 	expected := Address(0x200)
 
 	assert.Equal(t, expected, result, "Indirect error")
+	assert.Equal(t, cpu.registers.Pc+2, pc)
 }
 
 func TestIndirectBug(t *testing.T) {
@@ -123,10 +130,11 @@ func TestIndirectBug(t *testing.T) {
 	cpu.bus.write(Address(0x1FF), 0x32)
 	cpu.bus.write(Address(0x200), 0x04)
 
-	result := cpu.evalIndirect(CreateAddressModeState(&cpu))
+	pc, result, _ := cpu.evalIndirect(cpu.registers.Pc)
 	expected := Address(0x432)
 
 	assert.Equal(t, expected, result, "Indirect error")
+	assert.Equal(t, cpu.registers.Pc+2, pc)
 }
 
 func TestPreIndexedIndirect(t *testing.T) {
@@ -140,10 +148,11 @@ func TestPreIndexedIndirect(t *testing.T) {
 	// Write Offset Table
 	cpu.bus.write(0x0014, 0x25)
 
-	result := cpu.evalIndirectX(CreateAddressModeState(&cpu))
+	pc, result, _ := cpu.evalIndirectX(cpu.registers.Pc)
 
 	expected := Address(0x0025)
 	assert.Equal(t, expected, result)
+	assert.Equal(t, cpu.registers.Pc+1, pc)
 }
 
 func TestPreIndexedIndirectWithWrapAround(t *testing.T) {
@@ -156,10 +165,11 @@ func TestPreIndexedIndirectWithWrapAround(t *testing.T) {
 	// Write Offset Table
 	cpu.bus.write(0x000F, 0x10)
 
-	result := cpu.evalIndirectX(CreateAddressModeState(&cpu))
+	pc, result, _ := cpu.evalIndirectX(cpu.registers.Pc)
 
 	expected := Address(0x0010)
 	assert.Equal(t, expected, result)
+	assert.Equal(t, cpu.registers.Pc+1, pc)
 }
 
 func TestPostIndexedIndirect(t *testing.T) {
@@ -180,9 +190,10 @@ func TestPostIndexedIndirect(t *testing.T) {
 	// Offset pointer
 	cpu.bus.write(0x0025, byte(expected))
 
-	result := cpu.evalIndirectY(CreateAddressModeState(&cpu))
+	pc, result, _ := cpu.evalIndirectY(cpu.registers.Pc)
 
 	assert.Equal(t, expected, result)
+	assert.Equal(t, cpu.registers.Pc+1, pc)
 }
 
 func TestPostIndexedIndirectWithWrapAround(t *testing.T) {
@@ -203,9 +214,10 @@ func TestPostIndexedIndirectWithWrapAround(t *testing.T) {
 	// Offset pointer
 	cpu.bus.write(0x000A, byte(expected))
 
-	result := cpu.evalIndirectY(CreateAddressModeState(&cpu))
+	pc, result, _ := cpu.evalIndirectY(cpu.registers.Pc)
 
 	assert.Equal(t, expected, result)
+	assert.Equal(t, cpu.registers.Pc+1, pc)
 }
 
 func TestRelativeAddressMode(t *testing.T) {
@@ -216,9 +228,10 @@ func TestRelativeAddressMode(t *testing.T) {
 	cpu.bus.write(0x09, 0xFF) // OpCode
 	cpu.bus.write(0x10, 0x04) // Operand
 
-	result := cpu.evalRelative(CreateAddressModeState(&cpu))
+	pc, result, _ := cpu.evalRelative(cpu.registers.Pc)
 
 	assert.Equal(t, Address(0x15), result)
+	assert.Equal(t, cpu.registers.Pc+1, pc)
 }
 
 func TestRelativeAddressModeNegative(t *testing.T) {
@@ -228,7 +241,8 @@ func TestRelativeAddressModeNegative(t *testing.T) {
 	// Write Operand
 	cpu.bus.write(0x10, 0x100-4)
 
-	result := cpu.evalRelative(CreateAddressModeState(&cpu))
+	pc, result, _ := cpu.evalRelative(cpu.registers.Pc)
 
 	assert.Equal(t, Address(0x0D), result)
+	assert.Equal(t, cpu.registers.Pc+1, pc)
 }

@@ -19,77 +19,83 @@ const (
 	relative
 )
 
-// AddressModeState is
-type AddressModeState struct {
-	Registers CPURegisters
-	bus       *Bus
+func (cpu *CPU) evalImmediate(programCounter Address) (pc Address, address Address, cycles int) {
+	pc = programCounter
+	address = programCounter
+	pc++
+	cycles = 0
+	return
 }
 
-func CreateAddressModeState(cpu *CPU) AddressModeState {
-	return AddressModeState{
-		Registers: cpu.registers,
-		bus:       cpu.bus,
-	}
-}
-
-func (cpu *CPU) evalImmediate(state AddressModeState) Address {
-	address := state.Registers.Pc
-	state.Registers.Pc++
-
-	return address
-}
-
-func (cpu *CPU) evalZeroPage(state AddressModeState) Address {
+func (cpu *CPU) evalZeroPage(programCounter Address) (pc Address, address Address, cycles int) {
 	// 2 bytes
-	var low = state.bus.read(state.Registers.Pc)
+	var low = cpu.bus.read(programCounter)
 
-	return Address(low) << 8
+	address = Address(low) << 8
+	pc = cpu.registers.Pc + 1
+
+	return
 }
 
-func (cpu *CPU) evalZeroPageX(state AddressModeState) Address {
-	registers := state.Registers
-	var low = state.bus.read(registers.Pc) + registers.X
+func (cpu *CPU) evalZeroPageX(programCounter Address) (pc Address, address Address, cycles int) {
+	registers := cpu.registers
+	var low = cpu.bus.read(programCounter) + registers.X
 
-	return Address(low) & 0xFF
+	address = Address(low) & 0xFF
+	pc = programCounter + 1
+
+	return
 }
 
-func (cpu *CPU) evalZeroPageY(state AddressModeState) Address {
-	registers := state.Registers
-	var low = state.bus.read(registers.Pc) + registers.Y
+func (cpu *CPU) evalZeroPageY(programCounter Address) (pc Address, address Address, cycles int) {
+	registers := cpu.registers
+	var low = cpu.bus.read(programCounter) + registers.Y
 
-	return Address(low) & 0xFF
+	address = Address(low) & 0xFF
+	pc = programCounter + 1
+	return
 }
 
-func (cpu *CPU) evalAbsolute(state AddressModeState) Address {
-	registers := state.Registers
-	low := state.bus.read(registers.Pc)
+func (cpu *CPU) evalAbsolute(programCounter Address) (pc Address, address Address, cycles int) {
+	pc = programCounter
+	low := cpu.bus.read(pc)
+	pc += 1
 
 	// Bug: Missing incrementing programCounter
-	high := state.bus.read(registers.Pc + 1)
+	high := cpu.bus.read(pc)
+	pc += 1
 
-	return CreateAddress(low, high)
+	address = CreateAddress(low, high)
+
+	return
 }
 
-func (cpu *CPU) evalAbsoluteXIndexed(state AddressModeState) Address {
-	registers := state.Registers
-	low := state.bus.read(registers.Pc)
-	high := state.bus.read(registers.Pc + 1)
+func (cpu *CPU) evalAbsoluteXIndexed(programCounter Address) (pc Address, address Address, cycles int) {
+	pc = programCounter
+	low := cpu.bus.read(pc)
+	pc++
 
-	address := CreateAddress(low, high)
-	address += Address(registers.X)
+	high := cpu.bus.read(pc)
+	pc++
 
-	return address
+	address = CreateAddress(low, high)
+	address += Address(cpu.registers.X)
+
+	return
 }
 
-func (cpu *CPU) evalAbsoluteYIndexed(state AddressModeState) Address {
-	registers := state.Registers
-	low := state.bus.read(registers.Pc)
-	high := state.bus.read(registers.Pc + 1)
+func (cpu *CPU) evalAbsoluteYIndexed(programCounter Address) (pc Address, address Address, cycles int) {
+	pc = programCounter
+	low := cpu.bus.read(pc)
+	pc++
 
-	address := CreateAddress(low, high)
-	address += Address(registers.Y)
+	high := cpu.bus.read(pc)
+	pc++
 
-	return address
+	address = CreateAddress(low, high)
+	address += Address(cpu.registers.Y)
+
+	return
 }
 
 // Address Mode: Indirect
@@ -106,61 +112,67 @@ func (cpu *CPU) evalAbsoluteYIndexed(state AddressModeState) Address {
 // then the LSB will be read from 0x01FF and the MSB will be read from 0x0100.
 // This is an actual hardware bug in early revisions of the 6502 which happen to be present
 // in the 2A03 used by the NES.
-func (cpu *CPU) evalIndirect(state AddressModeState) Address {
-	registers := state.Registers
-	bus := state.bus
+func (cpu *CPU) evalIndirect(programCounter Address) (pc Address, address Address, cycles int) {
+	pc = programCounter
 
 	// Get Pointer Address
-	ptrLow := bus.read(registers.Pc)
-	ptrHigh := bus.read(registers.Pc + 1)
+	ptrLow := cpu.bus.read(pc)
+	pc++
+
+	ptrHigh := cpu.bus.read(pc)
+	pc++
+
 	ptrAddress := CreateAddress(ptrLow, ptrHigh)
+	finalAddress := cpu.bus.read16Bugged(ptrAddress)
+	address = Address(finalAddress)
 
-	finalAddress := bus.read16Bugged(ptrAddress)
-
-	return Address(finalAddress)
+	return
 }
 
-func (cpu *CPU) evalIndirectX(state AddressModeState) Address {
-	registers := state.Registers
-	bus := state.bus
+func (cpu *CPU) evalIndirectX(programCounter Address) (pc Address, address Address, cycles int) {
+	pc = programCounter
 
-	low := state.bus.read(registers.Pc)
-	address := (uint16(low) + uint16(registers.X)) & 0xFF
+	low := cpu.bus.read(pc)
+	pc++
 
-	finalAddress := bus.read16(Address(address))
+	ptrAddress := (uint16(low) + uint16(cpu.registers.X)) & 0xFF
 
-	return Address(finalAddress)
+	address = Address(cpu.bus.read16(Address(ptrAddress)))
+
+	return
 }
 
-func (cpu *CPU) evalIndirectY(state AddressModeState) Address {
-	registers := state.Registers
-	bus := state.bus
+func (cpu *CPU) evalIndirectY(programCounter Address) (pc Address, address Address, cycles int) {
+	pc = programCounter
 
-	lo := bus.read(registers.Pc)
+	lo := cpu.bus.read(pc)
+	pc++
 	//hi := bus.read(Registers.Pc + 1)
 
 	opcodeOperand := CreateAddress(lo, 0x00)
 
-	offsetAddress := bus.read16(opcodeOperand)
-	offsetAddress += Word(registers.Y)
+	offsetAddress := cpu.bus.read16(opcodeOperand)
+	offsetAddress += Word(cpu.registers.Y)
 
 	// Todo: Not sure if there is wrap around in adding Y
 
-	return Address(bus.read16(Address(offsetAddress)))
+	address = Address(cpu.bus.read16(Address(offsetAddress)))
+
+	return
 }
 
-func (cpu *CPU) evalRelative(state AddressModeState) Address {
-	registers := state.Registers
-	bus := state.bus
+func (cpu *CPU) evalRelative(programCounter Address) (pc Address, address Address, cycles int) {
+	pc = programCounter
 
-	opcodeOperand := bus.read(registers.Pc)
+	opcodeOperand := cpu.bus.read(pc)
+	pc++
 
-	address := registers.Pc + 1
+	address = cpu.registers.Pc + 1
 	if opcodeOperand < 0x80 {
 		address += Address(opcodeOperand)
 	} else {
 		address += Address(opcodeOperand) - 0x100
 	}
 
-	return address
+	return
 }

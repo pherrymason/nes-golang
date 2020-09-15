@@ -12,6 +12,7 @@ type CPU struct {
 	bus       *Bus
 
 	instructions [256]instruction
+	nose         [13]func(programCounter Address) (pc Address, address Address, cycles int)
 	debug        bool
 	logger       log.Logger
 }
@@ -79,48 +80,11 @@ func (cpu *CPU) tick() {
 		panic(msg)
 	}
 
-	infoStep := InfoStep{
+	_, operandAddress, _ := cpu.nose[instruction.addressMode](cpu.registers.Pc)
+	instruction.method(InfoStep{
 		instruction.addressMode,
-		0,
-	}
-	state := CreateAddressModeState(cpu)
-
-	switch instruction.addressMode {
-	case implicit:
-	case accumulator:
-		break
-	case immediate:
-		infoStep.operandAddress = cpu.evalImmediate(state)
-		break
-	case zeroPage:
-		infoStep.operandAddress = cpu.evalZeroPage(state)
-		break
-	case zeroPageX:
-		infoStep.operandAddress = cpu.evalZeroPageX(state)
-		break
-	case zeroPageY:
-		infoStep.operandAddress = cpu.evalZeroPageY(state)
-		break
-	case absolute:
-		infoStep.operandAddress = cpu.evalAbsolute(state)
-		break
-	case absoluteXIndexed:
-		infoStep.operandAddress = cpu.evalAbsoluteXIndexed(state)
-		break
-	case absoluteYIndexed:
-		infoStep.operandAddress = cpu.evalAbsoluteYIndexed(state)
-		break
-	case indirect:
-		infoStep.operandAddress = cpu.evalIndirect(state)
-		break
-	case indirectX:
-		infoStep.operandAddress = cpu.evalIndirectX(state)
-		break
-	case indirectY:
-		infoStep.operandAddress = cpu.evalIndirectY(state)
-		break
-	}
-	instruction.method(infoStep)
+		operandAddress,
+	})
 
 	// -analyze opcode:
 	//	-address mode
@@ -132,16 +96,19 @@ func (cpu *CPU) tick() {
 
 func (cpu *CPU) printStep() {
 
-	offset := cpu.registers.Pc
-	opcode := cpu.read(cpu.registers.Pc)
+	pc := cpu.registers.Pc
+	opcode := cpu.read(pc)
+	pc++
 	instruction := cpu.instructions[opcode]
 
+	_, evaluatedAddress, _ := cpu.nose[instruction.addressMode](pc)
+
 	var msg string
-	msg += fmt.Sprintf("%X", cpu.registers.Pc) + "  "
+	msg += fmt.Sprintf("%X", pc) + "  "
 	msg += fmt.Sprintf("%X ", opcode) + " "
 
 	for i := byte(0); i < (instruction.size - 1); i++ {
-		msg += fmt.Sprintf("%X ", cpu.read(offset+Address(i)+1))
+		msg += fmt.Sprintf("%X ", cpu.read(pc+Address(i)))
 	}
 
 	for i := len(msg); i <= 16; i++ {
@@ -153,7 +120,7 @@ func (cpu *CPU) printStep() {
 	if instruction.addressMode == immediate {
 		msg += "#"
 	} else {
-		msg += fmt.Sprintf("$%X", 0)
+		msg += fmt.Sprintf("$%X", evaluatedAddress)
 	}
 
 	for i := len(msg); i <= 48; i++ {
@@ -187,6 +154,14 @@ func (cpu *CPU) popStack() byte {
 	cpu.registers.stackPointerPopped()
 	address := cpu.registers.stackPointerAddress()
 	return cpu.bus.read(address)
+}
+
+// Reads value located at Program Counter and increments it
+func (cpu *CPU) fetch() byte {
+	value := cpu.bus.read(cpu.registers.Pc)
+	cpu.registers.Pc++
+
+	return value
 }
 
 func (cpu *CPU) read(address Address) byte {
@@ -492,5 +467,22 @@ func (cpu *CPU) initInstructionsTable() {
 		{"SBC", absoluteXIndexed, cpu.sbc, 4, 3},
 		{"INC", absoluteXIndexed, cpu.inc, 7, 3},
 		{},
+	}
+}
+
+func (cpu *CPU) initAddressModeEvaluators() {
+	cpu.nose = [13]func(programCounter Address) (pc Address, address Address, cycles int){
+		nil,
+		nil,
+		cpu.evalImmediate,
+		cpu.evalZeroPage,
+		cpu.evalZeroPageX,
+		cpu.evalZeroPageY,
+		cpu.evalAbsolute,
+		cpu.evalAbsoluteXIndexed,
+		cpu.evalAbsoluteYIndexed,
+		cpu.evalIndirect,
+		cpu.evalIndirectX,
+		cpu.evalIndirectY,
 	}
 }

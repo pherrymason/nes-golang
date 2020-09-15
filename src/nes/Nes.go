@@ -11,7 +11,6 @@ type Nes struct {
 func CreateNes() Nes {
 	ram := RAM{}
 	bus := CreateBus(&ram)
-
 	cpu := CreateCPU(&bus)
 
 	nes := Nes{
@@ -26,7 +25,6 @@ func CreateNes() Nes {
 func CreateDebugableNes(logger log.Logger) Nes {
 	ram := RAM{}
 	bus := CreateBus(&ram)
-
 	cpu := CreateCPUDebuggable(&bus, logger)
 
 	nes := Nes{
@@ -40,6 +38,7 @@ func CreateDebugableNes(logger log.Logger) Nes {
 
 func (nes *Nes) Start() {
 	nes.cpu.initInstructionsTable()
+	nes.cpu.initAddressModeEvaluators()
 	//nes.cpu.reset()
 	for {
 		nes.cpu.tick()
