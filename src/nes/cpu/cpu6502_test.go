@@ -1,4 +1,4 @@
-package nes
+package cpu
 
 import (
 	"testing"
@@ -12,7 +12,7 @@ func TestPushIntoStack(t *testing.T) {
 	cpu.pushStack(0x20)
 
 	assert.Equal(t, byte(0xff-1), cpu.registers.Sp)
-	assert.Equal(t, byte(0x20), cpu.read(0x1FF))
+	assert.Equal(t, byte(0x20), cpu.Read(0x1FF))
 }
 
 func TestPushIntoStackWrapsAround(t *testing.T) {
@@ -22,8 +22,8 @@ func TestPushIntoStackWrapsAround(t *testing.T) {
 	cpu.pushStack(0x21)
 
 	assert.Equal(t, byte(0xff-1), cpu.registers.Sp)
-	assert.Equal(t, byte(0x20), cpu.read(0x100))
-	assert.Equal(t, byte(0x21), cpu.read(0x1FF))
+	assert.Equal(t, byte(0x20), cpu.Read(0x100))
+	assert.Equal(t, byte(0x21), cpu.Read(0x1FF))
 }
 
 func TestGetStatusRegister(t *testing.T) {

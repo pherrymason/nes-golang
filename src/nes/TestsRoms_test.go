@@ -7,15 +7,23 @@ import (
 )
 
 func TestNestest(t *testing.T) {
-	gamepak := readRom("./../../tests/roms/nestest/nestest.nes")
+	gamePak := readRom("./../../tests/roms/nestest/nestest.nes")
 
-	logger := log.MemoryLogger{}
+	//logger := log.MemoryLogger{}
+	outputLogPath := "./../../var/nestest.log"
+	logger := log.CreateFileLogger(outputLogPath)
 
-	nes := CreateDebugableNes(&logger)
-	nes.InsertCartridge(&gamepak)
-	nes.cpu.reset()
-	nes.cpu.registers.Pc = 0xC000
+	nes := CreateDebuggableNes(&logger)
+	nes.InsertCartridge(&gamePak)
+	nes.cpu.ResetToAddress(0xC000)
 	nes.Start()
+
+	// Compare logs
+	compareLogs(outputLogPath)
+}
+
+func compareLogs(logPath string) {
+
 }
 
 func TestCPUDummyReads(t *testing.T) {

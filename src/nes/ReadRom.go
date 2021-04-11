@@ -2,17 +2,18 @@ package nes
 
 import (
 	"fmt"
+	"github.com/raulferras/nes-golang/src/nes/component"
 	"io/ioutil"
 )
 
-func readRom(path string) GamePak {
+func readRom(path string) component.GamePak {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		fmt.Println("File reading error", err)
 	}
 
 	// Read Header
-	inesHeader := CreateINes1Header(data[0:16])
+	inesHeader := component.CreateINes1Header(data[0:16])
 
 	if inesHeader.HasTrainer() {
 		fmt.Println("Rom has trainer")
@@ -25,5 +26,5 @@ func readRom(path string) GamePak {
 	fmt.Println("Mapper:", inesHeader.MapperNumber())
 	fmt.Println("Tv System:", inesHeader.TvSystem())
 
-	return GamePak{inesHeader, data[16:]}
+	return component.CreateGamePak(inesHeader, data[16:])
 }

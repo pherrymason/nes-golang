@@ -1,4 +1,4 @@
-package nes
+package cpu
 
 import (
 	"testing"

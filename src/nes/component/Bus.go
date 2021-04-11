@@ -1,4 +1,8 @@
-package nes
+package component
+
+import (
+	"github.com/raulferras/nes-golang/src/nes/defs"
+)
 
 type Bus struct {
 	//
@@ -22,7 +26,7 @@ type Bus struct {
 	// PPU -> $2000 -> $2007
 }
 
-func (bus *Bus) read(address Address) byte {
+func (bus *Bus) Read(address defs.Address) byte {
 	if address <= 0x7FF {
 		return bus.Ram.read(address)
 	} else if address >= 0x8000 {
@@ -32,24 +36,24 @@ func (bus *Bus) read(address Address) byte {
 	return 0
 }
 
-func (bus *Bus) read16(address Address) Word {
-	low := bus.read(address)
-	high := bus.read(address + 1)
+func (bus *Bus) Read16(address defs.Address) defs.Word {
+	low := bus.Read(address)
+	high := bus.Read(address + 1)
 
-	return CreateWord(low, high)
+	return defs.CreateWord(low, high)
 }
 
-func (bus *Bus) read16Bugged(address Address) Word {
+func (bus *Bus) Read16Bugged(address defs.Address) defs.Word {
 	lsb := address
 	msb := (lsb & 0xFF00) | (lsb & 0xFF) + 1
 
-	low := bus.read(lsb)
-	high := bus.read(msb)
+	low := bus.Read(lsb)
+	high := bus.Read(msb)
 
-	return CreateWord(low, high)
+	return defs.CreateWord(low, high)
 }
 
-func (bus *Bus) write(address Address, value byte) {
+func (bus *Bus) Write(address defs.Address, value byte) {
 	if address <= 0x7FF {
 		bus.Ram.write(address, value)
 	} else if address >= 0x8000 {
@@ -57,7 +61,7 @@ func (bus *Bus) write(address Address, value byte) {
 	}
 }
 
-func (bus *Bus) attachCartridge(cartridge *GamePak) {
+func (bus *Bus) AttachCartridge(cartridge *GamePak) {
 	bus.Cartridge = cartridge
 }
 

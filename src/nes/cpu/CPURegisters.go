@@ -1,4 +1,6 @@
-package nes
+package cpu
+
+import "github.com/raulferras/nes-golang/src/nes/defs"
 
 type StatusRegisterFlag int
 
@@ -13,8 +15,8 @@ const (
 	negativeFlag
 )
 
-// CPURegisters is a representation of the Registers of the NES cpu
-type CPURegisters struct {
+// Cpu6502Registers is a representation of the Registers of the NES cpu
+type Cpu6502Registers struct {
 	// Accumulator
 	// and along with the arithmetic logic unit (ALU), supports using the status register for carrying, overflow
 	// detection, and so on.
@@ -22,15 +24,15 @@ type CPURegisters struct {
 
 	// Indexes X Y
 	// used for several addressing modes. They can be used as loop counters easily, using INC/DEC and branch
-	// instructions. Not being the accumulator, they have limited addressing modes themselves when loading and saving.
+	// instructions. Not being the Accumulator, they have limited addressing modes themselves when loading and saving.
 	X byte
 	Y byte
 
 	// Program Counter:
 	// supports 65536 direct (unbanked) memory locations, however not all values are sent to the cartridge.
-	// It can be accessed either by allowing CPU's internal fetch logic increment the address bus, an interrupt
+	// It can be accessed either by allowing Cpu6502's internal fetch logic increment the address bus, an interrupt
 	// (NMI, Reset, IRQ/BRQ), and using the RTS/JMP/JSR/Branch instructions.
-	Pc Address
+	Pc defs.Address
 
 	// Stack Pointer:
 	// The NMOS 65xx processors have 256 bytes of stack memory, ranging
@@ -48,20 +50,20 @@ type CPURegisters struct {
 	Status byte
 }
 
-func (registers *CPURegisters) reset() {
+func (registers *Cpu6502Registers) reset() {
 	registers.A = 0x00
 	registers.X = 0x00
 	registers.Y = 0x00
 	registers.Sp = 0xFD
-	registers.Pc = Address(0xFFFC)
+	registers.Pc = defs.Address(0xFFFC)
 	registers.Status = 0x20
 }
 
-func (registers *CPURegisters) stackPointerAddress() Address {
-	return Address(0x100 + uint16(registers.Sp))
+func (registers *Cpu6502Registers) stackPointerAddress() defs.Address {
+	return defs.Address(0x100 + uint16(registers.Sp))
 }
 
-func (registers *CPURegisters) stackPointerPushed() {
+func (registers *Cpu6502Registers) stackPointerPushed() {
 	if registers.Sp > 0x00 {
 		registers.Sp--
 	} else {
@@ -69,42 +71,42 @@ func (registers *CPURegisters) stackPointerPushed() {
 	}
 }
 
-func (registers *CPURegisters) stackPointerPopped() {
+func (registers *Cpu6502Registers) stackPointerPopped() {
 	if registers.Sp < 0xFF {
 		registers.Sp++
 	}
 }
 
 // Status register getters
-func (registers *CPURegisters) carryFlag() byte {
+func (registers *Cpu6502Registers) carryFlag() byte {
 	return registers.Status & 0x01
 }
 
-func (registers *CPURegisters) zeroFlag() byte {
+func (registers *Cpu6502Registers) zeroFlag() byte {
 	return registers.Status & 0x02 >> 1
 }
 
-func (registers *CPURegisters) interruptFlag() byte {
+func (registers *Cpu6502Registers) interruptFlag() byte {
 	return registers.Status & 0x04 >> 2
 }
 
-func (registers *CPURegisters) decimalFlag() byte {
+func (registers *Cpu6502Registers) decimalFlag() byte {
 	return registers.Status & 0x08 >> 3
 }
 
-func (registers *CPURegisters) breakFlag() byte {
+func (registers *Cpu6502Registers) breakFlag() byte {
 	return registers.Status & 0x10 >> 4
 }
 
-func (registers *CPURegisters) overflowFlag() byte {
+func (registers *Cpu6502Registers) overflowFlag() byte {
 	return registers.Status & 0x40 >> 6
 }
 
-func (registers *CPURegisters) negativeFlag() byte {
+func (registers *Cpu6502Registers) negativeFlag() byte {
 	return registers.Status & 0x80 >> 7
 }
 
-func (registers *CPURegisters) updateNegativeFlag(value byte) {
+func (registers *Cpu6502Registers) updateNegativeFlag(value byte) {
 	//Registers.NegativeFlag = value&0x80 == 0x80
 	if value&0x80 == 0x80 {
 		registers.Status |= 1 << negativeFlag
@@ -113,7 +115,7 @@ func (registers *CPURegisters) updateNegativeFlag(value byte) {
 	}
 }
 
-func (registers *CPURegisters) updateZeroFlag(value byte) {
+func (registers *Cpu6502Registers) updateZeroFlag(value byte) {
 	if value == 0x00 {
 		registers.Status |= 1 << zeroFlag
 	} else {
@@ -121,7 +123,7 @@ func (registers *CPURegisters) updateZeroFlag(value byte) {
 	}
 }
 
-func (registers *CPURegisters) updateFlag(flag StatusRegisterFlag, state byte) {
+func (registers *Cpu6502Registers) updateFlag(flag StatusRegisterFlag, state byte) {
 	if state == 1 {
 		registers.Status |= 1 << flag
 	} else {
@@ -129,15 +131,15 @@ func (registers *CPURegisters) updateFlag(flag StatusRegisterFlag, state byte) {
 	}
 }
 
-func (registers *CPURegisters) setFlag(flag StatusRegisterFlag) {
+func (registers *Cpu6502Registers) setFlag(flag StatusRegisterFlag) {
 	registers.Status |= 1 << flag
 }
 
-func (registers *CPURegisters) unsetFlag(flag StatusRegisterFlag) {
+func (registers *Cpu6502Registers) unsetFlag(flag StatusRegisterFlag) {
 	registers.Status &= ^(1 << flag)
 }
 
-func (registers *CPURegisters) statusRegister() byte {
+func (registers *Cpu6502Registers) statusRegister() byte {
 	var value byte = 0x00
 
 	if registers.carryFlag() == 1 {
@@ -177,13 +179,13 @@ func (registers *CPURegisters) statusRegister() byte {
 	return value
 }
 
-func (registers *CPURegisters) loadStatusRegister(value byte) {
+func (registers *Cpu6502Registers) loadStatusRegister(value byte) {
 	registers.Status = value
 }
 
-// CreateRegisters creates a properly initialized CPU Register
-func CreateRegisters() CPURegisters {
-	return CPURegisters{
+// CreateRegisters creates a properly initialized Cpu6502 Register
+func CreateRegisters() Cpu6502Registers {
+	return Cpu6502Registers{
 		0x00,   // A
 		0x00,   // X
 		0x00,   // Y

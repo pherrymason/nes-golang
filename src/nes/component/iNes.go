@@ -1,38 +1,4 @@
-package nes
-
-type GamePak struct {
-	header Header
-	prgROM []byte
-}
-
-func (gamepak *GamePak) read(address Address) byte {
-
-	offset := Address(0x8000)
-	if gamepak.header.HasTrainer() {
-		offset += 512
-	}
-
-	// NROM has mirroring from 0xC000
-	if address >= 0xC000 {
-		address -= 0x4000
-	}
-
-	finalAddress := address - offset
-
-	if int(finalAddress) > len(gamepak.prgROM) {
-		return 0
-	}
-
-	return gamepak.prgROM[finalAddress]
-}
-
-func (gamepak *GamePak) write(address Address, value byte) {
-	offset := Address(0x8000)
-	if gamepak.header.HasTrainer() {
-		offset += 512
-	}
-	gamepak.prgROM[address-offset] = value
-}
+package component
 
 type iNes interface {
 	ProgramSize() byte

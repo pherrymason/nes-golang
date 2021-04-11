@@ -2,7 +2,7 @@
 
 # Status
 
-- CPU: 100% of opcodes implemented
+- CPU: 100% of "legal" opcodes implemented
 - PPU: 0%
 - APU: 0%
 - MMU: 0%

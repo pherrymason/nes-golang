@@ -1,18 +1,8 @@
-package nes
+package cpu
 
-type instruction struct {
-	name        string
-	addressMode AddressMode
-	method      func(info InfoStep)
-	cycles      byte
-	size        byte
-}
-
-// --- Operations
-type InfoStep struct {
-	addressMode    AddressMode
-	operandAddress Address
-}
+import (
+	"github.com/raulferras/nes-golang/src/nes/defs"
+)
 
 /*
 	ADC  Add Memory to Accumulator with Carry
@@ -24,19 +14,19 @@ type InfoStep struct {
      immidiate     ADC #oper     69    2     2
      zeropage      ADC oper      65    2     3
      zeropage,X    ADC oper,X    75    2     4
-     absolute      ADC oper      6D    3     4
-     absolute,X    ADC oper,X    7D    3     4*
-     absolute,Y    ADC oper,Y    79    3     4*
-     (indirect,X)  ADC (oper,X)  61    2     6
-	 (indirect),Y  ADC (oper),Y  71    2     5*
+     Absolute      ADC oper      6D    3     4
+     Absolute,X    ADC oper,X    7D    3     4*
+     Absolute,Y    ADC oper,Y    79    3     4*
+     (Indirect,X)  ADC (oper,X)  61    2     6
+	 (Indirect),Y  ADC (oper),Y  71    2     5*
 
 	http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
 	https://forums.nesdev.com/viewtopic.php?t=6331
 */
-func (cpu *CPU) adc(info InfoStep) {
+func (cpu *Cpu6502) adc(info defs.InfoStep) {
 	carryIn := cpu.registers.carryFlag()
 	a := cpu.registers.A
-	value := cpu.read(info.operandAddress)
+	value := cpu.Read(info.OperandAddress)
 	adc := uint16(a) + uint16(value) + uint16(carryIn)
 	adc8 := cpu.registers.A + value + cpu.registers.carryFlag()
 
@@ -59,7 +49,7 @@ func (cpu *CPU) adc(info InfoStep) {
 	}
 }
 
-//	Performs a logical AND on the operand and the accumulator and stores the result in the accumulator
+//	Performs a logical AND on the operand and the Accumulator and stores the result in the Accumulator
 //
 // 	Addressing Mode 	Assembly Language Form 	Opcode 	# Bytes 	# Cycles
 // 	Immediate 			AND #Operand 			29 		2 			2
@@ -71,8 +61,8 @@ func (cpu *CPU) adc(info InfoStep) {
 //	(Indirect, X) 		AND (Operand, X)	 	21 		2 			6
 //	(Indirect), Y 		AND (Operand), Y 		31 		2 			5*
 //	* Add 1 if page boundary is crossed.
-func (cpu *CPU) and(info InfoStep) {
-	cpu.registers.A &= cpu.read(info.operandAddress)
+func (cpu *Cpu6502) and(info defs.InfoStep) {
+	cpu.registers.A &= cpu.Read(info.OperandAddress)
 	cpu.registers.updateNegativeFlag(cpu.registers.A)
 	cpu.registers.updateZeroFlag(cpu.registers.A)
 }
@@ -85,22 +75,22 @@ func (cpu *CPU) and(info InfoStep) {
 
      addressing    assembler    opc  bytes  cyles
      --------------------------------------------
-     accumulator   ASL A         0A    1     2
+     Accumulator   ASL A         0A    1     2
      zeropage      ASL oper      06    2     5
      zeropage,X    ASL oper,X    16    2     6
-	 absolute      ASL oper      0E    3     6
+	 Absolute      ASL oper      0E    3     6
 */
-func (cpu *CPU) asl(info InfoStep) {
-	if info.addressMode == accumulator {
+func (cpu *Cpu6502) asl(info defs.InfoStep) {
+	if info.AddressMode == defs.Accumulator {
 		cpu.registers.updateFlag(carryFlag, cpu.registers.A>>7&0x01)
 		cpu.registers.A = cpu.registers.A << 1
 		cpu.registers.updateNegativeFlag(cpu.registers.A)
 		cpu.registers.updateZeroFlag(cpu.registers.A)
 	} else {
-		value := cpu.read(info.operandAddress)
+		value := cpu.Read(info.OperandAddress)
 		cpu.registers.updateFlag(carryFlag, value>>7&0x01)
 		value = value << 1
-		cpu.write(info.operandAddress, value)
+		cpu.write(info.OperandAddress, value)
 		cpu.registers.updateNegativeFlag(value)
 		cpu.registers.updateZeroFlag(value)
 	}
@@ -114,11 +104,11 @@ func (cpu *CPU) asl(info InfoStep) {
 
 	addressing    assembler    opc  bytes  cyles
 	--------------------------------------------
-	relative      BCC oper      90    2     2**
+	Relative      BCC oper      90    2     2**
 */
-func (cpu *CPU) bcc(info InfoStep) {
+func (cpu *Cpu6502) bcc(info defs.InfoStep) {
 	if cpu.registers.carryFlag() == 0 {
-		cpu.registers.Pc = info.operandAddress
+		cpu.registers.Pc = info.OperandAddress
 	}
 }
 
@@ -130,11 +120,11 @@ func (cpu *CPU) bcc(info InfoStep) {
 
 	addressing    assembler    opc  bytes  cyles
 	--------------------------------------------
-	relative      BCS oper      B0    2     2**
+	Relative      BCS oper      B0    2     2**
 */
-func (cpu *CPU) bcs(info InfoStep) {
+func (cpu *Cpu6502) bcs(info defs.InfoStep) {
 	if cpu.registers.carryFlag() == 1 {
-		cpu.registers.Pc = info.operandAddress
+		cpu.registers.Pc = info.OperandAddress
 	}
 }
 
@@ -146,11 +136,11 @@ func (cpu *CPU) bcs(info InfoStep) {
 
 	addressing    assembler    opc  bytes  cyles
 	--------------------------------------------
-	relative      BEQ oper      F0    2     2**
+	Relative      BEQ oper      F0    2     2**
 */
-func (cpu *CPU) beq(info InfoStep) {
+func (cpu *Cpu6502) beq(info defs.InfoStep) {
 	if cpu.registers.zeroFlag() == 1 {
-		cpu.registers.Pc = info.operandAddress
+		cpu.registers.Pc = info.OperandAddress
 	}
 }
 
@@ -158,7 +148,7 @@ func (cpu *CPU) beq(info InfoStep) {
 	BIT  Test Bits in Memory with Accumulator
 
 	bits 7 and 6 of operand are transfered to bit 7 and 6 of SR (N,V);
-	the zeroflag is set to the result of operand AND accumulator.
+	the zeroflag is set to the result of operand AND Accumulator.
 	The result is not kept.
 
 	A AND M, M7 -> N, M6 -> V        N Z C I D V
@@ -167,10 +157,10 @@ func (cpu *CPU) beq(info InfoStep) {
 	addressing    assembler    opc  bytes  cyles
 	--------------------------------------------
 	zeropage      BIT oper      24    2     3
-	absolute      BIT oper      2C    3     4
+	Absolute      BIT oper      2C    3     4
 */
-func (cpu *CPU) bit(info InfoStep) {
-	value := cpu.read(info.operandAddress)
+func (cpu *Cpu6502) bit(info defs.InfoStep) {
+	value := cpu.Read(info.OperandAddress)
 	cpu.registers.updateNegativeFlag(value)
 	cpu.registers.updateFlag(overflowFlag, (value>>6)&0x01)
 	cpu.registers.updateZeroFlag(value & cpu.registers.A)
@@ -184,11 +174,11 @@ func (cpu *CPU) bit(info InfoStep) {
 
 	addressing    assembler    opc  bytes  cyles
 	--------------------------------------------
-	relative      BMI oper      30    2     2**
+	Relative      BMI oper      30    2     2**
 */
-func (cpu *CPU) bmi(info InfoStep) {
+func (cpu *Cpu6502) bmi(info defs.InfoStep) {
 	if cpu.registers.negativeFlag() == 1 {
-		cpu.registers.Pc = info.operandAddress
+		cpu.registers.Pc = info.OperandAddress
 	}
 }
 
@@ -200,13 +190,13 @@ func (cpu *CPU) bmi(info InfoStep) {
 
 	addressing    assembler    opc  bytes  cyles
 	--------------------------------------------
-	relative      BNE oper      D0    2     2**
+	Relative      BNE oper      D0    2     2**
 */
-func (cpu *CPU) bne(info InfoStep) {
+func (cpu *Cpu6502) bne(info defs.InfoStep) {
 	// CHeck how to negate a bit and apply it here
 	//if !cpu.Registers.zeroFlag() == 1 {
 	if cpu.registers.zeroFlag() == 0 {
-		cpu.registers.Pc = info.operandAddress
+		cpu.registers.Pc = info.OperandAddress
 	}
 }
 
@@ -218,18 +208,18 @@ func (cpu *CPU) bne(info InfoStep) {
 
 	addressing    assembler    opc  bytes  cyles
 	--------------------------------------------
-	relative      BPL oper      10    2     2**
+	Relative      BPL oper      10    2     2**
 */
-func (cpu *CPU) bpl(info InfoStep) {
+func (cpu *Cpu6502) bpl(info defs.InfoStep) {
 	//if !cpu.Registers.NegativeFlag {
 	if cpu.registers.negativeFlag() == 0 {
-		cpu.registers.Pc = info.operandAddress
+		cpu.registers.Pc = info.OperandAddress
 	}
 }
 
 /*
 	BRK Force Break
-	The BRK instruction forces the generation of an interrupt request.
+	The BRK Instruction forces the generation of an interrupt request.
     The program counter and processor status are pushed on the stack then
     the IRQ interrupt vector at $FFFE/F is loaded into the PC and the break
     flag in the status set to one.
@@ -241,7 +231,7 @@ func (cpu *CPU) bpl(info InfoStep) {
 	--------------------------------------------
 	implied       BRK           00    1     7
 */
-func (cpu *CPU) brk(info InfoStep) {
+func (cpu *Cpu6502) brk(info defs.InfoStep) {
 	// Store PC in stack
 	cpu.pushStack(byte(cpu.registers.Pc & 0xFF))
 	cpu.pushStack(byte(cpu.registers.Pc >> 8))
@@ -251,7 +241,7 @@ func (cpu *CPU) brk(info InfoStep) {
 
 	cpu.registers.updateFlag(interruptFlag, 1)
 
-	cpu.registers.Pc = Address(cpu.read16(0xFFFE))
+	cpu.registers.Pc = defs.Address(cpu.read16(0xFFFE))
 }
 
 /*
@@ -261,14 +251,14 @@ func (cpu *CPU) brk(info InfoStep) {
 
 	addressing    assembler    opc  bytes  cyles
 	--------------------------------------------
-	relative      BVC oper      50    2     2**
+	Relative      BVC oper      50    2     2**
 */
-func (cpu *CPU) bvc(info InfoStep) {
+func (cpu *Cpu6502) bvc(info defs.InfoStep) {
 	if cpu.registers.overflowFlag() == byte(1) {
 		return
 	}
 
-	cpu.registers.Pc = info.operandAddress
+	cpu.registers.Pc = info.OperandAddress
 }
 
 /*
@@ -278,14 +268,14 @@ func (cpu *CPU) bvc(info InfoStep) {
 
 	addressing    assembler    opc  bytes  cyles
 	--------------------------------------------
-	relative      BVC oper      70    2     2**
+	Relative      BVC oper      70    2     2**
 */
-func (cpu *CPU) bvs(info InfoStep) {
+func (cpu *Cpu6502) bvs(info defs.InfoStep) {
 	if cpu.registers.overflowFlag() == 0 {
 		return
 	}
 
-	cpu.registers.Pc = info.operandAddress
+	cpu.registers.Pc = info.OperandAddress
 }
 
 /*
@@ -297,7 +287,7 @@ func (cpu *CPU) bvs(info InfoStep) {
 	--------------------------------------------
 	implied       CLC           18    1     2
 */
-func (cpu *CPU) clc(info InfoStep) {
+func (cpu *Cpu6502) clc(info defs.InfoStep) {
 	cpu.registers.updateFlag(carryFlag, 0)
 }
 
@@ -310,7 +300,7 @@ func (cpu *CPU) clc(info InfoStep) {
 	--------------------------------------------
 	implied       CLD           D8    1     2
 */
-func (cpu *CPU) cld(info InfoStep) {
+func (cpu *Cpu6502) cld(info defs.InfoStep) {
 	cpu.registers.updateFlag(decimalFlag, 0)
 }
 
@@ -323,7 +313,7 @@ func (cpu *CPU) cld(info InfoStep) {
 	--------------------------------------------
 	implied       CLI           58    1     2
 */
-func (cpu *CPU) cli(info InfoStep) {
+func (cpu *Cpu6502) cli(info defs.InfoStep) {
 	cpu.registers.updateFlag(interruptFlag, 0)
 }
 
@@ -336,12 +326,12 @@ func (cpu *CPU) cli(info InfoStep) {
 	--------------------------------------------
 	implied       CLV           B8    1     2
 */
-func (cpu *CPU) clv(info InfoStep) {
+func (cpu *Cpu6502) clv(info defs.InfoStep) {
 	cpu.registers.updateFlag(overflowFlag, 0)
 }
 
 /*
-	CMP (CoMPare accumulator)
+	CMP (CoMPare Accumulator)
 
 	Affects Flags: S Z C
 
@@ -357,10 +347,10 @@ func (cpu *CPU) clv(info InfoStep) {
 
 	+ add 1 cycle if page boundary crossed
 
-	Compare sets flags as if a subtraction had been carried out. If the value in the accumulator is equal or greater than the compared value, the Carry will be set. The equal (Z) and sign (S) flags will be set based on equality or lack thereof and the sign (i.e. A>=$80) of the accumulator.
+	Compare sets flags as if a subtraction had been carried out. If the value in the Accumulator is equal or greater than the compared value, the Carry will be set. The equal (Z) and sign (S) flags will be set based on equality or lack thereof and the sign (i.e. A>=$80) of the Accumulator.
 */
-func (cpu *CPU) cmp(info InfoStep) {
-	operand := cpu.read(info.operandAddress)
+func (cpu *Cpu6502) cmp(info defs.InfoStep) {
+	operand := cpu.Read(info.OperandAddress)
 	cpu.compare(cpu.registers.A, operand)
 }
 
@@ -374,8 +364,8 @@ func (cpu *CPU) cmp(info InfoStep) {
 	Zero Page     CPX $44       $E4  2   3
 	Absolute      CPX $4400     $EC  3   4
 */
-func (cpu *CPU) cpx(info InfoStep) {
-	operand := cpu.read(info.operandAddress)
+func (cpu *Cpu6502) cpx(info defs.InfoStep) {
+	operand := cpu.Read(info.OperandAddress)
 	cpu.compare(cpu.registers.X, operand)
 }
 
@@ -389,12 +379,12 @@ func (cpu *CPU) cpx(info InfoStep) {
 	Zero Page     CPY $44       $C4  2   3
 	Absolute      CPY $4400     $CC  3   4
 */
-func (cpu *CPU) cpy(info InfoStep) {
-	operand := cpu.read(info.operandAddress)
+func (cpu *Cpu6502) cpy(info defs.InfoStep) {
+	operand := cpu.Read(info.OperandAddress)
 	cpu.compare(cpu.registers.Y, operand)
 }
 
-func (cpu *CPU) compare(register byte, operand byte) {
+func (cpu *Cpu6502) compare(register byte, operand byte) {
 	substraction := register - operand
 
 	cpu.registers.updateFlag(zeroFlag, 0)
@@ -414,9 +404,9 @@ func (cpu *CPU) compare(register byte, operand byte) {
 	//	}
 }
 
-func (cpu *CPU) dec(info InfoStep) {
-	address := info.operandAddress
-	operand := cpu.read(address)
+func (cpu *Cpu6502) dec(info defs.InfoStep) {
+	address := info.OperandAddress
+	operand := cpu.Read(address)
 
 	operand--
 	cpu.write(address, operand)
@@ -435,7 +425,7 @@ func (cpu *CPU) dec(info InfoStep) {
 	//}
 }
 
-func (cpu *CPU) dex(info InfoStep) {
+func (cpu *Cpu6502) dex(info defs.InfoStep) {
 	cpu.registers.X--
 	operand := cpu.registers.X
 
@@ -453,7 +443,7 @@ func (cpu *CPU) dex(info InfoStep) {
 	//}
 }
 
-func (cpu *CPU) dey(info InfoStep) {
+func (cpu *Cpu6502) dey(info defs.InfoStep) {
 	operand := cpu.registers.Y
 
 	operand--
@@ -492,8 +482,8 @@ func (cpu *CPU) dey(info InfoStep) {
 
 	+ add 1 cycle if page boundary crossed
 */
-func (cpu *CPU) eor(info InfoStep) {
-	value := cpu.read(info.operandAddress)
+func (cpu *Cpu6502) eor(info defs.InfoStep) {
+	value := cpu.Read(info.OperandAddress)
 
 	cpu.registers.A = cpu.registers.A ^ value
 	cpu.registers.updateZeroFlag(cpu.registers.A)
@@ -509,14 +499,14 @@ func (cpu *CPU) eor(info InfoStep) {
 	--------------------------------------------
 	zeropage      INC oper      E6    2     5
 	zeropage,X    INC oper,X    F6    2     6
-	absolute      INC oper      EE    3     6
-	absolute,X    INC oper,X    FE    3     7
+	Absolute      INC oper      EE    3     6
+	Absolute,X    INC oper,X    FE    3     7
 */
-func (cpu *CPU) inc(info InfoStep) {
-	value := cpu.read(info.operandAddress)
+func (cpu *Cpu6502) inc(info defs.InfoStep) {
+	value := cpu.Read(info.OperandAddress)
 	value += 1
 
-	cpu.write(info.operandAddress, value)
+	cpu.write(info.OperandAddress, value)
 	cpu.registers.updateZeroFlag(value)
 	cpu.registers.updateNegativeFlag(value)
 }
@@ -530,7 +520,7 @@ func (cpu *CPU) inc(info InfoStep) {
 	--------------------------------------------
 	implied       INX           E8    1     2
 */
-func (cpu *CPU) inx(info InfoStep) {
+func (cpu *Cpu6502) inx(info defs.InfoStep) {
 	cpu.registers.X += 1
 	cpu.registers.updateZeroFlag(cpu.registers.X)
 	cpu.registers.updateNegativeFlag(cpu.registers.X)
@@ -546,7 +536,7 @@ func (cpu *CPU) inx(info InfoStep) {
 	--------------------------------------------
 	implied       INY           C8    1     2
 */
-func (cpu *CPU) iny(info InfoStep) {
+func (cpu *Cpu6502) iny(info defs.InfoStep) {
 	cpu.registers.Y += 1
 	cpu.registers.updateZeroFlag(cpu.registers.Y)
 	cpu.registers.updateNegativeFlag(cpu.registers.Y)
@@ -559,11 +549,11 @@ func (cpu *CPU) iny(info InfoStep) {
 
 	addressing    assembler    opc  bytes  cyles
 	--------------------------------------------
-	absolute      JMP oper      4C    3     3
-	indirect      JMP (oper)    6C    3     5
+	Absolute      JMP oper      4C    3     3
+	Indirect      JMP (oper)    6C    3     5
 */
-func (cpu *CPU) jmp(info InfoStep) {
-	cpu.registers.Pc = info.operandAddress
+func (cpu *Cpu6502) jmp(info defs.InfoStep) {
+	cpu.registers.Pc = info.OperandAddress
 }
 
 /*
@@ -574,17 +564,17 @@ func (cpu *CPU) jmp(info InfoStep) {
 
 	addressing    assembler    opc  bytes  cyles
 	--------------------------------------------
-	absolute      JSR oper      20    3     6
+	Absolute      JSR oper      20    3     6
 */
-func (cpu *CPU) jsr(info InfoStep) {
-	value := cpu.read16(info.operandAddress)
+func (cpu *Cpu6502) jsr(info defs.InfoStep) {
+	value := cpu.read16(info.OperandAddress)
 
 	// TODO CHECK HERE because ProgramCounter should point to Opcode
 	cpu.registers.Pc -= 3
 	cpu.pushStack(byte(cpu.registers.Pc & 0xFF))
 	cpu.pushStack(byte(cpu.registers.Pc >> 8))
 
-	cpu.registers.Pc = Address(value)
+	cpu.registers.Pc = defs.Address(value)
 }
 
 /*
@@ -594,17 +584,17 @@ func (cpu *CPU) jsr(info InfoStep) {
 
 	addressing    assembler    opc  bytes  cyles
 	--------------------------------------------
-	immediate     LDA #oper     A9    2     2
+	Immediate     LDA #oper     A9    2     2
 	zeropage      LDA oper      A5    2     3
 	zeropage,X    LDA oper,X    B5    2     4
-	absolute      LDA oper      AD    3     4
-	absolute,X    LDA oper,X    BD    3     4*
-	absolute,Y    LDA oper,Y    B9    3     4*
-	(indirect,X)  LDA (oper,X)  A1    2     6
-	(indirect),Y  LDA (oper),Y  B1    2     5*
+	Absolute      LDA oper      AD    3     4
+	Absolute,X    LDA oper,X    BD    3     4*
+	Absolute,Y    LDA oper,Y    B9    3     4*
+	(Indirect,X)  LDA (oper,X)  A1    2     6
+	(Indirect),Y  LDA (oper),Y  B1    2     5*
 */
-func (cpu *CPU) lda(info InfoStep) {
-	cpu.registers.A = cpu.read(info.operandAddress)
+func (cpu *Cpu6502) lda(info defs.InfoStep) {
+	cpu.registers.A = cpu.Read(info.OperandAddress)
 	cpu.registers.updateZeroFlag(cpu.registers.A)
 	cpu.registers.updateNegativeFlag(cpu.registers.A)
 }
@@ -616,14 +606,14 @@ func (cpu *CPU) lda(info InfoStep) {
 
 	addressing    assembler    opc  bytes  cyles
 	--------------------------------------------
-	immediate     LDX #oper     A2    2     2
+	Immediate     LDX #oper     A2    2     2
 	zeropage      LDX oper      A6    2     3
 	zeropage,Y    LDX oper,Y    B6    2     4
-	absolute      LDX oper      AE    3     4
-	absolute,Y    LDX oper,Y    BE    3     4*
+	Absolute      LDX oper      AE    3     4
+	Absolute,Y    LDX oper,Y    BE    3     4*
 */
-func (cpu *CPU) ldx(info InfoStep) {
-	cpu.registers.X = cpu.read(info.operandAddress)
+func (cpu *Cpu6502) ldx(info defs.InfoStep) {
+	cpu.registers.X = cpu.Read(info.OperandAddress)
 	cpu.registers.updateZeroFlag(cpu.registers.X)
 	cpu.registers.updateNegativeFlag(cpu.registers.X)
 }
@@ -638,11 +628,11 @@ func (cpu *CPU) ldx(info InfoStep) {
 	immidiate     LDY #oper     A0    2     2
 	zeropage      LDY oper      A4    2     3
 	zeropage,X    LDY oper,X    B4    2     4
-	absolute      LDY oper      AC    3     4
-	absolute,X    LDY oper,X    BC    3     4*
+	Absolute      LDY oper      AC    3     4
+	Absolute,X    LDY oper,X    BC    3     4*
 */
-func (cpu *CPU) ldy(info InfoStep) {
-	cpu.registers.Y = cpu.read(info.operandAddress)
+func (cpu *Cpu6502) ldy(info defs.InfoStep) {
+	cpu.registers.Y = cpu.Read(info.OperandAddress)
 	cpu.registers.updateZeroFlag(cpu.registers.Y)
 	cpu.registers.updateNegativeFlag(cpu.registers.Y)
 }
@@ -654,18 +644,18 @@ func (cpu *CPU) ldy(info InfoStep) {
 
 	addressing    assembler    opc  bytes  cyles
 	--------------------------------------------
-	accumulator   LSR A         4A    1     2
+	Accumulator   LSR A         4A    1     2
 	zeropage      LSR oper      46    2     5
 	zeropage,X    LSR oper,X    56    2     6
-	absolute      LSR oper      4E    3     6
-	absolute,X    LSR oper,X    5E    3     7
+	Absolute      LSR oper      4E    3     6
+	Absolute,X    LSR oper,X    5E    3     7
 */
-func (cpu *CPU) lsr(info InfoStep) {
+func (cpu *Cpu6502) lsr(info defs.InfoStep) {
 	var value byte
-	if info.addressMode == accumulator {
+	if info.AddressMode == defs.Accumulator {
 		value = cpu.registers.A
 	} else {
-		value = cpu.read(info.operandAddress)
+		value = cpu.Read(info.OperandAddress)
 	}
 
 	//cpu.Registers.CarryFlag = value & 0x01
@@ -674,10 +664,10 @@ func (cpu *CPU) lsr(info InfoStep) {
 	value >>= 1
 	cpu.registers.updateZeroFlag(value)
 
-	if info.addressMode == accumulator {
+	if info.AddressMode == defs.Accumulator {
 		cpu.registers.A = value
 	} else {
-		cpu.write(info.operandAddress, value)
+		cpu.write(info.OperandAddress, value)
 	}
 }
 
@@ -690,7 +680,7 @@ func (cpu *CPU) lsr(info InfoStep) {
 	--------------------------------------------
 	implied       NOP           EA    1     2
 */
-func (cpu *CPU) nop(info InfoStep) {
+func (cpu *Cpu6502) nop(info defs.InfoStep) {
 
 }
 
@@ -704,14 +694,14 @@ func (cpu *CPU) nop(info InfoStep) {
 	immidiate     ORA #oper     09    2     2
 	zeropage      ORA oper      05    2     3
 	zeropage,X    ORA oper,X    15    2     4
-	absolute      ORA oper      0D    3     4
-	absolute,X    ORA oper,X    1D    3     4*
-	absolute,Y    ORA oper,Y    19    3     4*
-	(indirect,X)  ORA (oper,X)  01    2     6
-	(indirect),Y  ORA (oper),Y  11    2     5*
+	Absolute      ORA oper      0D    3     4
+	Absolute,X    ORA oper,X    1D    3     4*
+	Absolute,Y    ORA oper,Y    19    3     4*
+	(Indirect,X)  ORA (oper,X)  01    2     6
+	(Indirect),Y  ORA (oper),Y  11    2     5*
 */
-func (cpu *CPU) ora(info InfoStep) {
-	value := cpu.read(info.operandAddress)
+func (cpu *Cpu6502) ora(info defs.InfoStep) {
+	value := cpu.Read(info.OperandAddress)
 	cpu.registers.A |= value
 	cpu.registers.updateZeroFlag(cpu.registers.A)
 	cpu.registers.updateNegativeFlag(cpu.registers.A)
@@ -726,7 +716,7 @@ func (cpu *CPU) ora(info InfoStep) {
 	--------------------------------------------
 	implied       PHA           48    1     3
 */
-func (cpu *CPU) pha(info InfoStep) {
+func (cpu *Cpu6502) pha(info defs.InfoStep) {
 	cpu.pushStack(cpu.registers.A)
 }
 
@@ -739,7 +729,7 @@ func (cpu *CPU) pha(info InfoStep) {
 	--------------------------------------------
 	implied       PHP           08    1     3
 */
-func (cpu *CPU) php(info InfoStep) {
+func (cpu *Cpu6502) php(info defs.InfoStep) {
 	value := cpu.registers.statusRegister()
 	cpu.pushStack(value)
 }
@@ -753,7 +743,7 @@ func (cpu *CPU) php(info InfoStep) {
 	--------------------------------------------
 	implied       PLA           68    1     4
 */
-func (cpu *CPU) pla(info InfoStep) {
+func (cpu *Cpu6502) pla(info defs.InfoStep) {
 	cpu.registers.A = cpu.popStack()
 	cpu.registers.updateNegativeFlag(cpu.registers.A)
 	cpu.registers.updateZeroFlag(cpu.registers.A)
@@ -768,7 +758,7 @@ func (cpu *CPU) pla(info InfoStep) {
 	--------------------------------------------
 	implied       PLP           28    1     4
 */
-func (cpu *CPU) plp(info InfoStep) {
+func (cpu *Cpu6502) plp(info defs.InfoStep) {
 	value := cpu.popStack()
 
 	cpu.registers.loadStatusRegister(value)
@@ -781,26 +771,26 @@ func (cpu *CPU) plp(info InfoStep) {
 
 	addressing    assembler    opc  bytes  cyles
 	--------------------------------------------
-	accumulator   ROL A         2A    1     2
+	Accumulator   ROL A         2A    1     2
 	zeropage      ROL oper      26    2     5
 	zeropage,X    ROL oper,X    36    2     6
-	absolute      ROL oper      2E    3     6
-	absolute,X    ROL oper,X    3E    3     7
+	Absolute      ROL oper      2E    3     6
+	Absolute,X    ROL oper,X    3E    3     7
 */
-func (cpu *CPU) rol(info InfoStep) {
+func (cpu *Cpu6502) rol(info defs.InfoStep) {
 	var newCarry byte
 	var value byte
-	if info.addressMode == accumulator {
+	if info.AddressMode == defs.Accumulator {
 		newCarry = cpu.registers.A & 0x80 >> 7
 		cpu.registers.A <<= 1
 		cpu.registers.A |= cpu.registers.carryFlag()
 		value = cpu.registers.A
 	} else {
-		value = cpu.read(info.operandAddress)
+		value = cpu.Read(info.OperandAddress)
 		newCarry = value & 0x80 >> 7
 		value <<= 1
 		value |= cpu.registers.carryFlag()
-		cpu.write(info.operandAddress, value)
+		cpu.write(info.OperandAddress, value)
 	}
 
 	cpu.registers.updateNegativeFlag(value)
@@ -815,26 +805,26 @@ func (cpu *CPU) rol(info InfoStep) {
 
 	addressing    assembler    opc  bytes  cyles
 	--------------------------------------------
-	accumulator   ROR A         6A    1     2
+	Accumulator   ROR A         6A    1     2
 	zeropage      ROR oper      66    2     5
 	zeropage,X    ROR oper,X    76    2     6
-	absolute      ROR oper      6E    3     6
-	absolute,X    ROR oper,X    7E    3     7
+	Absolute      ROR oper      6E    3     6
+	Absolute,X    ROR oper,X    7E    3     7
 */
-func (cpu *CPU) ror(info InfoStep) {
+func (cpu *Cpu6502) ror(info defs.InfoStep) {
 	var newCarry byte
 	var value byte
-	if info.addressMode == accumulator {
+	if info.AddressMode == defs.Accumulator {
 		newCarry = cpu.registers.A & 0x01
 		cpu.registers.A >>= 1
 		cpu.registers.A |= cpu.registers.carryFlag() << 7
 		value = cpu.registers.A
 	} else {
-		value = cpu.read(info.operandAddress)
+		value = cpu.Read(info.OperandAddress)
 		newCarry = value & 0x01
 		value >>= 1
 		value |= cpu.registers.carryFlag() << 7
-		cpu.write(info.operandAddress, value)
+		cpu.write(info.OperandAddress, value)
 	}
 
 	cpu.registers.updateNegativeFlag(value)
@@ -852,13 +842,13 @@ func (cpu *CPU) ror(info InfoStep) {
 	--------------------------------------------
 	implied       RTI           40    1     6
 */
-func (cpu *CPU) rti(info InfoStep) {
+func (cpu *Cpu6502) rti(info defs.InfoStep) {
 	statusRegister := cpu.popStack()
 	cpu.registers.loadStatusRegister(statusRegister)
 
 	msb := cpu.popStack()
 	lsb := cpu.popStack()
-	cpu.registers.Pc = CreateAddress(lsb, msb)
+	cpu.registers.Pc = defs.CreateAddress(lsb, msb)
 }
 
 /*
@@ -870,10 +860,10 @@ func (cpu *CPU) rti(info InfoStep) {
 	--------------------------------------------
 	implied       RTS           60    1     6
 */
-func (cpu *CPU) rts(info InfoStep) {
+func (cpu *Cpu6502) rts(info defs.InfoStep) {
 	msb := cpu.popStack()
 	lsb := cpu.popStack()
-	cpu.registers.Pc = CreateAddress(lsb, msb)
+	cpu.registers.Pc = defs.CreateAddress(lsb, msb)
 }
 
 /*
@@ -886,14 +876,14 @@ func (cpu *CPU) rts(info InfoStep) {
 	immidiate     SBC #oper     E9    2     2
 	zeropage      SBC oper      E5    2     3
 	zeropage,X    SBC oper,X    F5    2     4
-	absolute      SBC oper      ED    3     4
-	absolute,X    SBC oper,X    FD    3     4*
-	absolute,Y    SBC oper,Y    F9    3     4*
-	(indirect,X)  SBC (oper,X)  E1    2     6
-	(indirect),Y  SBC (oper),Y  F1    2     5*
+	Absolute      SBC oper      ED    3     4
+	Absolute,X    SBC oper,X    FD    3     4*
+	Absolute,Y    SBC oper,Y    F9    3     4*
+	(Indirect,X)  SBC (oper,X)  E1    2     6
+	(Indirect),Y  SBC (oper),Y  F1    2     5*
 */
-func (cpu *CPU) sbc(info InfoStep) {
-	value := cpu.read(info.operandAddress)
+func (cpu *Cpu6502) sbc(info defs.InfoStep) {
+	value := cpu.Read(info.OperandAddress)
 	borrow := (1 - cpu.registers.carryFlag()) & 0x01 // == !CarryFlag
 	a := cpu.registers.A
 	result := a - value - borrow
@@ -925,7 +915,7 @@ func (cpu *CPU) sbc(info InfoStep) {
 	--------------------------------------------
 	implied       SEC           38    1     2
 */
-func (cpu *CPU) sec(info InfoStep) {
+func (cpu *Cpu6502) sec(info defs.InfoStep) {
 	cpu.registers.updateFlag(carryFlag, 1)
 }
 
@@ -938,24 +928,24 @@ func (cpu *CPU) sec(info InfoStep) {
 	--------------------------------------------
 	implied       SED           F8    1     2
 */
-func (cpu *CPU) sed(info InfoStep) {
+func (cpu *Cpu6502) sed(info defs.InfoStep) {
 	cpu.registers.updateFlag(decimalFlag, 1)
 }
 
-func (cpu *CPU) sei(info InfoStep) {
+func (cpu *Cpu6502) sei(info defs.InfoStep) {
 	cpu.registers.updateFlag(interruptFlag, 1)
 }
 
-func (cpu *CPU) sta(info InfoStep) {
-	cpu.write(info.operandAddress, cpu.registers.A)
+func (cpu *Cpu6502) sta(info defs.InfoStep) {
+	cpu.write(info.OperandAddress, cpu.registers.A)
 }
 
-func (cpu *CPU) stx(info InfoStep) {
-	cpu.write(info.operandAddress, cpu.registers.X)
+func (cpu *Cpu6502) stx(info defs.InfoStep) {
+	cpu.write(info.OperandAddress, cpu.registers.X)
 }
 
-func (cpu *CPU) sty(info InfoStep) {
-	cpu.write(info.operandAddress, cpu.registers.Y)
+func (cpu *Cpu6502) sty(info defs.InfoStep) {
+	cpu.write(info.OperandAddress, cpu.registers.Y)
 }
 
 /*
@@ -967,7 +957,7 @@ func (cpu *CPU) sty(info InfoStep) {
 	--------------------------------------------
 	implied       TAX           AA    1     2
 */
-func (cpu *CPU) tax(info InfoStep) {
+func (cpu *Cpu6502) tax(info defs.InfoStep) {
 	cpu.registers.X = cpu.registers.A
 	cpu.registers.updateNegativeFlag(cpu.registers.X)
 	cpu.registers.updateZeroFlag(cpu.registers.X)
@@ -982,7 +972,7 @@ func (cpu *CPU) tax(info InfoStep) {
 	--------------------------------------------
 	implied       TAY           A8    1     2
 */
-func (cpu *CPU) tay(info InfoStep) {
+func (cpu *Cpu6502) tay(info defs.InfoStep) {
 	cpu.registers.Y = cpu.registers.A
 	cpu.registers.updateNegativeFlag(cpu.registers.Y)
 	cpu.registers.updateZeroFlag(cpu.registers.Y)
@@ -997,7 +987,7 @@ func (cpu *CPU) tay(info InfoStep) {
 	--------------------------------------------
 	implied       TSX           BA    1     2
 */
-func (cpu *CPU) tsx(info InfoStep) {
+func (cpu *Cpu6502) tsx(info defs.InfoStep) {
 	cpu.registers.X = cpu.popStack()
 	cpu.registers.updateZeroFlag(cpu.registers.X)
 	cpu.registers.updateNegativeFlag(cpu.registers.X)
@@ -1012,7 +1002,7 @@ func (cpu *CPU) tsx(info InfoStep) {
 	--------------------------------------------
 	implied       TXA           8A    1     2
 */
-func (cpu *CPU) txa(info InfoStep) {
+func (cpu *Cpu6502) txa(info defs.InfoStep) {
 	cpu.registers.A = cpu.registers.X
 	cpu.registers.updateZeroFlag(cpu.registers.A)
 	cpu.registers.updateNegativeFlag(cpu.registers.A)
@@ -1027,7 +1017,7 @@ func (cpu *CPU) txa(info InfoStep) {
 	--------------------------------------------
 	implied       TXS           9A    1     2
 */
-func (cpu *CPU) txs(info InfoStep) {
+func (cpu *Cpu6502) txs(info defs.InfoStep) {
 	cpu.registers.Sp = cpu.registers.X
 }
 
@@ -1055,7 +1045,7 @@ func (cpu *CPU) txs(info InfoStep) {
 	Note on assembler syntax:
 	Most assemblers employ "OPC *oper" for forced zeropage addressing.
 */
-func (cpu *CPU) tya(info InfoStep) {
+func (cpu *Cpu6502) tya(info defs.InfoStep) {
 	cpu.registers.A = cpu.registers.Y
 	cpu.registers.updateZeroFlag(cpu.registers.A)
 	cpu.registers.updateNegativeFlag(cpu.registers.A)

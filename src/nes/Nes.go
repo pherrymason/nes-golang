@@ -1,17 +1,21 @@
 package nes
 
-import "github.com/raulferras/nes-golang/src/log"
+import (
+	"github.com/raulferras/nes-golang/src/log"
+	"github.com/raulferras/nes-golang/src/nes/component"
+	cpu2 "github.com/raulferras/nes-golang/src/nes/cpu"
+)
 
 type Nes struct {
-	cpu   *CPU
-	bus   *Bus
+	cpu   *cpu2.Cpu6502
+	bus   *component.Bus
 	debug bool
 }
 
 func CreateNes() Nes {
-	ram := RAM{}
-	bus := CreateBus(&ram)
-	cpu := CreateCPU(&bus)
+	ram := component.RAM{}
+	bus := component.CreateBus(&ram)
+	cpu := cpu2.CreateCPU(&bus)
 
 	nes := Nes{
 		cpu:   &cpu,
@@ -22,10 +26,10 @@ func CreateNes() Nes {
 	return nes
 }
 
-func CreateDebugableNes(logger log.Logger) Nes {
-	ram := RAM{}
-	bus := CreateBus(&ram)
-	cpu := CreateCPUDebuggable(&bus, logger)
+func CreateDebuggableNes(logger log.Logger) Nes {
+	ram := component.RAM{}
+	bus := component.CreateBus(&ram)
+	cpu := cpu2.CreateCPUDebuggable(&bus, logger)
 
 	nes := Nes{
 		&cpu,
@@ -37,14 +41,13 @@ func CreateDebugableNes(logger log.Logger) Nes {
 }
 
 func (nes *Nes) Start() {
-	nes.cpu.initInstructionsTable()
-	nes.cpu.initAddressModeEvaluators()
+	nes.cpu.Init()
 	//nes.cpu.reset()
 	for {
-		nes.cpu.tick()
+		nes.cpu.Tick()
 	}
 }
 
-func (nes *Nes) InsertCartridge(cartridge *GamePak) {
-	nes.bus.attachCartridge(cartridge)
+func (nes *Nes) InsertCartridge(cartridge *component.GamePak) {
+	nes.bus.AttachCartridge(cartridge)
 }
