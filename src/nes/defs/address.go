@@ -1,7 +1,7 @@
 package defs
 
 // Address is an address representation
-type Address uint16
+type Address = Word
 
 // CreateAddress creates an Address
 func CreateAddress(low byte, high byte) Address {

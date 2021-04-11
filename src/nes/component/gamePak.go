@@ -44,5 +44,11 @@ func (gamepak *GamePak) write(address defs.Address, value byte) {
 	if gamepak.header.HasTrainer() {
 		offset += 512
 	}
+
+	// NROM has mirroring from 0xC000
+	if address >= 0xC000 {
+		address -= 0x4000
+	}
+
 	gamepak.prgROM[address-offset] = value
 }

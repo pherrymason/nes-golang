@@ -3,12 +3,20 @@ package defs
 // Word is an unsigned int 16 bits
 type Word uint16
 
-func (word *Word) low() byte {
+func (word *Word) LowNibble() byte {
 	return byte(*word & 0x00FF)
 }
 
-func (word *Word) high() byte {
+func (word *Word) HighNibble() byte {
 	return byte((*word & 0xFF00) >> 8)
+}
+
+func LowNibble(word Word) byte {
+	return byte(word & 0x00FF)
+}
+
+func HighNibble(word Word) byte {
+	return byte((word & 0xFF00) >> 8)
 }
 
 // CreateWord creates a Word
