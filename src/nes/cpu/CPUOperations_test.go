@@ -597,7 +597,7 @@ func TestJSR(t *testing.T) {
 
 	assert.Equal(t, defs.Address(0x0202), cpu.registers.Pc)
 	assert.Equal(t, byte(0x02), cpu.popStack())
-	assert.Equal(t, byte(0x01), cpu.popStack())
+	assert.Equal(t, byte(0x04), cpu.popStack())
 }
 
 func TestLDA(t *testing.T) {
