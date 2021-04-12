@@ -567,14 +567,14 @@ func (cpu *Cpu6502) jmp(info defs.InfoStep) {
 	Absolute      JSR oper      20    3     6
 */
 func (cpu *Cpu6502) jsr(info defs.InfoStep) {
-	value := cpu.read16(info.OperandAddress)
+	//value := cpu.read16(info.OperandAddress)
 
 	// TODO CHECK HERE because ProgramCounter should point to Opcode
 	cpu.registers.Pc -= 3
 	cpu.pushStack(byte(cpu.registers.Pc & 0xFF))
 	cpu.pushStack(byte(cpu.registers.Pc >> 8))
 
-	cpu.registers.Pc = defs.Address(value)
+	cpu.registers.Pc = info.OperandAddress
 }
 
 /*

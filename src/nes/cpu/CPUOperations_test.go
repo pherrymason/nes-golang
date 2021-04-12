@@ -595,7 +595,7 @@ func TestJSR(t *testing.T) {
 	cpu.write(defs.Address(0x203), 0x05) // MSB
 	cpu.jsr(defs.InfoStep{defs.Absolute, 0x202})
 
-	assert.Equal(t, defs.Address(0x0555), cpu.registers.Pc)
+	assert.Equal(t, defs.Address(0x0202), cpu.registers.Pc)
 	assert.Equal(t, byte(0x02), cpu.popStack())
 	assert.Equal(t, byte(0x01), cpu.popStack())
 }
