@@ -788,7 +788,8 @@ func TestPLP(t *testing.T) {
 
 	cpu.plp(defs.InfoStep{defs.Implicit, 0x00})
 
-	assert.Equal(t, byte(0xFF), cpu.registers.Status)
+	assert.Equal(t, byte(0), (cpu.registers.Status>>4)&0x01, "PLP must set B flag to 0")
+	assert.Equal(t, byte(0xEF), cpu.registers.Status)
 	assert.Equal(t, byte(0xFF), cpu.registers.Sp)
 }
 

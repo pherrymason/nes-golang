@@ -761,7 +761,12 @@ func (cpu *Cpu6502) pla(info defs.InfoStep) {
 func (cpu *Cpu6502) plp(info defs.InfoStep) {
 	value := cpu.popStack()
 
-	cpu.registers.loadStatusRegister(value)
+	// From http://nesdev.com/the%20%27B%27%20flag%20&%20BRK%20instruction.txt
+	// ...when the flags are restored (via PLP or RTI), the B bit is discarded.
+	// From https://wiki.nesdev.com/w/index.php/Status_flags
+	// ...two instructions (PLP and RTI) pull a byte from the stack and set all the flags. They ignore bits 5 and 4.
+	valueToPush := value & 0b11101111
+	cpu.registers.loadStatusRegister(valueToPush)
 }
 
 /*
