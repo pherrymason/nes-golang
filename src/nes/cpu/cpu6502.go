@@ -370,15 +370,15 @@ func (cpu *Cpu6502) initInstructionsTable() {
 		{},
 
 		// 0xF0
-		defs.CreateInstruction("BEQ", defs.Relative, cpu.cpx, 2, 2),
+		defs.CreateInstruction("BEQ", defs.Relative, cpu.beq, 2, 2),
 		defs.CreateInstruction("SBC", defs.IndirectY, cpu.sbc, 5, 2),
 		{},
 		{},
 		{},
-		defs.CreateInstruction("SBC", defs.ZeroPageX, cpu.cpx, 4, 2),
+		defs.CreateInstruction("SBC", defs.ZeroPageX, cpu.sbc, 4, 2),
 		defs.CreateInstruction("INC", defs.ZeroPageX, cpu.inc, 6, 2),
 		{},
-		defs.CreateInstruction("SED", defs.Implicit, cpu.inx, 2, 1),
+		defs.CreateInstruction("SED", defs.Implicit, cpu.sed, 2, 1),
 		defs.CreateInstruction("SBC", defs.AbsoluteYIndexed, cpu.sbc, 4, 3),
 		{},
 		{},
