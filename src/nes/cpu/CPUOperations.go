@@ -9,7 +9,7 @@ import (
      A + M + C -> A, C                N Z C I D V
                                       + + + - - +
 
-     addressing    assembler    opc  bytes  cyles
+     addressing    assembler    opc  bytes  cycles
      --------------------------------------------
      immidiate     ADC #oper     69    2     2
      zeropage      ADC oper      65    2     3
@@ -73,7 +73,7 @@ func (cpu *Cpu6502) and(info defs.InfoStep) {
      C <- [76543210] <- 0             N Z C I D V
                                       + + + - - -
 
-     addressing    assembler    opc  bytes  cyles
+     addressing    assembler    opc  bytes  cycles
      --------------------------------------------
      Accumulator   ASL A         0A    1     2
      zeropage      ASL oper      06    2     5
@@ -102,7 +102,7 @@ func (cpu *Cpu6502) asl(info defs.InfoStep) {
 	branch on C = 0                  N Z C I D V
 									- - - - - -
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	Relative      BCC oper      90    2     2**
 */
@@ -118,7 +118,7 @@ func (cpu *Cpu6502) bcc(info defs.InfoStep) {
 	branch on C = 1                 N Z C I D V
 									- - - - - -
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	Relative      BCS oper      B0    2     2**
 */
@@ -134,7 +134,7 @@ func (cpu *Cpu6502) bcs(info defs.InfoStep) {
 	branch on Z = 1             N Z C I D V
 								- - - - - -
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	Relative      BEQ oper      F0    2     2**
 */
@@ -154,7 +154,7 @@ func (cpu *Cpu6502) beq(info defs.InfoStep) {
 	A AND M, M7 -> N, M6 -> V        N Z C I D V
 									M7 + - - - M6
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	zeropage      BIT oper      24    2     3
 	Absolute      BIT oper      2C    3     4
@@ -172,7 +172,7 @@ func (cpu *Cpu6502) bit(info defs.InfoStep) {
 	branch on N = 1                 N Z C I D V
 									- - - - - -
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	Relative      BMI oper      30    2     2**
 */
@@ -188,7 +188,7 @@ func (cpu *Cpu6502) bmi(info defs.InfoStep) {
 	branch on Z = 0                  N Z C I D V
 									- - - - - -
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	Relative      BNE oper      D0    2     2**
 */
@@ -206,7 +206,7 @@ func (cpu *Cpu6502) bne(info defs.InfoStep) {
 	branch on N = 0             N Z C I D V
 								- - - - - -
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	Relative      BPL oper      10    2     2**
 */
@@ -227,7 +227,7 @@ func (cpu *Cpu6502) bpl(info defs.InfoStep) {
 	interrupt,                       N Z C I D V
 	push PC+2, push SR               - - - 1 - -
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	implied       BRK           00    1     7
 */
@@ -249,7 +249,7 @@ func (cpu *Cpu6502) brk(info defs.InfoStep) {
 	branch on V = 0               N Z C I D V
 								  - - - - - -
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	Relative      BVC oper      50    2     2**
 */
@@ -266,7 +266,7 @@ func (cpu *Cpu6502) bvc(info defs.InfoStep) {
 	branch on V = 1               N Z C I D V
 								  - - - - - -
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	Relative      BVC oper      70    2     2**
 */
@@ -283,7 +283,7 @@ func (cpu *Cpu6502) bvs(info defs.InfoStep) {
 	0 -> C                        N Z C I D V
 								  - - 0 - - -
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	implied       CLC           18    1     2
 */
@@ -296,7 +296,7 @@ func (cpu *Cpu6502) clc(info defs.InfoStep) {
 	0 -> D                        N Z C I D V
 								  - - - - 0 -
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	implied       CLD           D8    1     2
 */
@@ -309,7 +309,7 @@ func (cpu *Cpu6502) cld(info defs.InfoStep) {
 	0 -> I                        N Z C I D V
 								  - - - 0 - -
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	implied       CLI           58    1     2
 */
@@ -322,7 +322,7 @@ func (cpu *Cpu6502) cli(info defs.InfoStep) {
 	0 -> V                        N Z C I D V
 								  - - - - - 0
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	implied       CLV           B8    1     2
 */
@@ -495,7 +495,7 @@ func (cpu *Cpu6502) eor(info defs.InfoStep) {
 	M + 1 -> M                    N Z C I D V
 								  + + - - - -
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	zeropage      INC oper      E6    2     5
 	zeropage,X    INC oper,X    F6    2     6
@@ -516,7 +516,7 @@ func (cpu *Cpu6502) inc(info defs.InfoStep) {
 	X + 1 -> X                N Z C I D V
 							  + + - - - -
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	implied       INX           E8    1     2
 */
@@ -532,7 +532,7 @@ func (cpu *Cpu6502) inx(info defs.InfoStep) {
 	Y + 1 -> Y                    N Z C I D V
 								  + + - - - -
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	implied       INY           C8    1     2
 */
@@ -547,7 +547,7 @@ func (cpu *Cpu6502) iny(info defs.InfoStep) {
 	(PC+1) -> PCL                    N Z C I D V
 	(PC+2) -> PCH                    - - - - - -
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	Absolute      JMP oper      4C    3     3
 	Indirect      JMP (oper)    6C    3     5
@@ -562,7 +562,7 @@ func (cpu *Cpu6502) jmp(info defs.InfoStep) {
 	(PC+1) -> PCL                    - - - - - -
 	(PC+2) -> PCH
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	Absolute      JSR oper      20    3     6
 */
@@ -579,7 +579,7 @@ func (cpu *Cpu6502) jsr(info defs.InfoStep) {
 	M -> A                        N Z C I D V
 								  + + - - - -
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	Immediate     LDA #oper     A9    2     2
 	zeropage      LDA oper      A5    2     3
@@ -601,7 +601,7 @@ func (cpu *Cpu6502) lda(info defs.InfoStep) {
 	M -> X                    N Z C I D V
 							  + + - - - -
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	Immediate     LDX #oper     A2    2     2
 	zeropage      LDX oper      A6    2     3
@@ -620,7 +620,7 @@ func (cpu *Cpu6502) ldx(info defs.InfoStep) {
 	M -> Y                N Z C I D V
 						  + + - - - -
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	immidiate     LDY #oper     A0    2     2
 	zeropage      LDY oper      A4    2     3
@@ -639,7 +639,7 @@ func (cpu *Cpu6502) ldy(info defs.InfoStep) {
 	0 -> [76543210] -> C      N Z C I D V
 							  0 + + - - -
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	Accumulator   LSR A         4A    1     2
 	zeropage      LSR oper      46    2     5
@@ -673,7 +673,7 @@ func (cpu *Cpu6502) lsr(info defs.InfoStep) {
 	---                           N Z C I D V
 								  - - - - - -
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	implied       NOP           EA    1     2
 */
@@ -686,7 +686,7 @@ func (cpu *Cpu6502) nop(info defs.InfoStep) {
 	A OR M -> A               N Z C I D V
 							  + + - - - -
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	immidiate     ORA #oper     09    2     2
 	zeropage      ORA oper      05    2     3
@@ -709,7 +709,7 @@ func (cpu *Cpu6502) ora(info defs.InfoStep) {
 	push A                        N Z C I D V
 								  - - - - - -
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	implied       PHA           48    1     3
 */
@@ -722,7 +722,7 @@ func (cpu *Cpu6502) pha(info defs.InfoStep) {
 	push SR                       N Z C I D V
 								  - - - - - -
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	implied       PHP           08    1     3
 */
@@ -736,7 +736,7 @@ func (cpu *Cpu6502) php(info defs.InfoStep) {
 	pull A                        N Z C I D V
 								  + + - - - -
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	implied       PLA           68    1     4
 */
@@ -751,7 +751,7 @@ func (cpu *Cpu6502) pla(info defs.InfoStep) {
 	pull SR                       N Z C I D V
 								  from stack
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	implied       PLP           28    1     4
 */
@@ -771,7 +771,7 @@ func (cpu *Cpu6502) plp(info defs.InfoStep) {
 	C <- [76543210] <- C          N Z C I D V
 								  + + + - - -
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	Accumulator   ROL A         2A    1     2
 	zeropage      ROL oper      26    2     5
@@ -805,7 +805,7 @@ func (cpu *Cpu6502) rol(info defs.InfoStep) {
 	C -> [76543210] -> C          N Z C I D V
 								  + + + - - -
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	Accumulator   ROR A         6A    1     2
 	zeropage      ROR oper      66    2     5
@@ -840,7 +840,7 @@ func (cpu *Cpu6502) ror(info defs.InfoStep) {
 	pull SR, pull PC              N Z C I D V
 								  from stack
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	implied       RTI           40    1     6
 */
@@ -858,7 +858,7 @@ func (cpu *Cpu6502) rti(info defs.InfoStep) {
 	pull PC, PC+1 -> PC           N Z C I D V
 								  - - - - - -
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	implied       RTS           60    1     6
 */
@@ -873,7 +873,7 @@ func (cpu *Cpu6502) rts(info defs.InfoStep) {
 	A - M - C -> A                N Z C I D V
 								  + + + - - +
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	immidiate     SBC #oper     E9    2     2
 	zeropage      SBC oper      E5    2     3
@@ -913,7 +913,7 @@ func (cpu *Cpu6502) sbc(info defs.InfoStep) {
 	1 -> C                        N Z C I D V
 								  - - 1 - - -
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	implied       SEC           38    1     2
 */
@@ -926,7 +926,7 @@ func (cpu *Cpu6502) sec(info defs.InfoStep) {
 	1 -> D                    N Z C I D V
 							  - - - - 1 -
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	implied       SED           F8    1     2
 */
@@ -955,7 +955,7 @@ func (cpu *Cpu6502) sty(info defs.InfoStep) {
 	A -> X                        N Z C I D V
 								  + + - - - -
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	implied       TAX           AA    1     2
 */
@@ -970,7 +970,7 @@ func (cpu *Cpu6502) tax(info defs.InfoStep) {
 	A -> Y                    N Z C I D V
 							  + + - - - -
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	implied       TAY           A8    1     2
 */
@@ -985,7 +985,7 @@ func (cpu *Cpu6502) tay(info defs.InfoStep) {
 	SP -> X                       N Z C I D V
 								  + + - - - -
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	implied       TSX           BA    1     2
 */
@@ -1000,7 +1000,7 @@ func (cpu *Cpu6502) tsx(info defs.InfoStep) {
 	X -> A                        N Z C I D V
 								  + + - - - -
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	implied       TXA           8A    1     2
 */
@@ -1015,7 +1015,7 @@ func (cpu *Cpu6502) txa(info defs.InfoStep) {
 	X -> SP                       N Z C I D V
 								  - - - - - -
 
-	addressing    assembler    opc  bytes  cyles
+	addressing    assembler    opc  bytes  cycles
 	--------------------------------------------
 	implied       TXS           9A    1     2
 */
@@ -1027,7 +1027,7 @@ func (cpu *Cpu6502) txs(info defs.InfoStep) {
 	TYA  Transfer Index Y to Accumulator
 	 Y -> A                           N Z C I D V
 									  + + - - - -
-	 addressing    assembler    opc  bytes  cyles
+	 addressing    assembler    opc  bytes  cycles
 	 --------------------------------------------
 	 implied       TYA           98    1     2
 
