@@ -81,7 +81,7 @@ func (cpu *Cpu6502) and(info defs.InfoStep) {
 	 Absolute      ASL oper      0E    3     6
 */
 func (cpu *Cpu6502) asl(info defs.InfoStep) {
-	if info.AddressMode == defs.Accumulator {
+	if info.AddressMode == defs.Implicit {
 		cpu.registers.updateFlag(carryFlag, cpu.registers.A>>7&0x01)
 		cpu.registers.A = cpu.registers.A << 1
 		cpu.registers.updateNegativeFlag(cpu.registers.A)
@@ -652,7 +652,7 @@ func (cpu *Cpu6502) ldy(info defs.InfoStep) {
 */
 func (cpu *Cpu6502) lsr(info defs.InfoStep) {
 	var value byte
-	if info.AddressMode == defs.Accumulator {
+	if info.AddressMode == defs.Implicit {
 		value = cpu.registers.A
 	} else {
 		value = cpu.Read(info.OperandAddress)
@@ -664,7 +664,7 @@ func (cpu *Cpu6502) lsr(info defs.InfoStep) {
 	value >>= 1
 	cpu.registers.updateZeroFlag(value)
 
-	if info.AddressMode == defs.Accumulator {
+	if info.AddressMode == defs.Implicit {
 		cpu.registers.A = value
 	} else {
 		cpu.write(info.OperandAddress, value)
@@ -780,7 +780,7 @@ func (cpu *Cpu6502) plp(info defs.InfoStep) {
 func (cpu *Cpu6502) rol(info defs.InfoStep) {
 	var newCarry byte
 	var value byte
-	if info.AddressMode == defs.Accumulator {
+	if info.AddressMode == defs.Implicit {
 		newCarry = cpu.registers.A & 0x80 >> 7
 		cpu.registers.A <<= 1
 		cpu.registers.A |= cpu.registers.carryFlag()
@@ -814,7 +814,7 @@ func (cpu *Cpu6502) rol(info defs.InfoStep) {
 func (cpu *Cpu6502) ror(info defs.InfoStep) {
 	var newCarry byte
 	var value byte
-	if info.AddressMode == defs.Accumulator {
+	if info.AddressMode == defs.Implicit {
 		newCarry = cpu.registers.A & 0x01
 		cpu.registers.A >>= 1
 		cpu.registers.A |= cpu.registers.carryFlag() << 7

@@ -5,7 +5,6 @@ type AddressMode int
 
 const (
 	Implicit AddressMode = iota
-	Accumulator
 	Immediate
 	ZeroPage
 	ZeroPageX

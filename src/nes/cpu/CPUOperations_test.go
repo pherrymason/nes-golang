@@ -63,7 +63,7 @@ func TestASL_Accumulator(t *testing.T) {
 		cpu := CreateCPUWithBus()
 		cpu.registers.A = dataProviders[i].accumulator
 
-		cpu.asl(defs.InfoStep{defs.Accumulator, 0x0000})
+		cpu.asl(defs.InfoStep{defs.Implicit, 0x0000})
 
 		assert.Equal(t, dataProviders[i].accumulator<<1, cpu.registers.A, fmt.Sprintf("Iteration %d failed @ expected Accumulator", i))
 		assert.Equal(t, dataProviders[i].expectedRegister.carryFlag(), cpu.registers.carryFlag(), fmt.Sprintf("Iteration %d failed @ expected CarryFlag", i))
@@ -684,9 +684,9 @@ func TestLSR(t *testing.T) {
 		expectedCarry  byte
 	}
 	dataProviders := [...]dataProvider{
-		{defs.Accumulator, 0b00000010, 0b00000001, 0, 0},
-		{defs.Accumulator, 0b00000011, 0b00000001, 0, 1},
-		{defs.Accumulator, 0b00000001, 0b00000000, 1, 1},
+		{defs.Implicit, 0b00000010, 0b00000001, 0, 0},
+		{defs.Implicit, 0b00000011, 0b00000001, 0, 1},
+		{defs.Implicit, 0b00000001, 0b00000000, 1, 1},
 		{defs.ZeroPage, 0b00000010, 0b00000001, 0, 0},
 		{defs.ZeroPage, 0b00000011, 0b00000001, 0, 1},
 		{defs.ZeroPage, 0b00000001, 0b00000000, 1, 1},
@@ -700,7 +700,7 @@ func TestLSR(t *testing.T) {
 
 		cpu.lsr(defs.InfoStep{dp.addressingMode, 0x00})
 
-		if dp.addressingMode == defs.Accumulator {
+		if dp.addressingMode == defs.Implicit {
 			assert.Equal(t, dp.expectedResult, cpu.registers.A)
 		} else {
 			assert.Equal(t, dp.expectedResult, cpu.Read(0x00))
@@ -803,11 +803,11 @@ func TestROL(t *testing.T) {
 		expectedCarry    byte
 	}
 	dataProviders := [...]dataProvider{
-		{defs.Accumulator, 0b00000000, 0, 0, 1, 0, 0},
-		{defs.Accumulator, 0b00000000, 1, 1, 0, 0, 0},
-		{defs.Accumulator, 0b00000001, 0, 0b10, 0, 0, 0},
-		{defs.Accumulator, 0b10000000, 0, 0, 1, 0, 1},
-		{defs.Accumulator, 0b01000000, 0, 0x80, 0, 1, 0},
+		{defs.Implicit, 0b00000000, 0, 0, 1, 0, 0},
+		{defs.Implicit, 0b00000000, 1, 1, 0, 0, 0},
+		{defs.Implicit, 0b00000001, 0, 0b10, 0, 0, 0},
+		{defs.Implicit, 0b10000000, 0, 0, 1, 0, 1},
+		{defs.Implicit, 0b01000000, 0, 0x80, 0, 1, 0},
 
 		{defs.ZeroPage, 0b00000000, 0, 0, 1, 0, 0},
 		{defs.ZeroPage, 0b00000000, 1, 1, 0, 0, 0},
@@ -825,7 +825,7 @@ func TestROL(t *testing.T) {
 
 		cpu.rol(defs.InfoStep{dp.addressingMode, 0x00})
 
-		if dp.addressingMode == defs.Accumulator {
+		if dp.addressingMode == defs.Implicit {
 			assert.Equal(t, dp.expectedResult, cpu.registers.A)
 		} else {
 			assert.Equal(t, dp.expectedResult, cpu.Read(0x00))
@@ -848,11 +848,11 @@ func TestROR(t *testing.T) {
 		expectedCarry    byte
 	}
 	dataProviders := [...]dataProvider{
-		{defs.Accumulator, 0b00000000, 0, 0, 1, 0, 0},
-		{defs.Accumulator, 0b00000001, 0, 0, 1, 0, 1},
-		{defs.Accumulator, 0b00000000, 1, 0x80, 0, 1, 0},
-		{defs.Accumulator, 0b10000000, 0, 0x40, 0, 0, 0},
-		{defs.Accumulator, 0b10000001, 1, 0xC0, 0, 1, 1},
+		{defs.Implicit, 0b00000000, 0, 0, 1, 0, 0},
+		{defs.Implicit, 0b00000001, 0, 0, 1, 0, 1},
+		{defs.Implicit, 0b00000000, 1, 0x80, 0, 1, 0},
+		{defs.Implicit, 0b10000000, 0, 0x40, 0, 0, 0},
+		{defs.Implicit, 0b10000001, 1, 0xC0, 0, 1, 1},
 
 		{defs.ZeroPage, 0b00000000, 0, 0, 1, 0, 0},
 		{defs.ZeroPage, 0b00000001, 0, 0, 1, 0, 1},
@@ -870,7 +870,7 @@ func TestROR(t *testing.T) {
 
 		cpu.ror(defs.InfoStep{dp.addressingMode, 0x00})
 
-		if dp.addressingMode == defs.Accumulator {
+		if dp.addressingMode == defs.Implicit {
 			assert.Equal(t, dp.expectedResult, cpu.registers.A)
 		} else {
 			assert.Equal(t, dp.expectedResult, cpu.Read(0x00))

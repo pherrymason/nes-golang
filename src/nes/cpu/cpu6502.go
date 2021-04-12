@@ -1,6 +1,7 @@
 package cpu
 
 import (
+	"fmt"
 	"github.com/raulferras/nes-golang/src/log"
 	"github.com/raulferras/nes-golang/src/nes/component"
 	"github.com/raulferras/nes-golang/src/nes/defs"
@@ -109,7 +110,7 @@ func (cpu *Cpu6502) initInstructionsTable() {
 		{},
 		defs.CreateInstruction("PHP", defs.Implicit, cpu.php, 3, 1),
 		defs.CreateInstruction("ORA", defs.Immediate, cpu.ora, 2, 2),
-		defs.CreateInstruction("ASL", defs.Accumulator, cpu.asl, 2, 1),
+		defs.CreateInstruction("ASL", defs.Implicit, cpu.asl, 2, 1),
 		{},
 		{},
 		defs.CreateInstruction("ORA", defs.Absolute, cpu.ora, 4, 3),
@@ -145,7 +146,7 @@ func (cpu *Cpu6502) initInstructionsTable() {
 		{},
 		defs.CreateInstruction("PLP", defs.Implicit, cpu.plp, 4, 1),
 		defs.CreateInstruction("AND", defs.Immediate, cpu.and, 2, 2),
-		defs.CreateInstruction("ROL", defs.Accumulator, cpu.rol, 2, 1),
+		defs.CreateInstruction("ROL", defs.Implicit, cpu.rol, 2, 1),
 		{},
 		defs.CreateInstruction("BIT", defs.Absolute, cpu.bit, 4, 3),
 		defs.CreateInstruction("AND", defs.Absolute, cpu.and, 4, 3),
@@ -181,7 +182,7 @@ func (cpu *Cpu6502) initInstructionsTable() {
 		{},
 		defs.CreateInstruction("PHA", defs.Implicit, cpu.pha, 3, 1),
 		defs.CreateInstruction("EOR", defs.Immediate, cpu.eor, 2, 2),
-		defs.CreateInstruction("LSR", defs.Accumulator, cpu.lsr, 2, 1),
+		defs.CreateInstruction("LSR", defs.Implicit, cpu.lsr, 2, 1),
 		{},
 		defs.CreateInstruction("JMP", defs.Absolute, cpu.jmp, 3, 3),
 		defs.CreateInstruction("EOR", defs.Absolute, cpu.eor, 4, 3),
@@ -217,7 +218,7 @@ func (cpu *Cpu6502) initInstructionsTable() {
 		{},
 		defs.CreateInstruction("PLA", defs.Implicit, cpu.pla, 4, 1),
 		defs.CreateInstruction("ADC", defs.Immediate, cpu.adc, 2, 2),
-		defs.CreateInstruction("ROR", defs.Accumulator, cpu.ror, 2, 1),
+		defs.CreateInstruction("ROR", defs.Implicit, cpu.ror, 2, 1),
 		{},
 		defs.CreateInstruction("JMP", defs.Indirect, cpu.jmp, 5, 3),
 		defs.CreateInstruction("ADC", defs.Absolute, cpu.adc, 4, 3),
@@ -390,8 +391,7 @@ func (cpu *Cpu6502) initInstructionsTable() {
 
 func (cpu *Cpu6502) initAddressModeEvaluators() {
 	cpu.addressEvaluators = [13]func(programCounter defs.Address) (pc defs.Address, address defs.Address, cycles int){
-		nil,
-		nil,
+		cpu.evalImplicit,
 		cpu.evalImmediate,
 		cpu.evalZeroPage,
 		cpu.evalZeroPageX,
@@ -402,5 +402,21 @@ func (cpu *Cpu6502) initAddressModeEvaluators() {
 		cpu.evalIndirect,
 		cpu.evalIndirectX,
 		cpu.evalIndirectY,
+		cpu.evalRelative,
 	}
+}
+
+func (cpu Cpu6502) evaluateOperandAddress(addressMode defs.AddressMode, pc defs.Address) defs.Address {
+	if addressMode == defs.Implicit {
+		return 0
+	}
+
+	if cpu.addressEvaluators[addressMode] == nil {
+		msg := fmt.Errorf("cannot find address evaluator for %d address mode", addressMode)
+		panic(msg)
+	}
+
+	_, evaluatedAddress, _ := cpu.addressEvaluators[addressMode](pc)
+
+	return evaluatedAddress
 }

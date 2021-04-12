@@ -2,6 +2,13 @@ package cpu
 
 import "github.com/raulferras/nes-golang/src/nes/defs"
 
+func (cpu *Cpu6502) evalImplicit(programCounter defs.Address) (pc defs.Address, address defs.Address, cycles int) {
+	pc = programCounter
+	address = 0
+	cycles = 0
+	return
+}
+
 func (cpu *Cpu6502) evalImmediate(programCounter defs.Address) (pc defs.Address, address defs.Address, cycles int) {
 	pc = programCounter
 	address = programCounter
