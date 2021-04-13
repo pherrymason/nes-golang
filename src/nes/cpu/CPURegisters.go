@@ -47,6 +47,14 @@ type Cpu6502Registers struct {
 	Sp byte
 
 	// Status Processor [NV-BDIZC]
+	// N: negative flag
+	// V: Overflow flag
+	// -: Unused
+	// B: Break flag.
+	// D:
+	// I:
+	// Z: zero flag
+	// C: carry flag
 	Status byte
 }
 
@@ -56,7 +64,7 @@ func (registers *Cpu6502Registers) reset() {
 	registers.Y = 0x00
 	registers.Sp = 0xFD
 	registers.Pc = defs.Address(0xFFFC)
-	registers.Status = 0x20
+	registers.Status = 0x24
 }
 
 func (registers *Cpu6502Registers) stackPointerAddress() defs.Address {

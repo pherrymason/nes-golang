@@ -1,7 +1,6 @@
 package nes
 
 import (
-	"github.com/raulferras/nes-golang/src/log"
 	"github.com/raulferras/nes-golang/src/nes/component"
 	cpu2 "github.com/raulferras/nes-golang/src/nes/cpu"
 )
@@ -9,7 +8,7 @@ import (
 type Nes struct {
 	cpu   *cpu2.Cpu6502
 	bus   *component.Bus
-	debug bool
+	debug DebuggableNes
 }
 
 func CreateNes() Nes {
@@ -20,21 +19,31 @@ func CreateNes() Nes {
 	nes := Nes{
 		cpu:   &cpu,
 		bus:   &bus,
-		debug: false,
+		debug: DebuggableNes{false, nil, 0},
 	}
 
 	return nes
 }
 
-func CreateDebuggableNes(logger log.Logger) Nes {
+type DebuggableNes struct {
+	debug       bool
+	logger      *cpu2.Logger
+	cyclesLimit int
+}
+
+func CreateDebuggableNes(options DebuggableNes) Nes {
 	ram := component.RAM{}
 	bus := component.CreateBus(&ram)
-	cpu := cpu2.CreateCPUDebuggable(&bus, logger)
+	cpu := cpu2.CreateCPUDebuggable(&bus, options.logger, options.cyclesLimit)
 
 	nes := Nes{
 		&cpu,
 		&bus,
-		true,
+		DebuggableNes{
+			true,
+			options.logger,
+			options.cyclesLimit,
+		},
 	}
 
 	return nes
@@ -42,9 +51,15 @@ func CreateDebuggableNes(logger log.Logger) Nes {
 
 func (nes *Nes) Start() {
 	nes.cpu.Init()
+	i := 0
+
 	//nes.cpu.reset()
 	for {
 		nes.cpu.Tick()
+		i++
+		if nes.debug.cyclesLimit > 0 && i >= nes.debug.cyclesLimit {
+			break
+		}
 	}
 }
 
