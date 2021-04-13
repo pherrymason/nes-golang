@@ -156,7 +156,7 @@ func (cpu *Cpu6502) evalRelative(programCounter defs.Address) (pc defs.Address, 
 	opcodeOperand := cpu.bus.Read(pc)
 	pc++
 
-	address = cpu.registers.Pc + 1
+	address = pc
 	if opcodeOperand < 0x80 {
 		address += defs.Address(opcodeOperand)
 	} else {
