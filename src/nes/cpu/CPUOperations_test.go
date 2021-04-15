@@ -779,6 +779,7 @@ func TestPLA(t *testing.T) {
 }
 
 func TestPLP(t *testing.T) {
+	initialPointerStack := byte(0xFF)
 	cpu := CreateCPUWithBus()
 	cpu.pushStack(0xFF)
 
@@ -786,7 +787,7 @@ func TestPLP(t *testing.T) {
 
 	assert.Equal(t, byte(0), (cpu.registers.Status>>4)&0x01, "PLP must set B flag to 0")
 	assert.Equal(t, byte(0xEF), cpu.registers.Status)
-	assert.Equal(t, byte(0xFF), cpu.registers.Sp)
+	assert.Equal(t, initialPointerStack, cpu.registers.Sp)
 }
 
 func TestROL(t *testing.T) {
