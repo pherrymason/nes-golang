@@ -589,15 +589,16 @@ func TestJMP(t *testing.T) {
 
 func TestJSR(t *testing.T) {
 	cpu := CreateCPUWithBus()
-	cpu.registers.Pc = 0x0204
-	cpu.write(defs.Address(0x201), 0x20) // Opcode
+	cpu.write(defs.Address(0x201), 0x20) // JSR Opcode
 	cpu.write(defs.Address(0x202), 0x55) // LSB
 	cpu.write(defs.Address(0x203), 0x05) // MSB
+
+	cpu.registers.Pc = 0x0203
 	cpu.jsr(defs.InfoStep{defs.Absolute, 0x202})
 
 	assert.Equal(t, defs.Address(0x0202), cpu.registers.Pc)
 	assert.Equal(t, byte(0x02), cpu.popStack())
-	assert.Equal(t, byte(0x04), cpu.popStack())
+	assert.Equal(t, byte(0x02), cpu.popStack())
 }
 
 func TestLDA(t *testing.T) {
