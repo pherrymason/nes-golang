@@ -904,12 +904,13 @@ func TestRTI(t *testing.T) {
 func TestRTS(t *testing.T) {
 	cpu := CreateCPUWithBus()
 	// Push an Address into Stack
-	expectedProgramCounter := defs.Address(0x532)
-	cpu.pushStack(byte(expectedProgramCounter & 0xFF))
-	cpu.pushStack(byte(expectedProgramCounter >> 8))
+	pc := defs.Address(0x532)
+	cpu.pushStack(defs.HighNibble(pc))
+	cpu.pushStack(defs.LowNibble(pc))
 
 	cpu.rts(defs.InfoStep{defs.Implicit, 0x00})
 
+	expectedProgramCounter := defs.Address(0x533)
 	assert.Equal(t, expectedProgramCounter, cpu.registers.Pc)
 }
 

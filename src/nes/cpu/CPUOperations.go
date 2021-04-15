@@ -866,9 +866,9 @@ func (cpu *Cpu6502) rti(info defs.InfoStep) {
 	implied       RTS           60    1     6
 */
 func (cpu *Cpu6502) rts(info defs.InfoStep) {
-	msb := cpu.popStack()
 	lsb := cpu.popStack()
-	cpu.registers.Pc = defs.CreateAddress(lsb, msb)
+	msb := cpu.popStack()
+	cpu.registers.Pc = defs.CreateAddress(lsb, msb) + 1
 }
 
 /*
