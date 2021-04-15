@@ -1056,7 +1056,7 @@ func TestTSX(t *testing.T) {
 		dp := dataProviders[i]
 		cpu := CreateCPUWithBus()
 		//cpu.pushStack(dp.sp)
-		cpu.Registers().SetStackPointer(dp.sp)
+		cpu.Registers().setStackPointer(dp.sp)
 
 		cpu.tsx(defs.InfoStep{defs.Implicit, 0x00})
 
