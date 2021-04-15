@@ -14,7 +14,7 @@ func TestNestest(t *testing.T) {
 	outputLogPath := "./../../var/nestest.log"
 	logger := cpu.CreateCPULogger(outputLogPath)
 
-	nes := CreateDebuggableNes(DebuggableNes{true, &logger, 1000})
+	nes := CreateDebuggableNes(DebuggableNes{true, &logger, 1200})
 	nes.InsertCartridge(&gamePak)
 	nes.cpu.ResetToAddress(0xC000)
 	nes.Start()

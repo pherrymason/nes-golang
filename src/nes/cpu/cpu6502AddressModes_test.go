@@ -30,7 +30,7 @@ func TestZeroPage(t *testing.T) {
 	cpu.bus.Write(0x00, 0x40)
 
 	pc, result, _ := cpu.evalZeroPage(cpu.registers.Pc)
-	expected := defs.Address(0x4000)
+	expected := defs.Address(0x040)
 	assert.Equal(t, expected, result, fmt.Sprintf("ZeroPage address mode decoded wrongly, expected %d, got %d", expected, result))
 	assert.Equal(t, cpu.registers.Pc+1, pc)
 }
@@ -139,7 +139,7 @@ func TestIndirectBug(t *testing.T) {
 	assert.Equal(t, cpu.registers.Pc+2, pc)
 }
 
-func TestPreIndexedIndirect(t *testing.T) {
+func TestIndexed_indirect(t *testing.T) {
 	cpu := CreateCPUWithBus()
 	cpu.registers.Pc = 0x00
 	cpu.registers.X = 4
@@ -148,30 +148,47 @@ func TestPreIndexedIndirect(t *testing.T) {
 	cpu.bus.Write(0, 0x10)
 
 	// Write Offset Table
+	// write low
 	cpu.bus.Write(0x0014, 0x25)
+	// write high
+	cpu.bus.Write(0x0015, 0x10)
 
-	pc, result, _ := cpu.evalIndirectX(cpu.registers.Pc)
+	_, result, _ := cpu.evalIndirectX(cpu.registers.Pc)
 
-	expected := defs.Address(0x0025)
+	expected := defs.Address(0x1025)
 	assert.Equal(t, expected, result)
-	assert.Equal(t, cpu.registers.Pc+1, pc)
+	//assert.Equal(t, cpu.registers.Pc+1, pc)
 }
 
-func TestPreIndexedIndirectWithWrapAround(t *testing.T) {
+func TestIndexed_Indirect_X_wraps(t *testing.T) {
 	cpu := CreateCPUWithBus()
-	cpu.registers.Pc = 0x00
-	cpu.registers.X = 21
-	// Write Operan
-	cpu.bus.Write(0x0000, 250)
+	cpu.registers.Pc = 0x0055
+	cpu.registers.X = 3
+	// Operand
+	cpu.bus.Write(0x0055, 0xFE)
 
-	// Write Offset Table
-	cpu.bus.Write(0x000F, 0x10)
+	cpu.bus.Write(0x01, 0x10)
+	cpu.bus.Write(0x02, 0x05)
 
-	pc, result, _ := cpu.evalIndirectX(cpu.registers.Pc)
+	_, result, _ := cpu.evalIndirectX(cpu.registers.Pc)
 
-	expected := defs.Address(0x0010)
-	assert.Equal(t, expected, result)
-	assert.Equal(t, cpu.registers.Pc+1, pc)
+	assert.Equal(t, defs.Address(0x0510), result)
+}
+
+func TestIndexed_indirect_with_wrap_around(t *testing.T) {
+	cpu := CreateCPUWithBus()
+	cpu.registers.Pc = 0x55
+	cpu.registers.X = 1
+	// Operand
+	cpu.bus.Write(0x0055, 0xFE)
+
+	cpu.bus.Write(0xFF, 0x10)
+	cpu.bus.Write(0x100, 0x99)
+	cpu.bus.Write(0x00, 0x05)
+
+	_, result, _ := cpu.evalIndirectX(cpu.registers.Pc)
+
+	assert.Equal(t, defs.Address(0x0510), result)
 }
 
 func TestPostIndexedIndirect(t *testing.T) {

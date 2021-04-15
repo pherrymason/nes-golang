@@ -25,8 +25,8 @@ func (cpu *Cpu6502) evalZeroPage(programCounter defs.Address) (pc defs.Address, 
 	// 2 bytes
 	var low = cpu.bus.Read(programCounter)
 
-	address = defs.Address(low) << 8
-	pc = cpu.registers.Pc + 1
+	address = defs.Address(low)
+	pc = programCounter + 1
 
 	return
 }
@@ -126,12 +126,14 @@ func (cpu *Cpu6502) evalIndirect(programCounter defs.Address) (pc defs.Address, 
 func (cpu *Cpu6502) evalIndirectX(programCounter defs.Address) (pc defs.Address, address defs.Address, cycles int) {
 	pc = programCounter
 
-	low := cpu.bus.Read(pc)
-	pc++
+	operand := cpu.bus.Read(pc)
+	operand += cpu.registers.X
+	operand &= 0xFF
 
-	ptrAddress := (uint16(low) + uint16(cpu.registers.X)) & 0xFF
+	effectiveLow := cpu.bus.Read(defs.Address(operand))
+	effectiveHigh := cpu.bus.Read(defs.Address(operand + 1))
 
-	address = defs.Address(cpu.bus.Read16(defs.Address(ptrAddress)))
+	address = defs.CreateAddress(effectiveLow, effectiveHigh)
 
 	return
 }
