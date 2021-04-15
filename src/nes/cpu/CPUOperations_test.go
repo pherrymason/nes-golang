@@ -691,6 +691,7 @@ func TestLSR(t *testing.T) {
 	for i := 0; i < len(dataProviders); i++ {
 		dp := dataProviders[i]
 		cpu := CreateCPUWithBus()
+		cpu.registers.Status = 0xFF
 		cpu.registers.A = dp.value
 		cpu.write(defs.Address(0x00), dp.value)
 

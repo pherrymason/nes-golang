@@ -658,6 +658,7 @@ func (cpu *Cpu6502) lsr(info defs.InfoStep) {
 
 	value >>= 1
 	cpu.registers.updateZeroFlag(value)
+	cpu.registers.updateNegativeFlag(0)
 
 	if info.AddressMode == defs.Implicit {
 		cpu.registers.A = value
