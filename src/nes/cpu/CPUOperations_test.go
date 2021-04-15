@@ -296,14 +296,10 @@ func TestBRK(t *testing.T) {
 
 	cpu.brk(defs.InfoStep{defs.Implicit, 0x0000})
 
-	assert.Equal(t, byte(1), cpu.registers.breakFlag())
 	assert.Equal(t, programCounter, cpu.read16(0x1FE))
 	// Stored status Registers in stack should be...
 	assert.Equal(t, byte(0b11110011), cpu.Read(0x1FD))
-
 	assert.Equal(t, byte(1), cpu.registers.interruptFlag())
-	assert.Equal(t, byte(1), cpu.registers.breakFlag())
-
 	assert.Equal(t, expectedPc, cpu.registers.Pc)
 }
 
