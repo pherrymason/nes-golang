@@ -889,15 +889,15 @@ func TestROR(t *testing.T) {
 func TestRTI(t *testing.T) {
 	cpu := CreateCPUWithBus()
 	// Push an Address into Stack
-	expectedProgramCounter := defs.Address(0x532)
-	cpu.pushStack(byte(expectedProgramCounter & 0xFF))
-	cpu.pushStack(byte(expectedProgramCounter >> 8))
+	pc := defs.Address(0x532)
+	cpu.pushStack(defs.HighNibble(pc))
+	cpu.pushStack(defs.LowNibble(pc))
 	// Push a StatusRegister into stack
 	cpu.pushStack(0xFF)
 
 	cpu.rti(defs.InfoStep{AddressMode: defs.Implicit, OperandAddress: 0xFF})
 
-	assert.Equal(t, expectedProgramCounter, cpu.registers.Pc)
+	assert.Equal(t, pc, cpu.registers.Pc)
 	assert.Equal(t, byte(0xeF), cpu.registers.Status)
 }
 

@@ -851,8 +851,8 @@ func (cpu *Cpu6502) rti(info defs.InfoStep) {
 	statusRegister := cpu.popStack()
 	cpu.registers.loadStatusRegister(statusRegister)
 
-	msb := cpu.popStack()
 	lsb := cpu.popStack()
+	msb := cpu.popStack()
 	cpu.registers.Pc = defs.CreateAddress(lsb, msb)
 }
 
