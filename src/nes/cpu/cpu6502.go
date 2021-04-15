@@ -2,7 +2,6 @@ package cpu
 
 import (
 	"fmt"
-	"github.com/raulferras/nes-golang/src/log"
 	"github.com/raulferras/nes-golang/src/nes/component"
 	"github.com/raulferras/nes-golang/src/nes/defs"
 )
@@ -174,7 +173,7 @@ func (cpu *Cpu6502) initInstructionsTable() {
 		{},
 
 		// 0x40
-		defs.CreateInstruction("RTI", defs.Implicit, cpu.bmi, 6, 1),
+		defs.CreateInstruction("RTI", defs.Implicit, cpu.rti, 6, 1),
 		defs.CreateInstruction("EOR", defs.IndirectX, cpu.eor, 6, 2),
 		{},
 		{},
