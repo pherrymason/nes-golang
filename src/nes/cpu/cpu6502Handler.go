@@ -35,7 +35,7 @@ func (cpu *Cpu6502) Tick() {
 
 	instruction := cpu.instructions[opcode]
 	if instruction.Method() == nil {
-		msg := fmt.Errorf("Error: Opcode 0x%X not implemented!", opcode)
+		msg := fmt.Errorf("opcode 0x%X not implemented", opcode)
 		panic(msg)
 	}
 

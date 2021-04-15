@@ -29,7 +29,7 @@ func CreateState(cpu Cpu6502) State {
 	_, evaluatedAddress, _ := cpu.addressEvaluators[instruction.AddressMode()](pc)
 
 	state := State{
-		cpu.Registers(),
+		*cpu.Registers(),
 		instruction,
 		rawOpcode,
 		evaluatedAddress,
@@ -81,7 +81,7 @@ func (state State) Equals(b State) bool {
 		state.Registers.X != b.Registers.X ||
 		state.Registers.Y != b.Registers.Y ||
 		state.Registers.Sp != b.Registers.Sp ||
-		state.Registers.Status != b.Registers.Status {
+		state.Registers.statusRegister() != b.Registers.statusRegister() {
 		return false
 	}
 

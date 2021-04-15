@@ -194,6 +194,8 @@ func (registers *Cpu6502Registers) statusRegister() byte {
 }
 
 func (registers *Cpu6502Registers) loadStatusRegister(value byte) {
+	// From http://nesdev.com/the%20%27B%27%20flag%20&%20BRK%20instruction.txt
+	// ...when the flags are restored (via PLP or RTI), the Break flag (4 bit) is discarded.
 	registers.Status = value & 0b11101111
 }
 
