@@ -286,7 +286,7 @@ func TestBPL(t *testing.T) {
 }
 
 func TestBRK(t *testing.T) {
-	programCounter := defs.Address(0x2020)
+	programCounter := defs.Address(0x2030)
 	expectedPc := defs.Address(0x9999)
 	cpu := CreateCPUWithBus()
 	cpu.registers.Pc = programCounter
@@ -300,6 +300,10 @@ func TestBRK(t *testing.T) {
 	// Stored status Registers in stack should be...
 	assert.Equal(t, byte(0b11110011), cpu.Read(0x1FD))
 	assert.Equal(t, byte(1), cpu.registers.interruptFlag())
+	assert.Equal(t, byte(0xF3), cpu.popStack(), "unexpected StatusRegister pushed in stack")
+	assert.Equal(t, defs.LowNibble(programCounter), cpu.popStack(), "unexpected low nibble in stack pointer")
+	assert.Equal(t, defs.HighNibble(programCounter), cpu.popStack(), "unexpected high nibble in stack pointer")
+
 	assert.Equal(t, expectedPc, cpu.registers.Pc)
 }
 

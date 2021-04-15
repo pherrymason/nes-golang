@@ -233,9 +233,12 @@ func (cpu *Cpu6502) bpl(info defs.InfoStep) {
 */
 func (cpu *Cpu6502) brk(info defs.InfoStep) {
 	// Store PC in stack
-	cpu.pushStack(byte(cpu.registers.Pc & 0xFF))
-	cpu.pushStack(byte(cpu.registers.Pc >> 8))
-	cpu.pushStack(cpu.registers.Status | 0b00010000) // Push status with Break flag set
+	pc := cpu.registers.Pc
+	cpu.pushStack(defs.HighNibble(pc))
+	cpu.pushStack(defs.LowNibble(pc))
+
+	// Push status with Break flag set
+	cpu.pushStack(cpu.registers.Status | 0b00010000)
 
 	cpu.registers.updateFlag(interruptFlag, 1)
 
