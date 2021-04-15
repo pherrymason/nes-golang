@@ -151,7 +151,7 @@ func (cpu *Cpu6502) evalIndirectY(programCounter defs.Address) (pc defs.Address,
 
 	// Todo: Not sure if there is wrap around in adding Y
 
-	address = defs.Address(cpu.bus.Read16(defs.Address(offsetAddress)))
+	address = offsetAddress
 
 	return
 }
