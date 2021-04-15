@@ -141,12 +141,12 @@ func (cpu *Cpu6502) evalIndirectX(programCounter defs.Address) (pc defs.Address,
 func (cpu *Cpu6502) evalIndirectY(programCounter defs.Address) (pc defs.Address, address defs.Address, cycles int) {
 	pc = programCounter
 
-	lo := cpu.bus.Read(pc)
+	operand := cpu.bus.Read(pc)
 	pc++
 
-	opcodeOperand := defs.CreateAddress(lo, 0x00)
-
-	offsetAddress := cpu.bus.Read16(opcodeOperand)
+	lo := cpu.bus.Read(defs.Address(operand))
+	hi := cpu.bus.Read(defs.Address(operand + 1))
+	offsetAddress := defs.CreateAddress(lo, hi)
 	offsetAddress += defs.Word(cpu.registers.Y)
 
 	// Todo: Not sure if there is wrap around in adding Y

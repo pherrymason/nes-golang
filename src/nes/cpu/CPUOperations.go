@@ -347,7 +347,10 @@ func (cpu *Cpu6502) clv(info defs.InfoStep) {
 
 	+ add 1 cycle if page boundary crossed
 
-	Compare sets flags as if a subtraction had been carried out. If the value in the Accumulator is equal or greater than the compared value, the Carry will be set. The equal (Z) and sign (S) flags will be set based on equality or lack thereof and the sign (i.e. A>=$80) of the Accumulator.
+	Compare sets flags as if a subtraction had been carried out.
+    If the value in the Accumulator is equal or greater than the compared value,
+    the Carry will be set. The equal (Z) and sign (S) flags will be set based on
+    equality or lack thereof and the sign (i.e. A>=$80) of the Accumulator.
 */
 func (cpu *Cpu6502) cmp(info defs.InfoStep) {
 	operand := cpu.Read(info.OperandAddress)

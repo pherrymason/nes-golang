@@ -210,27 +210,22 @@ func TestIndirect_indexed(t *testing.T) {
 	assert.Equal(t, cpu.registers.Pc+1, pc)
 }
 
-func TestPostIndexedIndirectWithWrapAround(t *testing.T) {
-	t.Skip()
+func TestIndexed_Indirect_With_Wrap_Around_at_zero_page(t *testing.T) {
 	cpu := CreateCPUWithBus()
 
-	expected := defs.Address(0xF0)
-	cpu.registers.Pc = 0x00
-	cpu.registers.Y = 15
+	cpu.registers.Pc = 0x100
+	cpu.registers.Y = 0xFF
 
 	// Opcode Operand
-	cpu.bus.Write(0x0000, 0x05)
+	cpu.bus.Write(0x0100, 0xFF)
 
 	// Indexed Table Pointers
-	cpu.bus.Write(0x05, 0xFB)
-	cpu.bus.Write(0x06, 0x00)
-
-	// Offset pointer
-	cpu.bus.Write(0x000A, byte(expected))
+	cpu.bus.Write(0xFF, 0x46)
+	cpu.bus.Write(0x00, 0x01)
 
 	pc, result, _ := cpu.evalIndirectY(cpu.registers.Pc)
 
-	assert.Equal(t, expected, result)
+	assert.Equal(t, defs.Address(0x245), result)
 	assert.Equal(t, cpu.registers.Pc+1, pc)
 }
 
