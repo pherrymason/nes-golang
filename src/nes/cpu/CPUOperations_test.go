@@ -889,10 +889,10 @@ func TestRTI(t *testing.T) {
 	// Push a StatusRegister into stack
 	cpu.pushStack(0xFF)
 
-	cpu.rti(defs.InfoStep{defs.Implicit, 0xFF})
+	cpu.rti(defs.InfoStep{AddressMode: defs.Implicit, OperandAddress: 0xFF})
 
 	assert.Equal(t, expectedProgramCounter, cpu.registers.Pc)
-	assert.Equal(t, byte(0xFF), cpu.registers.Status)
+	assert.Equal(t, byte(0xeF), cpu.registers.Status)
 }
 
 func TestRTS(t *testing.T) {
@@ -1048,13 +1048,14 @@ func TestTSX(t *testing.T) {
 	for i := 0; i < len(dataProviders); i++ {
 		dp := dataProviders[i]
 		cpu := CreateCPUWithBus()
-		cpu.pushStack(dp.sp)
+		//cpu.pushStack(dp.sp)
+		cpu.Registers().SetStackPointer(dp.sp)
 
 		cpu.tsx(defs.InfoStep{defs.Implicit, 0x00})
 
 		assert.Equal(t, dp.sp, cpu.registers.X)
-		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag())
-		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag())
+		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag(), "Incorrect Zero Flag")
+		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag(), "Incorrect Negative Flag")
 	}
 }
 
