@@ -989,7 +989,7 @@ func (cpu *Cpu6502) tay(info defs.InfoStep) {
 	implied       TSX           BA    1     2
 */
 func (cpu *Cpu6502) tsx(info defs.InfoStep) {
-	cpu.registers.X = cpu.popStack()
+	cpu.registers.X = cpu.Registers().Sp
 	cpu.registers.updateZeroFlag(cpu.registers.X)
 	cpu.registers.updateNegativeFlag(cpu.registers.X)
 }
