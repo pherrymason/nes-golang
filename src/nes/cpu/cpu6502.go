@@ -15,8 +15,10 @@ type Cpu6502 struct {
 	instructions      [256]defs.Instruction
 	addressEvaluators [13]func(programCounter defs.Address) (pc defs.Address, address defs.Address, cycles int)
 
-	debug  bool
-	logger log.Logger
+	// Debug parameters
+	debug       bool
+	Logger      Logger
+	cyclesLimit int
 }
 
 func CreateCPU(bus *component.Bus) Cpu6502 {
@@ -28,13 +30,13 @@ func CreateCPU(bus *component.Bus) Cpu6502 {
 	}
 }
 
-func CreateCPUDebuggable(bus *component.Bus, logger log.Logger) Cpu6502 {
+func CreateCPUDebuggable(bus *component.Bus, logger *Logger, cyclesLimit int) Cpu6502 {
 	registers := CreateRegisters()
 	return Cpu6502{
 		registers: registers,
 		bus:       bus,
 		debug:     true,
-		logger:    logger,
+		Logger:    *logger,
 	}
 }
 
@@ -55,8 +57,8 @@ func CreateCPUWithBus() Cpu6502 {
 	}
 }
 
-func (cpu Cpu6502) Registers() Cpu6502Registers {
-	return cpu.registers
+func (cpu *Cpu6502) Registers() *Cpu6502Registers {
+	return &cpu.registers
 }
 
 func (cpu *Cpu6502) pushStack(value byte) {
@@ -412,7 +414,7 @@ func (cpu Cpu6502) evaluateOperandAddress(addressMode defs.AddressMode, pc defs.
 	}
 
 	if cpu.addressEvaluators[addressMode] == nil {
-		msg := fmt.Errorf("cannot find address evaluator for %d address mode", addressMode)
+		msg := fmt.Errorf("cannot find address evaluator for address mode \"%d\"", addressMode)
 		panic(msg)
 	}
 
