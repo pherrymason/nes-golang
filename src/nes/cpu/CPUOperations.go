@@ -193,8 +193,7 @@ func (cpu *Cpu6502) bmi(info defs.InfoStep) {
 	Relative      BNE oper      D0    2     2**
 */
 func (cpu *Cpu6502) bne(info defs.InfoStep) {
-	// CHeck how to negate a bit and apply it here
-	//if !cpu.Registers.zeroFlag() == 1 {
+	// Check how to negate a bit and apply it here
 	if cpu.registers.zeroFlag() == 0 {
 		cpu.registers.Pc = info.OperandAddress
 	}
