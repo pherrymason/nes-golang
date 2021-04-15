@@ -26,6 +26,10 @@ type Bus struct {
 	// PPU -> $2000 -> $2007
 }
 
+func CreateBus(ram *RAM) Bus {
+	return Bus{Ram: ram}
+}
+
 func (bus *Bus) Read(address defs.Address) byte {
 	if address <= 0x7FF {
 		return bus.Ram.read(address)
@@ -56,15 +60,11 @@ func (bus *Bus) Read16Bugged(address defs.Address) defs.Word {
 func (bus *Bus) Write(address defs.Address, value byte) {
 	if address <= 0x7FF {
 		bus.Ram.write(address, value)
-	} else if address >= 0x8000 {
+	} else if address >= GAMEPAK_ROM_LOWER_BANK_START {
 		bus.Cartridge.write(address, value)
 	}
 }
 
 func (bus *Bus) AttachCartridge(cartridge *GamePak) {
 	bus.Cartridge = cartridge
-}
-
-func CreateBus(ram *RAM) Bus {
-	return Bus{Ram: ram}
 }
