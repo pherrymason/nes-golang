@@ -9,6 +9,10 @@ func (cpu *Cpu6502) evalImplicit(programCounter defs.Address) (pc defs.Address, 
 	return
 }
 
+/**
+ * Immediate addressing allows the programmer to directly specify an 8 bit constant within the instruction.
+ * It is indicated by a '#' symbol followed by an numeric expression.
+ */
 func (cpu *Cpu6502) evalImmediate(programCounter defs.Address) (pc defs.Address, address defs.Address, cycles int) {
 	pc = programCounter
 	address = programCounter
