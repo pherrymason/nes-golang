@@ -726,7 +726,7 @@ func (cpu *Cpu6502) pha(info defs.InfoStep) {
 */
 func (cpu *Cpu6502) php(info defs.InfoStep) {
 	value := cpu.registers.statusRegister()
-	value |= 0b00011000
+	value |= 0b00110000
 	cpu.pushStack(value)
 }
 

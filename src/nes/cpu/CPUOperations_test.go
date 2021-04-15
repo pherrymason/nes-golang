@@ -744,7 +744,7 @@ func TestPHA(t *testing.T) {
 
 func TestPHP(t *testing.T) {
 	cpu := CreateCPUWithBus()
-	cpu.registers.Status = 0b11100111
+	cpu.registers.Status = 0b11001111
 
 	cpu.php(defs.InfoStep{defs.Implicit, 0x00})
 
