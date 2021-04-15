@@ -67,7 +67,11 @@ func (registers *Cpu6502Registers) reset() {
 	registers.Status = 0x24
 }
 
-func (registers *Cpu6502Registers) stackPointerAddress() defs.Address {
+func (registers *Cpu6502Registers) setStackPointer(stackPointer byte) {
+	registers.Sp = stackPointer
+}
+
+func (registers Cpu6502Registers) stackPointerAddress() defs.Address {
 	return defs.Address(0x100 + uint16(registers.Sp))
 }
 
@@ -148,47 +152,49 @@ func (registers *Cpu6502Registers) unsetFlag(flag StatusRegisterFlag) {
 }
 
 func (registers *Cpu6502Registers) statusRegister() byte {
-	var value byte = 0x00
+	/*
+		var value byte = 0x00
 
-	if registers.carryFlag() == 1 {
-		value |= 0x01
-	}
+		if registers.carryFlag() == 1 {
+			value |= 0x01
+		}
 
-	if registers.zeroFlag() == 1 {
-		value |= 0x02
-	}
+		if registers.zeroFlag() == 1 {
+			value |= 0x02
+		}
 
-	if registers.interruptFlag() == 1 {
-		value |= 0x04
-	}
+		if registers.interruptFlag() == 1 {
+			value |= 0x04
+		}
 
-	// Decimal mode
-	if registers.decimalFlag() == 1 {
-		value |= 0x08
-	}
+		// Decimal mode
+		if registers.decimalFlag() == 1 {
+			value |= 0x08
+		}
 
-	if registers.breakFlag() == 1 {
-		value |= 0x10
-	}
+		if registers.breakFlag() == 1 {
+			value |= 0x10
+		}
 
-	// Alway 1 flag
-	value |= 0x20
+		// Always 1 flag
+		//value |= 0x20
 
-	// Signed overflow
-	if registers.overflowFlag() == 1 {
-		value |= 0x40
-	}
+		// Signed overflow
+		if registers.overflowFlag() == 1 {
+			value |= 0x40
+		}
 
-	// Processor Status flag
-	if registers.negativeFlag() == 1 {
-		value |= 0x80
-	}
+		// Processor Status flag
+		if registers.negativeFlag() == 1 {
+			value |= 0x80
+		}*/
 
-	return value
+	// Bit 5 is always read as set
+	return registers.Status | 0x20
 }
 
 func (registers *Cpu6502Registers) loadStatusRegister(value byte) {
-	registers.Status = value
+	registers.Status = value & 0b11101111
 }
 
 // CreateRegisters creates a properly initialized Cpu6502 Register
