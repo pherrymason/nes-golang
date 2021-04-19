@@ -34,7 +34,7 @@ type DebuggableNes struct {
 func CreateDebuggableNes(options DebuggableNes) Nes {
 	ram := component.RAM{}
 	bus := component.CreateBus(&ram)
-	cpu := cpu2.CreateCPUDebuggable(&bus, options.logger, options.cyclesLimit)
+	cpu := cpu2.CreateCPUDebuggable(&bus, options.logger)
 
 	nes := Nes{
 		&cpu,

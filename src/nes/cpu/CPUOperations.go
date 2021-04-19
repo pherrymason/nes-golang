@@ -124,6 +124,11 @@ func (cpu *Cpu6502) bcc(info defs.InfoStep) {
 */
 func (cpu *Cpu6502) bcs(info defs.InfoStep) {
 	if cpu.registers.carryFlag() == 1 {
+		cpu.instructionCycle++
+		if memoryPageDiffer(info.OperandAddress, cpu.registers.Pc) {
+			cpu.instructionCycle++
+		}
+
 		cpu.registers.Pc = info.OperandAddress
 	}
 }

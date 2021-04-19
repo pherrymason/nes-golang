@@ -11,13 +11,15 @@ type Cpu6502 struct {
 	registers Cpu6502Registers
 	bus       *component.Bus
 
-	instructions      [256]defs.Instruction
-	addressEvaluators [13]func(programCounter defs.Address) (pc defs.Address, address defs.Address, cycles int)
+	instructions     [256]defs.Instruction
+	instructionCycle byte
+	cycle            uint16
 
+	addressEvaluators [13]func(programCounter defs.Address) (pc defs.Address, address defs.Address, cycles int)
 	// Debug parameters
 	debug       bool
 	Logger      Logger
-	cyclesLimit int
+	cyclesLimit uint16
 }
 
 func CreateCPU(bus *component.Bus) Cpu6502 {
@@ -29,7 +31,7 @@ func CreateCPU(bus *component.Bus) Cpu6502 {
 	}
 }
 
-func CreateCPUDebuggable(bus *component.Bus, logger *Logger, cyclesLimit int) Cpu6502 {
+func CreateCPUDebuggable(bus *component.Bus, logger *Logger) Cpu6502 {
 	registers := CreateRegisters()
 	return Cpu6502{
 		registers: registers,
@@ -420,4 +422,8 @@ func (cpu Cpu6502) evaluateOperandAddress(addressMode defs.AddressMode, pc defs.
 	_, evaluatedAddress, _ := cpu.addressEvaluators[addressMode](pc)
 
 	return evaluatedAddress
+}
+
+func memoryPageDiffer(address defs.Address, finalAddress defs.Address) bool {
+	return address&0xFF00 != (finalAddress >> 8)
 }
