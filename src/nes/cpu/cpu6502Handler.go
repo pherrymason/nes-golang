@@ -25,41 +25,40 @@ func (cpu *Cpu6502) ResetToAddress(programCounter defs.Address) {
 	cpu.cycle = 7
 }
 
-func (cpu *Cpu6502) Tick() {
+func (cpu *Cpu6502) Tick() byte {
 	if cpu.instructionCycle == 0 {
-		// Read opcode
 		if cpu.debug {
 			cpu.logStep()
 		}
 
 		opcode := cpu.Read(cpu.registers.Pc)
-		//cpu.registers.Pc++
-
 		instruction := cpu.instructions[opcode]
 		cpu.instructionCycle = instruction.Cycles()
+
 		if instruction.Method() == nil {
 			msg := fmt.Errorf("opcode 0x%X not implemented", opcode)
 			panic(msg)
 		}
 
-		operandAddress := cpu.evaluateOperandAddress(instruction.AddressMode(), cpu.registers.Pc+1)
+		operandAddress, pageCrossed := cpu.evaluateOperandAddress(instruction.AddressMode(), cpu.registers.Pc+1)
 
 		cpu.registers.Pc += defs.Address(instruction.Size())
 
-		step := defs.InfoStep{
+		step := defs.OperationMethodArgument{
 			instruction.AddressMode(),
 			operandAddress,
 		}
-		instruction.Method()(step)
-		cpu.cycle += uint16(cpu.instructionCycle)
+		opMightNeedExtraCycle := instruction.Method()(step)
 
-		// -analyze opcode:
-		//	-address mode
-		//  -get operand
-		//  - update PC accordingly
-		//  - run InfoStep
+		if pageCrossed && opMightNeedExtraCycle {
+			cpu.instructionCycle++
+		}
+		cpu.cycle += uint16(cpu.instructionCycle)
 	}
+
 	cpu.instructionCycle--
+
+	return cpu.instructionCycle
 }
 
 func (cpu *Cpu6502) logStep() {

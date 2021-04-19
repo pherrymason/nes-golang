@@ -30,11 +30,12 @@ func TestAND(t *testing.T) {
 		cpu.write(0x100, dp.operand)
 		cpu.registers.A = dp.A
 
-		cpu.and(defs.InfoStep{defs.Immediate, 0x100})
+		extraCycle := cpu.and(defs.OperationMethodArgument{defs.Immediate, 0x100})
 
 		assert.Equal(t, dp.expectedA, cpu.registers.A, fmt.Sprintf("Iteration %d failed, unexpected register A result", i))
 		assert.Equal(t, dp.expectedNegativeFlag, cpu.registers.negativeFlag(), fmt.Sprintf("Iteration %d failed, unexpected NegativeFlag result", i))
 		assert.Equal(t, dp.expectedZeroFlag, cpu.registers.zeroFlag(), fmt.Sprintf("Iteration %d failed, unexpected ZeroFlag result", i))
+		assert.True(t, extraCycle)
 	}
 }
 
@@ -63,7 +64,7 @@ func TestASL_Accumulator(t *testing.T) {
 		cpu := CreateCPUWithBus()
 		cpu.registers.A = dataProviders[i].accumulator
 
-		cpu.asl(defs.InfoStep{defs.Implicit, 0x0000})
+		cpu.asl(defs.OperationMethodArgument{defs.Implicit, 0x0000})
 
 		assert.Equal(t, dataProviders[i].accumulator<<1, cpu.registers.A, fmt.Sprintf("Iteration %d failed @ expected Accumulator", i))
 		assert.Equal(t, dataProviders[i].expectedRegister.carryFlag(), cpu.registers.carryFlag(), fmt.Sprintf("Iteration %d failed @ expected CarryFlag", i))
@@ -98,7 +99,7 @@ func TestASL_Memory(t *testing.T) {
 		cpu.registers.A = dataProviders[i].operand
 
 		cpu.write(0x0000, dataProviders[i].operand)
-		cpu.asl(defs.InfoStep{defs.ZeroPage, 0x0000})
+		cpu.asl(defs.OperationMethodArgument{defs.ZeroPage, 0x0000})
 
 		assert.Equal(t, dataProviders[i].operand<<1, cpu.Read(0x0000), fmt.Sprintf("Iteration %d failed @ expected operand", i))
 		assert.Equal(t, dataProviders[i].expectedRegister.carryFlag(), cpu.registers.carryFlag(), fmt.Sprintf("Iteration %d failed @ expected CarryFlag", i))
@@ -139,13 +140,15 @@ func TestADC(t *testing.T) {
 		cpu.registers.A = dp.accumulator
 		cpu.registers.updateFlag(carryFlag, dp.carryFlag)
 		cpu.write(0x0000, dp.operand)
-		cpu.adc(defs.InfoStep{defs.Immediate, 0x0000})
+
+		extraCycle := cpu.adc(defs.OperationMethodArgument{defs.Immediate, 0x0000})
 
 		assert.Equal(t, dp.expectedRegister.A, cpu.registers.A, fmt.Sprintf("Iteration %d failed, unexpected A", i))
 		assert.Equal(t, dp.expectedRegister.negativeFlag(), cpu.registers.negativeFlag(), fmt.Sprintf("Iteration %d failed, unexpected NegativeFlag", i))
 		assert.Equal(t, dp.expectedRegister.zeroFlag(), cpu.registers.zeroFlag(), fmt.Sprintf("Iteration %d failed, unexpected ZeroFlag", i))
 		assert.Equal(t, dp.expectedRegister.carryFlag(), cpu.registers.carryFlag(), fmt.Sprintf("Iteration %d failed, unexpected CarryFlag", i))
 		assert.Equal(t, dp.expectedRegister.overflowFlag(), cpu.registers.overflowFlag(), fmt.Sprintf("Iteration %d failed, unexpected OverflowFlag", i))
+		assert.True(t, extraCycle)
 	}
 }
 
@@ -262,7 +265,7 @@ func TestBIT(t *testing.T) {
 		cpu.registers.A = dp.accumulator
 		cpu.write(0x0001, dp.operand)
 
-		cpu.bit(defs.InfoStep{defs.ZeroPage, 0x0001})
+		cpu.bit(defs.OperationMethodArgument{defs.ZeroPage, 0x0001})
 
 		assert.Equal(t, dp.expectedRegister, cpu.registers, fmt.Sprintf("Iteration %d failed", i))
 	}
@@ -357,7 +360,7 @@ func TestBRK(t *testing.T) {
 	cpu.write(defs.Address(0xFFFE), defs.LowNibble(expectedPc))
 	cpu.write(defs.Address(0xFFFF), defs.HighNibble(expectedPc))
 
-	cpu.brk(defs.InfoStep{defs.Implicit, 0x0000})
+	cpu.brk(defs.OperationMethodArgument{defs.Implicit, 0x0000})
 
 	assert.Equal(t, programCounter, cpu.read16(0x1FE))
 	// Stored status Registers in stack should be...
@@ -426,7 +429,7 @@ func TestCLC(t *testing.T) {
 	cpu := CreateCPUWithBus()
 	cpu.registers.updateFlag(carryFlag, 1)
 
-	cpu.clc(defs.InfoStep{defs.Implicit, 0x00})
+	cpu.clc(defs.OperationMethodArgument{defs.Implicit, 0x00})
 
 	assert.Zero(t, cpu.registers.carryFlag())
 }
@@ -435,7 +438,7 @@ func TestCLD(t *testing.T) {
 	cpu := CreateCPUWithBus()
 	cpu.registers.updateFlag(decimalFlag, 1)
 
-	cpu.cld(defs.InfoStep{defs.Implicit, 0x00})
+	cpu.cld(defs.OperationMethodArgument{defs.Implicit, 0x00})
 
 	assert.Zero(t, cpu.registers.decimalFlag())
 }
@@ -444,7 +447,7 @@ func TestCLI(t *testing.T) {
 	cpu := CreateCPUWithBus()
 	cpu.registers.updateFlag(interruptFlag, 1)
 
-	cpu.cli(defs.InfoStep{defs.Implicit, 0x00})
+	cpu.cli(defs.OperationMethodArgument{defs.Implicit, 0x00})
 
 	assert.Zero(t, cpu.registers.interruptFlag())
 }
@@ -453,7 +456,7 @@ func TestCLV(t *testing.T) {
 	cpu := CreateCPUWithBus()
 	cpu.registers.updateFlag(overflowFlag, 1)
 
-	cpu.clv(defs.InfoStep{defs.Implicit, 0x00})
+	cpu.clv(defs.OperationMethodArgument{defs.Implicit, 0x00})
 
 	assert.Zero(t, cpu.registers.overflowFlag())
 }
@@ -467,7 +470,7 @@ func TestCompareOperations(t *testing.T) {
 	type dataProvider struct {
 		title            string
 		operand          byte
-		op               func(defs.InfoStep)
+		op               defs.OperationMethod
 		expectedCarry    byte
 		expectedZero     byte
 		expectedNegative byte
@@ -490,7 +493,7 @@ func TestCompareOperations(t *testing.T) {
 
 		cpu.write(0x00, dp.operand)
 
-		dp.op(defs.InfoStep{defs.ZeroPage, defs.Address(0x00)})
+		dp.op(defs.OperationMethodArgument{defs.ZeroPage, defs.Address(0x00)})
 
 		assert.Equal(t, dp.expectedCarry, cpu.registers.carryFlag(), dp.title+": Carry")
 		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag(), dp.title+": Zero")
@@ -503,21 +506,21 @@ func TestDEC(t *testing.T) {
 
 	cpu.write(0x0000, 0x02)
 
-	cpu.dec(defs.InfoStep{defs.ZeroPage, defs.Address(0x0000)})
+	cpu.dec(defs.OperationMethodArgument{defs.ZeroPage, defs.Address(0x0000)})
 
 	assert.Equal(t, byte(0x01), cpu.Read(0))
 	assert.Equal(t, byte(0), cpu.registers.zeroFlag())
 	assert.Equal(t, byte(0), cpu.registers.negativeFlag())
 
 	// Zero result
-	cpu.dec(defs.InfoStep{defs.ZeroPage, defs.Address(0x0000)})
+	cpu.dec(defs.OperationMethodArgument{defs.ZeroPage, defs.Address(0x0000)})
 
 	assert.Equal(t, byte(0x00), cpu.Read(0))
 	assert.Equal(t, byte(0), cpu.registers.negativeFlag())
 	assert.Equal(t, byte(1), cpu.registers.zeroFlag())
 
 	// Negative result
-	cpu.dec(defs.InfoStep{defs.ZeroPage, defs.Address(0x0000)})
+	cpu.dec(defs.OperationMethodArgument{defs.ZeroPage, defs.Address(0x0000)})
 
 	assert.Equal(t, byte(0xFF), cpu.Read(0))
 	assert.Equal(t, byte(1), cpu.registers.negativeFlag())
@@ -527,7 +530,7 @@ func TestDEC(t *testing.T) {
 func TestDECXY(t *testing.T) {
 	type dataProvider struct {
 		title            string
-		op               func(defs.InfoStep)
+		op               defs.OperationMethod
 		expectedX        byte
 		expectedY        byte
 		expectedZero     byte
@@ -551,7 +554,7 @@ func TestDECXY(t *testing.T) {
 		dp := dps[i]
 		msg := fmt.Sprintf("%s: Unexpected when value is X:%X Y:%X", dp.title, cpu.registers.X, cpu.registers.Y)
 
-		dp.op(defs.InfoStep{defs.Implicit, 0})
+		dp.op(defs.OperationMethodArgument{defs.Implicit, 0})
 		assert.Equal(t, dp.expectedX, cpu.registers.X, dp.title)
 		assert.Equal(t, dp.expectedY, cpu.registers.Y, dp.title)
 		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag(), msg)
@@ -578,11 +581,13 @@ func TestEOR(t *testing.T) {
 		dp := dps[i]
 		cpu.registers.A = dp.a
 		cpu.write(0x05, dp.value)
-		cpu.eor(defs.InfoStep{defs.Immediate, 0x05})
+
+		extraCycle := cpu.eor(defs.OperationMethodArgument{defs.Immediate, 0x05})
 
 		assert.Equal(t, dp.expectedA, cpu.registers.A)
 		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag())
 		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag())
+		assert.True(t, extraCycle)
 	}
 }
 
@@ -604,7 +609,7 @@ func TestINC(t *testing.T) {
 		cpu := CreateCPUWithBus()
 		cpu.write(0x00, dp.value)
 
-		cpu.inc(defs.InfoStep{defs.ZeroPage, 0x00})
+		cpu.inc(defs.OperationMethodArgument{defs.ZeroPage, 0x00})
 		assert.Equal(t, dp.expectedValue, cpu.Read(0x00))
 		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag())
 		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag())
@@ -629,7 +634,7 @@ func TestINX(t *testing.T) {
 		cpu := CreateCPUWithBus()
 		cpu.registers.X = dp.value
 
-		cpu.inx(defs.InfoStep{defs.ZeroPage, 0x00})
+		cpu.inx(defs.OperationMethodArgument{defs.ZeroPage, 0x00})
 		assert.Equal(t, dp.expectedValue, cpu.registers.X)
 		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag())
 		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag())
@@ -653,7 +658,7 @@ func TestINY(t *testing.T) {
 		cpu := CreateCPUWithBus()
 		cpu.registers.Y = dp.value
 
-		cpu.iny(defs.InfoStep{defs.ZeroPage, 0x00})
+		cpu.iny(defs.OperationMethodArgument{defs.ZeroPage, 0x00})
 		assert.Equal(t, dp.expectedValue, cpu.registers.Y)
 		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag())
 		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag())
@@ -663,7 +668,7 @@ func TestINY(t *testing.T) {
 func TestJMP(t *testing.T) {
 	cpu := CreateCPUWithBus()
 
-	cpu.jmp(defs.InfoStep{defs.Absolute, 0x100})
+	cpu.jmp(defs.OperationMethodArgument{defs.Absolute, 0x100})
 
 	assert.Equal(t, defs.Address(0x100), cpu.registers.Pc)
 }
@@ -675,7 +680,7 @@ func TestJSR(t *testing.T) {
 	cpu.write(defs.Address(0x203), 0x05) // MSB
 
 	cpu.registers.Pc = 0x0203
-	cpu.jsr(defs.InfoStep{defs.Absolute, 0x202})
+	cpu.jsr(defs.OperationMethodArgument{defs.Absolute, 0x202})
 
 	assert.Equal(t, defs.Address(0x0202), cpu.registers.Pc)
 	assert.Equal(t, byte(0x02), cpu.popStack())
@@ -699,11 +704,12 @@ func TestLDA(t *testing.T) {
 		cpu := CreateCPUWithBus()
 		cpu.write(defs.Address(0x00), dp.value)
 
-		cpu.lda(defs.InfoStep{defs.Immediate, 0x00})
+		extraCycle := cpu.lda(defs.OperationMethodArgument{defs.Immediate, 0x00})
 
 		assert.Equal(t, dp.value, cpu.registers.A)
 		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag())
 		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag())
+		assert.True(t, extraCycle)
 	}
 }
 
@@ -724,11 +730,12 @@ func TestLDX(t *testing.T) {
 		cpu := CreateCPUWithBus()
 		cpu.write(defs.Address(0x00), dp.value)
 
-		cpu.ldx(defs.InfoStep{defs.Immediate, 0x00})
+		extraCycle := cpu.ldx(defs.OperationMethodArgument{defs.Immediate, 0x00})
 
 		assert.Equal(t, dp.value, cpu.registers.X)
 		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag())
 		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag())
+		assert.True(t, extraCycle)
 	}
 }
 
@@ -749,11 +756,12 @@ func TestLDY(t *testing.T) {
 		cpu := CreateCPUWithBus()
 		cpu.write(defs.Address(0x00), dp.value)
 
-		cpu.ldy(defs.InfoStep{defs.Immediate, 0x00})
+		extraCycle := cpu.ldy(defs.OperationMethodArgument{defs.Immediate, 0x00})
 
 		assert.Equal(t, dp.value, cpu.registers.Y)
 		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag())
 		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag())
+		assert.True(t, extraCycle)
 	}
 }
 
@@ -781,7 +789,7 @@ func TestLSR(t *testing.T) {
 		cpu.registers.A = dp.value
 		cpu.write(defs.Address(0x00), dp.value)
 
-		cpu.lsr(defs.InfoStep{dp.addressingMode, 0x00})
+		cpu.lsr(defs.OperationMethodArgument{dp.addressingMode, 0x00})
 
 		if dp.addressingMode == defs.Implicit {
 			assert.Equal(t, dp.expectedResult, cpu.registers.A)
@@ -813,18 +821,19 @@ func TestORA(t *testing.T) {
 		cpu.registers.A = dp.a
 		cpu.write(0x00, dp.value)
 
-		cpu.ora(defs.InfoStep{defs.Immediate, 0x00})
+		extraCycle := cpu.ora(defs.OperationMethodArgument{defs.Immediate, 0x00})
 
 		assert.Equal(t, dp.expectedResult, cpu.registers.A)
 		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag())
 		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag())
+		assert.True(t, extraCycle)
 	}
 }
 
 func TestPHA(t *testing.T) {
 	cpu := CreateCPUWithBus()
 	cpu.registers.A = 0x30
-	cpu.pha(defs.InfoStep{defs.Implicit, 0x00})
+	cpu.pha(defs.OperationMethodArgument{defs.Implicit, 0x00})
 
 	assert.Equal(t, byte(0x30), cpu.popStack())
 }
@@ -833,7 +842,7 @@ func TestPHP(t *testing.T) {
 	cpu := CreateCPUWithBus()
 	cpu.registers.Status = 0b11001111
 
-	cpu.php(defs.InfoStep{defs.Implicit, 0x00})
+	cpu.php(defs.OperationMethodArgument{defs.Implicit, 0x00})
 
 	assert.Equal(t, byte(0xFF), cpu.popStack())
 }
@@ -856,7 +865,7 @@ func TestPLA(t *testing.T) {
 		cpu := CreateCPUWithBus()
 		cpu.pushStack(dp.pulledValue)
 
-		cpu.pla(defs.InfoStep{defs.Implicit, 0x00})
+		cpu.pla(defs.OperationMethodArgument{defs.Implicit, 0x00})
 
 		assert.Equal(t, dp.pulledValue, cpu.registers.A)
 		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag())
@@ -870,7 +879,7 @@ func TestPLP(t *testing.T) {
 	cpu := CreateCPUWithBus()
 	cpu.pushStack(0xFF)
 
-	cpu.plp(defs.InfoStep{defs.Implicit, 0x00})
+	cpu.plp(defs.OperationMethodArgument{defs.Implicit, 0x00})
 
 	assert.Equal(t, byte(0), (cpu.registers.Status>>4)&0x01, "PLP must set B flag to 0")
 	assert.Equal(t, byte(0xEF), cpu.registers.Status)
@@ -908,7 +917,7 @@ func TestROL(t *testing.T) {
 		cpu.registers.updateFlag(carryFlag, dp.carry)
 		cpu.write(defs.Address(0x00), dp.value)
 
-		cpu.rol(defs.InfoStep{dp.addressingMode, 0x00})
+		cpu.rol(defs.OperationMethodArgument{dp.addressingMode, 0x00})
 
 		if dp.addressingMode == defs.Implicit {
 			assert.Equal(t, dp.expectedResult, cpu.registers.A)
@@ -953,7 +962,7 @@ func TestROR(t *testing.T) {
 		cpu.registers.updateFlag(carryFlag, dp.carry)
 		cpu.write(defs.Address(0x00), dp.value)
 
-		cpu.ror(defs.InfoStep{dp.addressingMode, 0x00})
+		cpu.ror(defs.OperationMethodArgument{dp.addressingMode, 0x00})
 
 		if dp.addressingMode == defs.Implicit {
 			assert.Equal(t, dp.expectedResult, cpu.registers.A)
@@ -976,7 +985,7 @@ func TestRTI(t *testing.T) {
 	// Push a StatusRegister into stack
 	cpu.pushStack(0xFF)
 
-	cpu.rti(defs.InfoStep{AddressMode: defs.Implicit, OperandAddress: 0xFF})
+	cpu.rti(defs.OperationMethodArgument{AddressMode: defs.Implicit, OperandAddress: 0xFF})
 
 	assert.Equal(t, pc, cpu.registers.Pc)
 	assert.Equal(t, byte(0xeF), cpu.registers.Status)
@@ -989,7 +998,7 @@ func TestRTS(t *testing.T) {
 	cpu.pushStack(defs.HighNibble(pc))
 	cpu.pushStack(defs.LowNibble(pc))
 
-	cpu.rts(defs.InfoStep{defs.Implicit, 0x00})
+	cpu.rts(defs.OperationMethodArgument{defs.Implicit, 0x00})
 
 	expectedProgramCounter := defs.Address(0x533)
 	assert.Equal(t, expectedProgramCounter, cpu.registers.Pc)
@@ -1023,20 +1032,21 @@ func TestSBC(t *testing.T) {
 		cpu.registers.updateFlag(carryFlag, dp.carry)
 		cpu.write(0x00, dp.value)
 
-		cpu.sbc(defs.InfoStep{defs.Immediate, 0x00})
+		extraCycle := cpu.sbc(defs.OperationMethodArgument{defs.Immediate, 0x00})
 
 		assert.Equal(t, dp.expectedResult, cpu.registers.A, "Invalid subtraction result")
 		assert.Equal(t, dp.expectedCarry, cpu.registers.carryFlag(), "Invalid CarryFlag")
 		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag(), "Invalid zeroflag")
 		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag(), "Invalid negative Flag")
 		assert.Equal(t, dp.expectedOverflow, cpu.registers.overflowFlag(), "Invalid Overflow Flag")
+		assert.True(t, extraCycle)
 	}
 }
 
 func TestSEC(t *testing.T) {
 	cpu := CreateCPUWithBus()
 
-	cpu.sec(defs.InfoStep{defs.Implicit, 0x00})
+	cpu.sec(defs.OperationMethodArgument{defs.Implicit, 0x00})
 
 	assert.Equal(t, byte(1), cpu.registers.carryFlag())
 }
@@ -1044,7 +1054,7 @@ func TestSEC(t *testing.T) {
 func TestSED(t *testing.T) {
 	cpu := CreateCPUWithBus()
 
-	cpu.sed(defs.InfoStep{defs.Implicit, 0x00})
+	cpu.sed(defs.OperationMethodArgument{defs.Implicit, 0x00})
 
 	assert.Equal(t, byte(1), cpu.registers.decimalFlag())
 }
@@ -1052,7 +1062,7 @@ func TestSED(t *testing.T) {
 func TestSEI(t *testing.T) {
 	cpu := CreateCPUWithBus()
 
-	cpu.sei(defs.InfoStep{defs.Implicit, 0x00})
+	cpu.sei(defs.OperationMethodArgument{defs.Implicit, 0x00})
 
 	assert.Equal(t, byte(1), cpu.registers.interruptFlag())
 }
@@ -1061,7 +1071,7 @@ func TestSTA(t *testing.T) {
 	cpu := CreateCPUWithBus()
 	cpu.registers.A = 0xFF
 
-	cpu.sta(defs.InfoStep{defs.Implicit, 0x522})
+	cpu.sta(defs.OperationMethodArgument{defs.Implicit, 0x522})
 
 	assert.Equal(t, byte(0xFF), cpu.Read(0x522))
 }
@@ -1070,7 +1080,7 @@ func TestSTX(t *testing.T) {
 	cpu := CreateCPUWithBus()
 	cpu.registers.X = 0xFF
 
-	cpu.stx(defs.InfoStep{defs.Implicit, 0x522})
+	cpu.stx(defs.OperationMethodArgument{defs.Implicit, 0x522})
 
 	assert.Equal(t, byte(0xFF), cpu.Read(0x522))
 }
@@ -1079,7 +1089,7 @@ func TestSTY(t *testing.T) {
 	cpu := CreateCPUWithBus()
 	cpu.registers.Y = 0xFF
 
-	cpu.sty(defs.InfoStep{defs.Implicit, 0x522})
+	cpu.sty(defs.OperationMethodArgument{defs.Implicit, 0x522})
 
 	assert.Equal(t, byte(0xFF), cpu.Read(0x522))
 }
@@ -1087,7 +1097,7 @@ func TestSTY(t *testing.T) {
 func TestTAX_TAY(t *testing.T) {
 	type dataProvider struct {
 		name             string
-		op               func(info defs.InfoStep)
+		op               defs.OperationMethod
 		a                byte
 		expectedNegative byte
 		expectedZero     byte
@@ -1108,7 +1118,7 @@ func TestTAX_TAY(t *testing.T) {
 		cpu.registers.reset()
 		cpu.registers.A = dp.a
 
-		dp.op(defs.InfoStep{defs.Implicit, 0x00})
+		dp.op(defs.OperationMethodArgument{defs.Implicit, 0x00})
 
 		if dp.name == "tax" {
 			assert.Equal(t, cpu.registers.A, cpu.registers.X)
@@ -1139,7 +1149,7 @@ func TestTSX(t *testing.T) {
 		//cpu.pushStack(dp.sp)
 		cpu.Registers().setStackPointer(dp.sp)
 
-		cpu.tsx(defs.InfoStep{defs.Implicit, 0x00})
+		cpu.tsx(defs.OperationMethodArgument{defs.Implicit, 0x00})
 
 		assert.Equal(t, dp.sp, cpu.registers.X)
 		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag(), "Incorrect Zero Flag")
@@ -1165,7 +1175,7 @@ func TestTXA(t *testing.T) {
 		cpu := CreateCPUWithBus()
 		cpu.registers.X = dp.x
 
-		cpu.txa(defs.InfoStep{defs.Implicit, 0x00})
+		cpu.txa(defs.OperationMethodArgument{defs.Implicit, 0x00})
 
 		assert.Equal(t, dp.x, cpu.registers.A)
 		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag())
@@ -1177,7 +1187,7 @@ func TestTXS(t *testing.T) {
 	cpu := CreateCPUWithBus()
 	cpu.registers.X = 0xFF
 
-	cpu.txs(defs.InfoStep{defs.Implicit, 0x00})
+	cpu.txs(defs.OperationMethodArgument{defs.Implicit, 0x00})
 
 	assert.Equal(t, byte(0xFF), cpu.registers.Sp)
 }
@@ -1200,7 +1210,7 @@ func TestTYA(t *testing.T) {
 		cpu := CreateCPUWithBus()
 		cpu.registers.Y = dp.y
 
-		cpu.tya(defs.InfoStep{defs.Implicit, 0x00})
+		cpu.tya(defs.OperationMethodArgument{defs.Implicit, 0x00})
 
 		assert.Equal(t, cpu.registers.Y, cpu.registers.A)
 		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag())

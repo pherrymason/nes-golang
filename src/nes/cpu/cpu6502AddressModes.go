@@ -18,6 +18,7 @@ func (cpu *Cpu6502) evalImmediate(programCounter defs.Address) (pc defs.Address,
 	address = programCounter
 	pc++
 	cycles = 0
+	pageCrossed = false
 	return
 }
 

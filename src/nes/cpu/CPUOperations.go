@@ -47,6 +47,8 @@ func (cpu *Cpu6502) adc(info defs.OperationMethodArgument) bool {
 	} else {
 		cpu.registers.unsetFlag(overflowFlag)
 	}
+
+	return true
 }
 
 //	Performs a logical AND on the operand and the Accumulator and stores the result in the Accumulator
@@ -65,6 +67,8 @@ func (cpu *Cpu6502) and(info defs.OperationMethodArgument) bool {
 	cpu.registers.A &= cpu.Read(info.OperandAddress)
 	cpu.registers.updateNegativeFlag(cpu.registers.A)
 	cpu.registers.updateZeroFlag(cpu.registers.A)
+
+	return true
 }
 
 /*
@@ -95,7 +99,9 @@ func (cpu *Cpu6502) asl(info defs.OperationMethodArgument) bool {
 		cpu.registers.updateZeroFlag(value)
 	}
 
+	return false
 }
+
 func (cpu *Cpu6502) addBranchCycles(info defs.OperationMethodArgument) bool {
 	cpu.instructionCycle++
 	if memoryPageDiffer(cpu.registers.Pc, info.OperandAddress) {
@@ -120,6 +126,8 @@ func (cpu *Cpu6502) bcc(info defs.OperationMethodArgument) bool {
 		cpu.addBranchCycles(info)
 		cpu.registers.Pc = info.OperandAddress
 	}
+
+	return false
 }
 
 /*
@@ -137,6 +145,8 @@ func (cpu *Cpu6502) bcs(info defs.OperationMethodArgument) bool {
 		cpu.addBranchCycles(info)
 		cpu.registers.Pc = info.OperandAddress
 	}
+
+	return false
 }
 
 /*
@@ -154,6 +164,8 @@ func (cpu *Cpu6502) beq(info defs.OperationMethodArgument) bool {
 		cpu.addBranchCycles(info)
 		cpu.registers.Pc = info.OperandAddress
 	}
+
+	return false
 }
 
 /*
@@ -176,6 +188,8 @@ func (cpu *Cpu6502) bit(info defs.OperationMethodArgument) bool {
 	cpu.registers.updateNegativeFlag(value)
 	cpu.registers.updateFlag(overflowFlag, (value>>6)&0x01)
 	cpu.registers.updateZeroFlag(value & cpu.registers.A)
+
+	return false
 }
 
 /*
@@ -193,6 +207,8 @@ func (cpu *Cpu6502) bmi(info defs.OperationMethodArgument) bool {
 		cpu.addBranchCycles(info)
 		cpu.registers.Pc = info.OperandAddress
 	}
+
+	return false
 }
 
 /*
@@ -210,6 +226,8 @@ func (cpu *Cpu6502) bne(info defs.OperationMethodArgument) bool {
 		cpu.addBranchCycles(info)
 		cpu.registers.Pc = info.OperandAddress
 	}
+
+	return false
 }
 
 /*
@@ -228,6 +246,8 @@ func (cpu *Cpu6502) bpl(info defs.OperationMethodArgument) bool {
 		cpu.addBranchCycles(info)
 		cpu.registers.Pc = info.OperandAddress
 	}
+
+	return false
 }
 
 /*
@@ -256,6 +276,8 @@ func (cpu *Cpu6502) brk(info defs.OperationMethodArgument) bool {
 	cpu.registers.updateFlag(interruptFlag, 1)
 
 	cpu.registers.Pc = defs.Address(cpu.read16(0xFFFE))
+
+	return false
 }
 
 /*
@@ -273,6 +295,7 @@ func (cpu *Cpu6502) bvc(info defs.OperationMethodArgument) bool {
 		cpu.registers.Pc = info.OperandAddress
 	}
 
+	return false
 }
 
 /*
@@ -290,6 +313,7 @@ func (cpu *Cpu6502) bvs(info defs.OperationMethodArgument) bool {
 		cpu.registers.Pc = info.OperandAddress
 	}
 
+	return false
 }
 
 /*
@@ -303,6 +327,8 @@ func (cpu *Cpu6502) bvs(info defs.OperationMethodArgument) bool {
 */
 func (cpu *Cpu6502) clc(info defs.OperationMethodArgument) bool {
 	cpu.registers.updateFlag(carryFlag, 0)
+
+	return false
 }
 
 /*
@@ -316,6 +342,8 @@ func (cpu *Cpu6502) clc(info defs.OperationMethodArgument) bool {
 */
 func (cpu *Cpu6502) cld(info defs.OperationMethodArgument) bool {
 	cpu.registers.updateFlag(decimalFlag, 0)
+
+	return false
 }
 
 /*
@@ -329,6 +357,8 @@ func (cpu *Cpu6502) cld(info defs.OperationMethodArgument) bool {
 */
 func (cpu *Cpu6502) cli(info defs.OperationMethodArgument) bool {
 	cpu.registers.updateFlag(interruptFlag, 0)
+
+	return false
 }
 
 /*
@@ -342,6 +372,8 @@ func (cpu *Cpu6502) cli(info defs.OperationMethodArgument) bool {
 */
 func (cpu *Cpu6502) clv(info defs.OperationMethodArgument) bool {
 	cpu.registers.updateFlag(overflowFlag, 0)
+
+	return false
 }
 
 /*
@@ -369,6 +401,8 @@ func (cpu *Cpu6502) clv(info defs.OperationMethodArgument) bool {
 func (cpu *Cpu6502) cmp(info defs.OperationMethodArgument) bool {
 	operand := cpu.Read(info.OperandAddress)
 	cpu.compare(cpu.registers.A, operand)
+
+	return false
 }
 
 /*
@@ -384,6 +418,8 @@ func (cpu *Cpu6502) cmp(info defs.OperationMethodArgument) bool {
 func (cpu *Cpu6502) cpx(info defs.OperationMethodArgument) bool {
 	operand := cpu.Read(info.OperandAddress)
 	cpu.compare(cpu.registers.X, operand)
+
+	return false
 }
 
 /*
@@ -399,6 +435,8 @@ func (cpu *Cpu6502) cpx(info defs.OperationMethodArgument) bool {
 func (cpu *Cpu6502) cpy(info defs.OperationMethodArgument) bool {
 	operand := cpu.Read(info.OperandAddress)
 	cpu.compare(cpu.registers.Y, operand)
+
+	return false
 }
 
 func (cpu *Cpu6502) compare(register byte, operand byte) {
@@ -416,9 +454,7 @@ func (cpu *Cpu6502) compare(register byte, operand byte) {
 		cpu.registers.updateFlag(zeroFlag, 1)
 	}
 
-	//if substraction&0x80 == 0x80 {
 	cpu.registers.updateNegativeFlag(substraction)
-	//	}
 }
 
 func (cpu *Cpu6502) dec(info defs.OperationMethodArgument) bool {
@@ -440,6 +476,8 @@ func (cpu *Cpu6502) dec(info defs.OperationMethodArgument) bool {
 	//} else {
 	//	cpu.Registers.updateFlag(negativeFlag, 0)
 	//}
+
+	return false
 }
 
 func (cpu *Cpu6502) dex(info defs.OperationMethodArgument) bool {
@@ -458,6 +496,7 @@ func (cpu *Cpu6502) dex(info defs.OperationMethodArgument) bool {
 	//} else {
 	//	cpu.Registers.updateFlag(negativeFlag, )NegativeFlag = false
 	//}
+	return false
 }
 
 func (cpu *Cpu6502) dey(info defs.OperationMethodArgument) bool {
@@ -479,6 +518,7 @@ func (cpu *Cpu6502) dey(info defs.OperationMethodArgument) bool {
 	//} else {
 	//	cpu.Registers.NegativeFlag = false
 	//}
+	return false
 }
 
 /*
@@ -505,6 +545,8 @@ func (cpu *Cpu6502) eor(info defs.OperationMethodArgument) bool {
 	cpu.registers.A = cpu.registers.A ^ value
 	cpu.registers.updateZeroFlag(cpu.registers.A)
 	cpu.registers.updateNegativeFlag(cpu.registers.A)
+
+	return true
 }
 
 /*
@@ -526,6 +568,8 @@ func (cpu *Cpu6502) inc(info defs.OperationMethodArgument) bool {
 	cpu.write(info.OperandAddress, value)
 	cpu.registers.updateZeroFlag(value)
 	cpu.registers.updateNegativeFlag(value)
+
+	return false
 }
 
 /*
@@ -542,6 +586,7 @@ func (cpu *Cpu6502) inx(info defs.OperationMethodArgument) bool {
 	cpu.registers.updateZeroFlag(cpu.registers.X)
 	cpu.registers.updateNegativeFlag(cpu.registers.X)
 
+	return false
 }
 
 /*
@@ -557,6 +602,8 @@ func (cpu *Cpu6502) iny(info defs.OperationMethodArgument) bool {
 	cpu.registers.Y += 1
 	cpu.registers.updateZeroFlag(cpu.registers.Y)
 	cpu.registers.updateNegativeFlag(cpu.registers.Y)
+
+	return false
 }
 
 /*
@@ -571,6 +618,8 @@ func (cpu *Cpu6502) iny(info defs.OperationMethodArgument) bool {
 */
 func (cpu *Cpu6502) jmp(info defs.OperationMethodArgument) bool {
 	cpu.registers.Pc = info.OperandAddress
+
+	return false
 }
 
 /*
@@ -589,6 +638,8 @@ func (cpu *Cpu6502) jsr(info defs.OperationMethodArgument) bool {
 	cpu.pushStack(byte(pc & 0xFF))
 
 	cpu.registers.Pc = info.OperandAddress
+
+	return false
 }
 
 /*
@@ -611,6 +662,8 @@ func (cpu *Cpu6502) lda(info defs.OperationMethodArgument) bool {
 	cpu.registers.A = cpu.Read(info.OperandAddress)
 	cpu.registers.updateZeroFlag(cpu.registers.A)
 	cpu.registers.updateNegativeFlag(cpu.registers.A)
+
+	return true
 }
 
 /*
@@ -630,6 +683,8 @@ func (cpu *Cpu6502) ldx(info defs.OperationMethodArgument) bool {
 	cpu.registers.X = cpu.Read(info.OperandAddress)
 	cpu.registers.updateZeroFlag(cpu.registers.X)
 	cpu.registers.updateNegativeFlag(cpu.registers.X)
+
+	return true
 }
 
 /*
@@ -649,6 +704,8 @@ func (cpu *Cpu6502) ldy(info defs.OperationMethodArgument) bool {
 	cpu.registers.Y = cpu.Read(info.OperandAddress)
 	cpu.registers.updateZeroFlag(cpu.registers.Y)
 	cpu.registers.updateNegativeFlag(cpu.registers.Y)
+
+	return true
 }
 
 /*
@@ -684,6 +741,8 @@ func (cpu *Cpu6502) lsr(info defs.OperationMethodArgument) bool {
 	} else {
 		cpu.write(info.OperandAddress, value)
 	}
+
+	return false
 }
 
 /*
@@ -720,6 +779,8 @@ func (cpu *Cpu6502) ora(info defs.OperationMethodArgument) bool {
 	cpu.registers.A |= value
 	cpu.registers.updateZeroFlag(cpu.registers.A)
 	cpu.registers.updateNegativeFlag(cpu.registers.A)
+
+	return true
 }
 
 /*
@@ -733,6 +794,8 @@ func (cpu *Cpu6502) ora(info defs.OperationMethodArgument) bool {
 */
 func (cpu *Cpu6502) pha(info defs.OperationMethodArgument) bool {
 	cpu.pushStack(cpu.registers.A)
+
+	return false
 }
 
 /*
@@ -748,6 +811,8 @@ func (cpu *Cpu6502) php(info defs.OperationMethodArgument) bool {
 	value := cpu.registers.statusRegister()
 	value |= 0b00110000
 	cpu.pushStack(value)
+
+	return false
 }
 
 /*
@@ -763,6 +828,8 @@ func (cpu *Cpu6502) pla(info defs.OperationMethodArgument) bool {
 	cpu.registers.A = cpu.popStack()
 	cpu.registers.updateNegativeFlag(cpu.registers.A)
 	cpu.registers.updateZeroFlag(cpu.registers.A)
+
+	return false
 }
 
 /*
@@ -783,6 +850,8 @@ func (cpu *Cpu6502) plp(info defs.OperationMethodArgument) bool {
 	// ...two instructions (PLP and RTI) pull a byte from the stack and set all the flags.
 	// They ignore bits 5 and 4.
 	cpu.registers.loadStatusRegister(value)
+
+	return false
 }
 
 /*
@@ -817,6 +886,8 @@ func (cpu *Cpu6502) rol(info defs.OperationMethodArgument) bool {
 	cpu.registers.updateNegativeFlag(value)
 	cpu.registers.updateZeroFlag(value)
 	cpu.registers.updateFlag(carryFlag, newCarry)
+
+	return false
 }
 
 /*
@@ -851,6 +922,8 @@ func (cpu *Cpu6502) ror(info defs.OperationMethodArgument) bool {
 	cpu.registers.updateNegativeFlag(value)
 	cpu.registers.updateZeroFlag(value)
 	cpu.registers.updateFlag(carryFlag, newCarry)
+
+	return false
 }
 
 /*
@@ -870,6 +943,8 @@ func (cpu *Cpu6502) rti(info defs.OperationMethodArgument) bool {
 	lsb := cpu.popStack()
 	msb := cpu.popStack()
 	cpu.registers.Pc = defs.CreateAddress(lsb, msb)
+
+	return false
 }
 
 /*
@@ -885,6 +960,8 @@ func (cpu *Cpu6502) rts(info defs.OperationMethodArgument) bool {
 	lsb := cpu.popStack()
 	msb := cpu.popStack()
 	cpu.registers.Pc = defs.CreateAddress(lsb, msb) + 1
+
+	return false
 }
 
 /*
@@ -925,6 +1002,8 @@ func (cpu *Cpu6502) sbc(info defs.OperationMethodArgument) bool {
 	} else {
 		cpu.registers.updateFlag(carryFlag, 1)
 	}
+
+	return true
 }
 
 /*
@@ -938,6 +1017,8 @@ func (cpu *Cpu6502) sbc(info defs.OperationMethodArgument) bool {
 */
 func (cpu *Cpu6502) sec(info defs.OperationMethodArgument) bool {
 	cpu.registers.updateFlag(carryFlag, 1)
+
+	return false
 }
 
 /*
@@ -951,22 +1032,32 @@ func (cpu *Cpu6502) sec(info defs.OperationMethodArgument) bool {
 */
 func (cpu *Cpu6502) sed(info defs.OperationMethodArgument) bool {
 	cpu.registers.updateFlag(decimalFlag, 1)
+
+	return false
 }
 
 func (cpu *Cpu6502) sei(info defs.OperationMethodArgument) bool {
 	cpu.registers.updateFlag(interruptFlag, 1)
+
+	return false
 }
 
 func (cpu *Cpu6502) sta(info defs.OperationMethodArgument) bool {
 	cpu.write(info.OperandAddress, cpu.registers.A)
+
+	return false
 }
 
 func (cpu *Cpu6502) stx(info defs.OperationMethodArgument) bool {
 	cpu.write(info.OperandAddress, cpu.registers.X)
+
+	return false
 }
 
-func (cpu *Cpu6502) sty(info defs.InfoStep) {
+func (cpu *Cpu6502) sty(info defs.OperationMethodArgument) bool {
 	cpu.write(info.OperandAddress, cpu.registers.Y)
+
+	return false
 }
 
 /*
@@ -978,10 +1069,12 @@ func (cpu *Cpu6502) sty(info defs.InfoStep) {
 	--------------------------------------------
 	implied       TAX           AA    1     2
 */
-func (cpu *Cpu6502) tax(info defs.InfoStep) {
+func (cpu *Cpu6502) tax(info defs.OperationMethodArgument) bool {
 	cpu.registers.X = cpu.registers.A
 	cpu.registers.updateNegativeFlag(cpu.registers.X)
 	cpu.registers.updateZeroFlag(cpu.registers.X)
+
+	return false
 }
 
 /*
@@ -993,10 +1086,12 @@ func (cpu *Cpu6502) tax(info defs.InfoStep) {
 	--------------------------------------------
 	implied       TAY           A8    1     2
 */
-func (cpu *Cpu6502) tay(info defs.InfoStep) {
+func (cpu *Cpu6502) tay(info defs.OperationMethodArgument) bool {
 	cpu.registers.Y = cpu.registers.A
 	cpu.registers.updateNegativeFlag(cpu.registers.Y)
 	cpu.registers.updateZeroFlag(cpu.registers.Y)
+
+	return false
 }
 
 /*
@@ -1008,10 +1103,12 @@ func (cpu *Cpu6502) tay(info defs.InfoStep) {
 	--------------------------------------------
 	implied       TSX           BA    1     2
 */
-func (cpu *Cpu6502) tsx(info defs.InfoStep) {
+func (cpu *Cpu6502) tsx(info defs.OperationMethodArgument) bool {
 	cpu.registers.X = cpu.Registers().Sp
 	cpu.registers.updateZeroFlag(cpu.registers.X)
 	cpu.registers.updateNegativeFlag(cpu.registers.X)
+
+	return false
 }
 
 /*
@@ -1023,10 +1120,12 @@ func (cpu *Cpu6502) tsx(info defs.InfoStep) {
 	--------------------------------------------
 	implied       TXA           8A    1     2
 */
-func (cpu *Cpu6502) txa(info defs.InfoStep) {
+func (cpu *Cpu6502) txa(info defs.OperationMethodArgument) bool {
 	cpu.registers.A = cpu.registers.X
 	cpu.registers.updateZeroFlag(cpu.registers.A)
 	cpu.registers.updateNegativeFlag(cpu.registers.A)
+
+	return false
 }
 
 /*
@@ -1038,8 +1137,10 @@ func (cpu *Cpu6502) txa(info defs.InfoStep) {
 	--------------------------------------------
 	implied       TXS           9A    1     2
 */
-func (cpu *Cpu6502) txs(info defs.InfoStep) {
+func (cpu *Cpu6502) txs(info defs.OperationMethodArgument) bool {
 	cpu.registers.Sp = cpu.registers.X
+
+	return false
 }
 
 /*
@@ -1066,8 +1167,10 @@ func (cpu *Cpu6502) txs(info defs.InfoStep) {
 	Note on assembler syntax:
 	Most assemblers employ "OPC *oper" for forced zeropage addressing.
 */
-func (cpu *Cpu6502) tya(info defs.InfoStep) {
+func (cpu *Cpu6502) tya(info defs.OperationMethodArgument) bool {
 	cpu.registers.A = cpu.registers.Y
 	cpu.registers.updateZeroFlag(cpu.registers.A)
 	cpu.registers.updateNegativeFlag(cpu.registers.A)
+
+	return false
 }

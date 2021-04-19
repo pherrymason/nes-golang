@@ -28,7 +28,7 @@ func CreateNes() Nes {
 type DebuggableNes struct {
 	debug       bool
 	logger      *cpu2.Logger
-	cyclesLimit int
+	cyclesLimit uint16
 }
 
 func CreateDebuggableNes(options DebuggableNes) Nes {
@@ -51,12 +51,14 @@ func CreateDebuggableNes(options DebuggableNes) Nes {
 
 func (nes *Nes) Start() {
 	nes.cpu.Init()
-	i := 0
+	var i uint16 = 1
 
 	//nes.cpu.reset()
 	for {
-		nes.cpu.Tick()
-		i++
+		opCyclesLeft := nes.cpu.Tick()
+		if opCyclesLeft == 0 {
+			i++
+		}
 		if nes.debug.cyclesLimit > 0 && i >= nes.debug.cyclesLimit {
 			break
 		}
