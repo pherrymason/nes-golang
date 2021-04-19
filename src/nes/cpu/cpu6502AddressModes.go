@@ -117,8 +117,7 @@ func (cpu *Cpu6502) evalIndirect(programCounter defs.Address) (pc defs.Address, 
 	pc++
 
 	ptrAddress := defs.CreateAddress(ptrLow, ptrHigh)
-	finalAddress := cpu.bus.Read16Bugged(ptrAddress)
-	address = defs.Address(finalAddress)
+	address = cpu.bus.Read16Bugged(ptrAddress)
 
 	return
 }

@@ -121,19 +121,19 @@ func TestIndirect(t *testing.T) {
 	assert.Equal(t, cpu.registers.Pc+2, pc)
 }
 
-func TestIndirectBug(t *testing.T) {
+func TestIndirect_bug(t *testing.T) {
 	cpu := CreateCPUWithBus()
 	cpu.registers.Pc = 0x00
-	// Write Pointer to address 0x01FF in Bus
+	// Write Pointer to address 0xC0FF in Bus
 	cpu.bus.Write(0, 0xFF)
-	cpu.bus.Write(1, 0x01)
+	cpu.bus.Write(1, 0xC0)
 
-	// Write 0x0134 with final Address(0x200)
-	cpu.bus.Write(defs.Address(0x1FF), 0x32)
-	cpu.bus.Write(defs.Address(0x200), 0x04)
+	cpu.bus.Write(0xC0FF, 0x55)
+	cpu.bus.Write(0xC100, 0x04)
+	cpu.bus.Write(0xC000, 0x01)
 
 	pc, result, _ := cpu.evalIndirect(cpu.registers.Pc)
-	expected := defs.Address(0x432)
+	expected := defs.Address(0x155)
 
 	assert.Equal(t, expected, result, "Indirect error")
 	assert.Equal(t, cpu.registers.Pc+2, pc)
