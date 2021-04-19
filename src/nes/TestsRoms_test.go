@@ -14,7 +14,7 @@ func TestNestest(t *testing.T) {
 	outputLogPath := "./../../var/nestest.log"
 	logger := cpu.CreateCPULogger(outputLogPath)
 
-	nes := CreateDebuggableNes(DebuggableNes{true, &logger, 3100})
+	nes := CreateDebuggableNes(DebuggableNes{true, &logger, 5004})
 	nes.InsertCartridge(&gamePak)
 	nes.cpu.ResetToAddress(0xC000)
 	nes.Start()
@@ -38,9 +38,8 @@ func compareLogs(t *testing.T, snapshots []cpu.State) {
 		scanner.Scan()
 		nesTestLine := scanner.Text()
 		nesTestState := cpu.CreateStateFromNesTestLine(nesTestLine)
-
 		if !state.Equals(nesTestState) {
-			msg := fmt.Sprintf("Error in iteration %d\n", i)
+			msg := fmt.Sprintf("Error in iteration %d\n", i+1)
 			msg += fmt.Sprintf("Expected: %s\n", nesTestState.ToString())
 			msg += fmt.Sprintf("Actual: %s\n", state.ToString())
 
