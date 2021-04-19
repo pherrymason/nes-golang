@@ -49,7 +49,7 @@ func (bus *Bus) Read16(address defs.Address) defs.Word {
 
 func (bus *Bus) Read16Bugged(address defs.Address) defs.Word {
 	lsb := address
-	msb := (lsb & 0xFF00) | (lsb & 0xFF) + 1
+	msb := (lsb & 0xFF00) | defs.Address(byte(lsb)+1)
 
 	low := bus.Read(lsb)
 	high := bus.Read(msb)
