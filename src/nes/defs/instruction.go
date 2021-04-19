@@ -27,3 +27,7 @@ func (instruction Instruction) Size() byte {
 func (instruction Instruction) Method() func(info InfoStep) {
 	return instruction.method
 }
+
+func (instruction Instruction) Cycles() byte {
+	return instruction.cycles
+}
