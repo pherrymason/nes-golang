@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/raulferras/nes-golang/src/nes/defs"
 	"github.com/raulferras/nes-golang/src/utils"
+	"strconv"
 	"strings"
 )
 
@@ -12,6 +13,7 @@ type State struct {
 	CurrentInstruction defs.Instruction
 	RawOpcode          []byte
 	EvaluatedAddress   defs.Address
+	CyclesSinceReset   uint16
 }
 
 func CreateState(cpu Cpu6502) State {
@@ -33,6 +35,7 @@ func CreateState(cpu Cpu6502) State {
 		instruction,
 		rawOpcode,
 		evaluatedAddress,
+		cpu.cycle,
 	}
 
 	return state
@@ -52,6 +55,10 @@ func CreateStateFromNesTestLine(nesTestLine string) State {
 
 	flagFields := strings.Fields(blocks[3])
 
+	cpuCyclesString := strings.Split(blocks[4], "CYC:")
+
+	cpuCycles, _ := strconv.ParseUint(cpuCyclesString[1], 10, 16)
+
 	state := State{
 		Cpu6502Registers{
 			utils.NestestDecodeRegisterFlag(flagFields[0]),
@@ -70,6 +77,7 @@ func CreateStateFromNesTestLine(nesTestLine string) State {
 		),
 		opcode,
 		defs.CreateAddress(0x00, 0x00),
+		uint16(cpuCycles),
 	}
 
 	return state
@@ -81,7 +89,8 @@ func (state State) Equals(b State) bool {
 		state.Registers.X != b.Registers.X ||
 		state.Registers.Y != b.Registers.Y ||
 		state.Registers.Sp != b.Registers.Sp ||
-		state.Registers.statusRegister() != b.Registers.statusRegister() {
+		state.Registers.statusRegister() != b.Registers.statusRegister() ||
+		state.CyclesSinceReset != b.CyclesSinceReset {
 		return false
 	}
 
@@ -100,6 +109,8 @@ func (state State) ToString() string {
 		state.Registers.statusRegister(),
 		state.Registers.Sp,
 	)
+	// Cycles
+	msg += fmt.Sprintf("PPU:%d,%d CYC:%d", 0, 0, state.CyclesSinceReset)
 
 	return msg
 }

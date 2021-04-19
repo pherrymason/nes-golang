@@ -44,7 +44,7 @@ func stateToString(state State) string {
 	msg += fmt.Sprintf("%02X", state.Registers.Pc) + "  "
 
 	// Raw OPCode + Operand
-	for value := range state.RawOpcode {
+	for _, value := range state.RawOpcode {
 		msg += fmt.Sprintf("%02X ", value)
 	}
 
@@ -67,7 +67,7 @@ func stateToString(state State) string {
 		state.Registers.Y,
 		state.Registers.Status,
 		state.Registers.Sp,
-		0,
+		state.CyclesSinceReset,
 	)
 
 	return msg
