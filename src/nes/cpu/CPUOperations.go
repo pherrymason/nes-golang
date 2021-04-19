@@ -94,6 +94,15 @@ func (cpu *Cpu6502) asl(info defs.InfoStep) {
 		cpu.registers.updateNegativeFlag(value)
 		cpu.registers.updateZeroFlag(value)
 	}
+
+}
+func (cpu *Cpu6502) addBranchCycles(info defs.OperationMethodArgument) bool {
+	cpu.instructionCycle++
+	if memoryPageDiffer(cpu.registers.Pc, info.OperandAddress) {
+		cpu.instructionCycle++
+	}
+
+	return false
 }
 
 /*
@@ -108,6 +117,7 @@ func (cpu *Cpu6502) asl(info defs.InfoStep) {
 */
 func (cpu *Cpu6502) bcc(info defs.InfoStep) {
 	if cpu.registers.carryFlag() == 0 {
+		cpu.addBranchCycles(info)
 		cpu.registers.Pc = info.OperandAddress
 	}
 }
@@ -124,11 +134,7 @@ func (cpu *Cpu6502) bcc(info defs.InfoStep) {
 */
 func (cpu *Cpu6502) bcs(info defs.InfoStep) {
 	if cpu.registers.carryFlag() == 1 {
-		cpu.instructionCycle++
-		if memoryPageDiffer(info.OperandAddress, cpu.registers.Pc) {
-			cpu.instructionCycle++
-		}
-
+		cpu.addBranchCycles(info)
 		cpu.registers.Pc = info.OperandAddress
 	}
 }
@@ -145,6 +151,7 @@ func (cpu *Cpu6502) bcs(info defs.InfoStep) {
 */
 func (cpu *Cpu6502) beq(info defs.InfoStep) {
 	if cpu.registers.zeroFlag() == 1 {
+		cpu.addBranchCycles(info)
 		cpu.registers.Pc = info.OperandAddress
 	}
 }
@@ -183,6 +190,7 @@ func (cpu *Cpu6502) bit(info defs.InfoStep) {
 */
 func (cpu *Cpu6502) bmi(info defs.InfoStep) {
 	if cpu.registers.negativeFlag() == 1 {
+		cpu.addBranchCycles(info)
 		cpu.registers.Pc = info.OperandAddress
 	}
 }
@@ -200,6 +208,7 @@ func (cpu *Cpu6502) bmi(info defs.InfoStep) {
 func (cpu *Cpu6502) bne(info defs.InfoStep) {
 	// Check how to negate a bit and apply it here
 	if cpu.registers.zeroFlag() == 0 {
+		cpu.addBranchCycles(info)
 		cpu.registers.Pc = info.OperandAddress
 	}
 }
@@ -217,6 +226,7 @@ func (cpu *Cpu6502) bne(info defs.InfoStep) {
 func (cpu *Cpu6502) bpl(info defs.InfoStep) {
 	//if !cpu.Registers.NegativeFlag {
 	if cpu.registers.negativeFlag() == 0 {
+		cpu.addBranchCycles(info)
 		cpu.registers.Pc = info.OperandAddress
 	}
 }
