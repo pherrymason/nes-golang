@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/raulferras/nes-golang/src/nes/defs"
 	"github.com/raulferras/nes-golang/src/utils"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -28,7 +29,7 @@ func CreateState(cpu Cpu6502) State {
 		rawOpcode = append(rawOpcode, cpu.Read(pc+defs.Address(i)))
 	}
 
-	_, evaluatedAddress, _ := cpu.addressEvaluators[instruction.AddressMode()](pc)
+	_, evaluatedAddress, _, _ := cpu.addressEvaluators[instruction.AddressMode()](pc)
 
 	state := State{
 		*cpu.Registers(),
@@ -55,7 +56,8 @@ func CreateStateFromNesTestLine(nesTestLine string) State {
 
 	flagFields := strings.Fields(blocks[3])
 
-	cpuCyclesString := strings.Split(blocks[4], "CYC:")
+	r, _ := regexp.Compile("CYC:([0-9]+)$")
+	cpuCyclesString := r.FindStringSubmatch(nesTestLine)
 
 	cpuCycles, _ := strconv.ParseUint(cpuCyclesString[1], 10, 16)
 
