@@ -1,15 +1,28 @@
 package defs
 
+type OperationMethodArgument struct {
+	AddressMode    AddressMode
+	OperandAddress Address
+}
+
+type OperationMethod func(info OperationMethodArgument) bool
+
 type Instruction struct {
 	name        string
 	addressMode AddressMode
-	method      func(info InfoStep)
+	method      OperationMethod
 	cycles      byte
 	size        byte
 }
 
-func CreateInstruction(name string, addressMode AddressMode, method func(info InfoStep), cycles byte, size byte) Instruction {
-	return Instruction{name, addressMode, method, cycles, size}
+func CreateInstruction(name string, addressMode AddressMode, method OperationMethod, cycles byte, size byte) Instruction {
+	return Instruction{
+		name,
+		addressMode,
+		method,
+		cycles,
+		size,
+	}
 }
 
 func (instruction Instruction) Name() string {
@@ -24,7 +37,7 @@ func (instruction Instruction) Size() byte {
 	return instruction.size
 }
 
-func (instruction Instruction) Method() func(info InfoStep) {
+func (instruction Instruction) Method() OperationMethod {
 	return instruction.method
 }
 

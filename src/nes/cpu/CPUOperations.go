@@ -23,7 +23,7 @@ import (
 	http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
 	https://forums.nesdev.com/viewtopic.php?t=6331
 */
-func (cpu *Cpu6502) adc(info defs.InfoStep) {
+func (cpu *Cpu6502) adc(info defs.OperationMethodArgument) bool {
 	carryIn := cpu.registers.carryFlag()
 	a := cpu.registers.A
 	value := cpu.Read(info.OperandAddress)
@@ -61,7 +61,7 @@ func (cpu *Cpu6502) adc(info defs.InfoStep) {
 //	(Indirect, X) 		AND (Operand, X)	 	21 		2 			6
 //	(Indirect), Y 		AND (Operand), Y 		31 		2 			5*
 //	* Add 1 if page boundary is crossed.
-func (cpu *Cpu6502) and(info defs.InfoStep) {
+func (cpu *Cpu6502) and(info defs.OperationMethodArgument) bool {
 	cpu.registers.A &= cpu.Read(info.OperandAddress)
 	cpu.registers.updateNegativeFlag(cpu.registers.A)
 	cpu.registers.updateZeroFlag(cpu.registers.A)
@@ -80,7 +80,7 @@ func (cpu *Cpu6502) and(info defs.InfoStep) {
      zeropage,X    ASL oper,X    16    2     6
 	 Absolute      ASL oper      0E    3     6
 */
-func (cpu *Cpu6502) asl(info defs.InfoStep) {
+func (cpu *Cpu6502) asl(info defs.OperationMethodArgument) bool {
 	if info.AddressMode == defs.Implicit {
 		cpu.registers.updateFlag(carryFlag, cpu.registers.A>>7&0x01)
 		cpu.registers.A = cpu.registers.A << 1
@@ -115,7 +115,7 @@ func (cpu *Cpu6502) addBranchCycles(info defs.OperationMethodArgument) bool {
 	--------------------------------------------
 	Relative      BCC oper      90    2     2**
 */
-func (cpu *Cpu6502) bcc(info defs.InfoStep) {
+func (cpu *Cpu6502) bcc(info defs.OperationMethodArgument) bool {
 	if cpu.registers.carryFlag() == 0 {
 		cpu.addBranchCycles(info)
 		cpu.registers.Pc = info.OperandAddress
@@ -132,7 +132,7 @@ func (cpu *Cpu6502) bcc(info defs.InfoStep) {
 	--------------------------------------------
 	Relative      BCS oper      B0    2     2**
 */
-func (cpu *Cpu6502) bcs(info defs.InfoStep) {
+func (cpu *Cpu6502) bcs(info defs.OperationMethodArgument) bool {
 	if cpu.registers.carryFlag() == 1 {
 		cpu.addBranchCycles(info)
 		cpu.registers.Pc = info.OperandAddress
@@ -149,7 +149,7 @@ func (cpu *Cpu6502) bcs(info defs.InfoStep) {
 	--------------------------------------------
 	Relative      BEQ oper      F0    2     2**
 */
-func (cpu *Cpu6502) beq(info defs.InfoStep) {
+func (cpu *Cpu6502) beq(info defs.OperationMethodArgument) bool {
 	if cpu.registers.zeroFlag() == 1 {
 		cpu.addBranchCycles(info)
 		cpu.registers.Pc = info.OperandAddress
@@ -171,7 +171,7 @@ func (cpu *Cpu6502) beq(info defs.InfoStep) {
 	zeropage      BIT oper      24    2     3
 	Absolute      BIT oper      2C    3     4
 */
-func (cpu *Cpu6502) bit(info defs.InfoStep) {
+func (cpu *Cpu6502) bit(info defs.OperationMethodArgument) bool {
 	value := cpu.Read(info.OperandAddress)
 	cpu.registers.updateNegativeFlag(value)
 	cpu.registers.updateFlag(overflowFlag, (value>>6)&0x01)
@@ -188,7 +188,7 @@ func (cpu *Cpu6502) bit(info defs.InfoStep) {
 	--------------------------------------------
 	Relative      BMI oper      30    2     2**
 */
-func (cpu *Cpu6502) bmi(info defs.InfoStep) {
+func (cpu *Cpu6502) bmi(info defs.OperationMethodArgument) bool {
 	if cpu.registers.negativeFlag() == 1 {
 		cpu.addBranchCycles(info)
 		cpu.registers.Pc = info.OperandAddress
@@ -205,8 +205,7 @@ func (cpu *Cpu6502) bmi(info defs.InfoStep) {
 	--------------------------------------------
 	Relative      BNE oper      D0    2     2**
 */
-func (cpu *Cpu6502) bne(info defs.InfoStep) {
-	// Check how to negate a bit and apply it here
+func (cpu *Cpu6502) bne(info defs.OperationMethodArgument) bool {
 	if cpu.registers.zeroFlag() == 0 {
 		cpu.addBranchCycles(info)
 		cpu.registers.Pc = info.OperandAddress
@@ -223,7 +222,7 @@ func (cpu *Cpu6502) bne(info defs.InfoStep) {
 	--------------------------------------------
 	Relative      BPL oper      10    2     2**
 */
-func (cpu *Cpu6502) bpl(info defs.InfoStep) {
+func (cpu *Cpu6502) bpl(info defs.OperationMethodArgument) bool {
 	//if !cpu.Registers.NegativeFlag {
 	if cpu.registers.negativeFlag() == 0 {
 		cpu.addBranchCycles(info)
@@ -245,7 +244,7 @@ func (cpu *Cpu6502) bpl(info defs.InfoStep) {
 	--------------------------------------------
 	implied       BRK           00    1     7
 */
-func (cpu *Cpu6502) brk(info defs.InfoStep) {
+func (cpu *Cpu6502) brk(info defs.OperationMethodArgument) bool {
 	// Store PC in stack
 	pc := cpu.registers.Pc
 	cpu.pushStack(defs.HighNibble(pc))
@@ -268,12 +267,12 @@ func (cpu *Cpu6502) brk(info defs.InfoStep) {
 	--------------------------------------------
 	Relative      BVC oper      50    2     2**
 */
-func (cpu *Cpu6502) bvc(info defs.InfoStep) {
-	if cpu.registers.overflowFlag() == byte(1) {
-		return
+func (cpu *Cpu6502) bvc(info defs.OperationMethodArgument) bool {
+	if cpu.registers.overflowFlag() == 0 {
+		cpu.addBranchCycles(info)
+		cpu.registers.Pc = info.OperandAddress
 	}
 
-	cpu.registers.Pc = info.OperandAddress
 }
 
 /*
@@ -285,12 +284,12 @@ func (cpu *Cpu6502) bvc(info defs.InfoStep) {
 	--------------------------------------------
 	Relative      BVC oper      70    2     2**
 */
-func (cpu *Cpu6502) bvs(info defs.InfoStep) {
-	if cpu.registers.overflowFlag() == 0 {
-		return
+func (cpu *Cpu6502) bvs(info defs.OperationMethodArgument) bool {
+	if cpu.registers.overflowFlag() == 1 {
+		cpu.addBranchCycles(info)
+		cpu.registers.Pc = info.OperandAddress
 	}
 
-	cpu.registers.Pc = info.OperandAddress
 }
 
 /*
@@ -302,7 +301,7 @@ func (cpu *Cpu6502) bvs(info defs.InfoStep) {
 	--------------------------------------------
 	implied       CLC           18    1     2
 */
-func (cpu *Cpu6502) clc(info defs.InfoStep) {
+func (cpu *Cpu6502) clc(info defs.OperationMethodArgument) bool {
 	cpu.registers.updateFlag(carryFlag, 0)
 }
 
@@ -315,7 +314,7 @@ func (cpu *Cpu6502) clc(info defs.InfoStep) {
 	--------------------------------------------
 	implied       CLD           D8    1     2
 */
-func (cpu *Cpu6502) cld(info defs.InfoStep) {
+func (cpu *Cpu6502) cld(info defs.OperationMethodArgument) bool {
 	cpu.registers.updateFlag(decimalFlag, 0)
 }
 
@@ -328,7 +327,7 @@ func (cpu *Cpu6502) cld(info defs.InfoStep) {
 	--------------------------------------------
 	implied       CLI           58    1     2
 */
-func (cpu *Cpu6502) cli(info defs.InfoStep) {
+func (cpu *Cpu6502) cli(info defs.OperationMethodArgument) bool {
 	cpu.registers.updateFlag(interruptFlag, 0)
 }
 
@@ -341,7 +340,7 @@ func (cpu *Cpu6502) cli(info defs.InfoStep) {
 	--------------------------------------------
 	implied       CLV           B8    1     2
 */
-func (cpu *Cpu6502) clv(info defs.InfoStep) {
+func (cpu *Cpu6502) clv(info defs.OperationMethodArgument) bool {
 	cpu.registers.updateFlag(overflowFlag, 0)
 }
 
@@ -367,7 +366,7 @@ func (cpu *Cpu6502) clv(info defs.InfoStep) {
     the Carry will be set. The equal (Z) and sign (S) flags will be set based on
     equality or lack thereof and the sign (i.e. A>=$80) of the Accumulator.
 */
-func (cpu *Cpu6502) cmp(info defs.InfoStep) {
+func (cpu *Cpu6502) cmp(info defs.OperationMethodArgument) bool {
 	operand := cpu.Read(info.OperandAddress)
 	cpu.compare(cpu.registers.A, operand)
 }
@@ -382,7 +381,7 @@ func (cpu *Cpu6502) cmp(info defs.InfoStep) {
 	Zero Page     CPX $44       $E4  2   3
 	Absolute      CPX $4400     $EC  3   4
 */
-func (cpu *Cpu6502) cpx(info defs.InfoStep) {
+func (cpu *Cpu6502) cpx(info defs.OperationMethodArgument) bool {
 	operand := cpu.Read(info.OperandAddress)
 	cpu.compare(cpu.registers.X, operand)
 }
@@ -397,7 +396,7 @@ func (cpu *Cpu6502) cpx(info defs.InfoStep) {
 	Zero Page     CPY $44       $C4  2   3
 	Absolute      CPY $4400     $CC  3   4
 */
-func (cpu *Cpu6502) cpy(info defs.InfoStep) {
+func (cpu *Cpu6502) cpy(info defs.OperationMethodArgument) bool {
 	operand := cpu.Read(info.OperandAddress)
 	cpu.compare(cpu.registers.Y, operand)
 }
@@ -422,7 +421,7 @@ func (cpu *Cpu6502) compare(register byte, operand byte) {
 	//	}
 }
 
-func (cpu *Cpu6502) dec(info defs.InfoStep) {
+func (cpu *Cpu6502) dec(info defs.OperationMethodArgument) bool {
 	address := info.OperandAddress
 	operand := cpu.Read(address)
 
@@ -443,7 +442,7 @@ func (cpu *Cpu6502) dec(info defs.InfoStep) {
 	//}
 }
 
-func (cpu *Cpu6502) dex(info defs.InfoStep) {
+func (cpu *Cpu6502) dex(info defs.OperationMethodArgument) bool {
 	cpu.registers.X--
 	operand := cpu.registers.X
 
@@ -461,7 +460,7 @@ func (cpu *Cpu6502) dex(info defs.InfoStep) {
 	//}
 }
 
-func (cpu *Cpu6502) dey(info defs.InfoStep) {
+func (cpu *Cpu6502) dey(info defs.OperationMethodArgument) bool {
 	operand := cpu.registers.Y
 
 	operand--
@@ -500,7 +499,7 @@ func (cpu *Cpu6502) dey(info defs.InfoStep) {
 
 	+ add 1 cycle if page boundary crossed
 */
-func (cpu *Cpu6502) eor(info defs.InfoStep) {
+func (cpu *Cpu6502) eor(info defs.OperationMethodArgument) bool {
 	value := cpu.Read(info.OperandAddress)
 
 	cpu.registers.A = cpu.registers.A ^ value
@@ -520,7 +519,7 @@ func (cpu *Cpu6502) eor(info defs.InfoStep) {
 	Absolute      INC oper      EE    3     6
 	Absolute,X    INC oper,X    FE    3     7
 */
-func (cpu *Cpu6502) inc(info defs.InfoStep) {
+func (cpu *Cpu6502) inc(info defs.OperationMethodArgument) bool {
 	value := cpu.Read(info.OperandAddress)
 	value += 1
 
@@ -538,7 +537,7 @@ func (cpu *Cpu6502) inc(info defs.InfoStep) {
 	--------------------------------------------
 	implied       INX           E8    1     2
 */
-func (cpu *Cpu6502) inx(info defs.InfoStep) {
+func (cpu *Cpu6502) inx(info defs.OperationMethodArgument) bool {
 	cpu.registers.X += 1
 	cpu.registers.updateZeroFlag(cpu.registers.X)
 	cpu.registers.updateNegativeFlag(cpu.registers.X)
@@ -554,7 +553,7 @@ func (cpu *Cpu6502) inx(info defs.InfoStep) {
 	--------------------------------------------
 	implied       INY           C8    1     2
 */
-func (cpu *Cpu6502) iny(info defs.InfoStep) {
+func (cpu *Cpu6502) iny(info defs.OperationMethodArgument) bool {
 	cpu.registers.Y += 1
 	cpu.registers.updateZeroFlag(cpu.registers.Y)
 	cpu.registers.updateNegativeFlag(cpu.registers.Y)
@@ -570,7 +569,7 @@ func (cpu *Cpu6502) iny(info defs.InfoStep) {
 	Absolute      JMP oper      4C    3     3
 	Indirect      JMP (oper)    6C    3     5
 */
-func (cpu *Cpu6502) jmp(info defs.InfoStep) {
+func (cpu *Cpu6502) jmp(info defs.OperationMethodArgument) bool {
 	cpu.registers.Pc = info.OperandAddress
 }
 
@@ -584,7 +583,7 @@ func (cpu *Cpu6502) jmp(info defs.InfoStep) {
 	--------------------------------------------
 	Absolute      JSR oper      20    3     6
 */
-func (cpu *Cpu6502) jsr(info defs.InfoStep) {
+func (cpu *Cpu6502) jsr(info defs.OperationMethodArgument) bool {
 	pc := cpu.registers.Pc - 1
 	cpu.pushStack(byte(pc >> 8))
 	cpu.pushStack(byte(pc & 0xFF))
@@ -608,7 +607,7 @@ func (cpu *Cpu6502) jsr(info defs.InfoStep) {
 	(Indirect,X)  LDA (oper,X)  A1    2     6
 	(Indirect),Y  LDA (oper),Y  B1    2     5*
 */
-func (cpu *Cpu6502) lda(info defs.InfoStep) {
+func (cpu *Cpu6502) lda(info defs.OperationMethodArgument) bool {
 	cpu.registers.A = cpu.Read(info.OperandAddress)
 	cpu.registers.updateZeroFlag(cpu.registers.A)
 	cpu.registers.updateNegativeFlag(cpu.registers.A)
@@ -627,7 +626,7 @@ func (cpu *Cpu6502) lda(info defs.InfoStep) {
 	Absolute      LDX oper      AE    3     4
 	Absolute,Y    LDX oper,Y    BE    3     4*
 */
-func (cpu *Cpu6502) ldx(info defs.InfoStep) {
+func (cpu *Cpu6502) ldx(info defs.OperationMethodArgument) bool {
 	cpu.registers.X = cpu.Read(info.OperandAddress)
 	cpu.registers.updateZeroFlag(cpu.registers.X)
 	cpu.registers.updateNegativeFlag(cpu.registers.X)
@@ -646,7 +645,7 @@ func (cpu *Cpu6502) ldx(info defs.InfoStep) {
 	Absolute      LDY oper      AC    3     4
 	Absolute,X    LDY oper,X    BC    3     4*
 */
-func (cpu *Cpu6502) ldy(info defs.InfoStep) {
+func (cpu *Cpu6502) ldy(info defs.OperationMethodArgument) bool {
 	cpu.registers.Y = cpu.Read(info.OperandAddress)
 	cpu.registers.updateZeroFlag(cpu.registers.Y)
 	cpu.registers.updateNegativeFlag(cpu.registers.Y)
@@ -665,7 +664,7 @@ func (cpu *Cpu6502) ldy(info defs.InfoStep) {
 	Absolute      LSR oper      4E    3     6
 	Absolute,X    LSR oper,X    5E    3     7
 */
-func (cpu *Cpu6502) lsr(info defs.InfoStep) {
+func (cpu *Cpu6502) lsr(info defs.OperationMethodArgument) bool {
 	var value byte
 	if info.AddressMode == defs.Implicit {
 		value = cpu.registers.A
@@ -696,8 +695,8 @@ func (cpu *Cpu6502) lsr(info defs.InfoStep) {
 	--------------------------------------------
 	implied       NOP           EA    1     2
 */
-func (cpu *Cpu6502) nop(info defs.InfoStep) {
-
+func (cpu *Cpu6502) nop(info defs.OperationMethodArgument) bool {
+	return false
 }
 
 /*
@@ -716,7 +715,7 @@ func (cpu *Cpu6502) nop(info defs.InfoStep) {
 	(Indirect,X)  ORA (oper,X)  01    2     6
 	(Indirect),Y  ORA (oper),Y  11    2     5*
 */
-func (cpu *Cpu6502) ora(info defs.InfoStep) {
+func (cpu *Cpu6502) ora(info defs.OperationMethodArgument) bool {
 	value := cpu.Read(info.OperandAddress)
 	cpu.registers.A |= value
 	cpu.registers.updateZeroFlag(cpu.registers.A)
@@ -732,7 +731,7 @@ func (cpu *Cpu6502) ora(info defs.InfoStep) {
 	--------------------------------------------
 	implied       PHA           48    1     3
 */
-func (cpu *Cpu6502) pha(info defs.InfoStep) {
+func (cpu *Cpu6502) pha(info defs.OperationMethodArgument) bool {
 	cpu.pushStack(cpu.registers.A)
 }
 
@@ -745,7 +744,7 @@ func (cpu *Cpu6502) pha(info defs.InfoStep) {
 	--------------------------------------------
 	implied       PHP           08    1     3
 */
-func (cpu *Cpu6502) php(info defs.InfoStep) {
+func (cpu *Cpu6502) php(info defs.OperationMethodArgument) bool {
 	value := cpu.registers.statusRegister()
 	value |= 0b00110000
 	cpu.pushStack(value)
@@ -760,7 +759,7 @@ func (cpu *Cpu6502) php(info defs.InfoStep) {
 	--------------------------------------------
 	implied       PLA           68    1     4
 */
-func (cpu *Cpu6502) pla(info defs.InfoStep) {
+func (cpu *Cpu6502) pla(info defs.OperationMethodArgument) bool {
 	cpu.registers.A = cpu.popStack()
 	cpu.registers.updateNegativeFlag(cpu.registers.A)
 	cpu.registers.updateZeroFlag(cpu.registers.A)
@@ -775,7 +774,7 @@ func (cpu *Cpu6502) pla(info defs.InfoStep) {
 	--------------------------------------------
 	implied       PLP           28    1     4
 */
-func (cpu *Cpu6502) plp(info defs.InfoStep) {
+func (cpu *Cpu6502) plp(info defs.OperationMethodArgument) bool {
 	value := cpu.popStack()
 
 	// From http://nesdev.com/the%20%27B%27%20flag%20&%20BRK%20instruction.txt
@@ -799,7 +798,7 @@ func (cpu *Cpu6502) plp(info defs.InfoStep) {
 	Absolute      ROL oper      2E    3     6
 	Absolute,X    ROL oper,X    3E    3     7
 */
-func (cpu *Cpu6502) rol(info defs.InfoStep) {
+func (cpu *Cpu6502) rol(info defs.OperationMethodArgument) bool {
 	var newCarry byte
 	var value byte
 	if info.AddressMode == defs.Implicit {
@@ -833,7 +832,7 @@ func (cpu *Cpu6502) rol(info defs.InfoStep) {
 	Absolute      ROR oper      6E    3     6
 	Absolute,X    ROR oper,X    7E    3     7
 */
-func (cpu *Cpu6502) ror(info defs.InfoStep) {
+func (cpu *Cpu6502) ror(info defs.OperationMethodArgument) bool {
 	var newCarry byte
 	var value byte
 	if info.AddressMode == defs.Implicit {
@@ -864,7 +863,7 @@ func (cpu *Cpu6502) ror(info defs.InfoStep) {
 	--------------------------------------------
 	implied       RTI           40    1     6
 */
-func (cpu *Cpu6502) rti(info defs.InfoStep) {
+func (cpu *Cpu6502) rti(info defs.OperationMethodArgument) bool {
 	statusRegister := cpu.popStack()
 	cpu.registers.loadStatusRegister(statusRegister)
 
@@ -882,7 +881,7 @@ func (cpu *Cpu6502) rti(info defs.InfoStep) {
 	--------------------------------------------
 	implied       RTS           60    1     6
 */
-func (cpu *Cpu6502) rts(info defs.InfoStep) {
+func (cpu *Cpu6502) rts(info defs.OperationMethodArgument) bool {
 	lsb := cpu.popStack()
 	msb := cpu.popStack()
 	cpu.registers.Pc = defs.CreateAddress(lsb, msb) + 1
@@ -904,7 +903,7 @@ func (cpu *Cpu6502) rts(info defs.InfoStep) {
 	(Indirect,X)  SBC (oper,X)  E1    2     6
 	(Indirect),Y  SBC (oper),Y  F1    2     5*
 */
-func (cpu *Cpu6502) sbc(info defs.InfoStep) {
+func (cpu *Cpu6502) sbc(info defs.OperationMethodArgument) bool {
 	value := cpu.Read(info.OperandAddress)
 	borrow := (1 - cpu.registers.carryFlag()) & 0x01 // == !CarryFlag
 	a := cpu.registers.A
@@ -937,7 +936,7 @@ func (cpu *Cpu6502) sbc(info defs.InfoStep) {
 	--------------------------------------------
 	implied       SEC           38    1     2
 */
-func (cpu *Cpu6502) sec(info defs.InfoStep) {
+func (cpu *Cpu6502) sec(info defs.OperationMethodArgument) bool {
 	cpu.registers.updateFlag(carryFlag, 1)
 }
 
@@ -950,19 +949,19 @@ func (cpu *Cpu6502) sec(info defs.InfoStep) {
 	--------------------------------------------
 	implied       SED           F8    1     2
 */
-func (cpu *Cpu6502) sed(info defs.InfoStep) {
+func (cpu *Cpu6502) sed(info defs.OperationMethodArgument) bool {
 	cpu.registers.updateFlag(decimalFlag, 1)
 }
 
-func (cpu *Cpu6502) sei(info defs.InfoStep) {
+func (cpu *Cpu6502) sei(info defs.OperationMethodArgument) bool {
 	cpu.registers.updateFlag(interruptFlag, 1)
 }
 
-func (cpu *Cpu6502) sta(info defs.InfoStep) {
+func (cpu *Cpu6502) sta(info defs.OperationMethodArgument) bool {
 	cpu.write(info.OperandAddress, cpu.registers.A)
 }
 
-func (cpu *Cpu6502) stx(info defs.InfoStep) {
+func (cpu *Cpu6502) stx(info defs.OperationMethodArgument) bool {
 	cpu.write(info.OperandAddress, cpu.registers.X)
 }
 
