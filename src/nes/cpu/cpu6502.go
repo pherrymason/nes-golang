@@ -15,7 +15,7 @@ type Cpu6502 struct {
 	instructionCycle byte
 	cycle            uint16
 
-	addressEvaluators [13]func(programCounter defs.Address) (pc defs.Address, address defs.Address, cycles int)
+	addressEvaluators [13]func(programCounter defs.Address) (pc defs.Address, address defs.Address, cycles int, pageCrossed bool)
 	// Debug parameters
 	debug       bool
 	Logger      Logger
@@ -393,7 +393,7 @@ func (cpu *Cpu6502) initInstructionsTable() {
 }
 
 func (cpu *Cpu6502) initAddressModeEvaluators() {
-	cpu.addressEvaluators = [13]func(programCounter defs.Address) (pc defs.Address, address defs.Address, cycles int){
+	cpu.addressEvaluators = [13]func(programCounter defs.Address) (pc defs.Address, address defs.Address, cycles int, pageCrossed bool){
 		cpu.evalImplicit,
 		cpu.evalImmediate,
 		cpu.evalZeroPage,
@@ -409,9 +409,10 @@ func (cpu *Cpu6502) initAddressModeEvaluators() {
 	}
 }
 
-func (cpu Cpu6502) evaluateOperandAddress(addressMode defs.AddressMode, pc defs.Address) defs.Address {
+func (cpu Cpu6502) evaluateOperandAddress(addressMode defs.AddressMode, pc defs.Address) (operandAddress defs.Address, pageCrossed bool) {
 	if addressMode == defs.Implicit {
-		return 0
+		operandAddress = 0
+		return
 	}
 
 	if cpu.addressEvaluators[addressMode] == nil {
@@ -419,9 +420,11 @@ func (cpu Cpu6502) evaluateOperandAddress(addressMode defs.AddressMode, pc defs.
 		panic(msg)
 	}
 
-	_, evaluatedAddress, _ := cpu.addressEvaluators[addressMode](pc)
+	_, evaluatedAddress, _, pageCrossed := cpu.addressEvaluators[addressMode](pc)
 
-	return evaluatedAddress
+	operandAddress = evaluatedAddress
+
+	return
 }
 
 func memoryPageDiffer(address defs.Address, finalAddress defs.Address) bool {

@@ -18,10 +18,12 @@ func TestImmediate(t *testing.T) {
 	cpu := CreateCPUWithBus()
 	cpu.registers.Pc = defs.Address(0x100)
 
-	pc, address, _ := cpu.evalImmediate(cpu.registers.Pc)
+	pc, address, _, pageCrossed := cpu.evalImmediate(cpu.registers.Pc)
 
 	assert.Equal(t, defs.Address(0x100), address, "Immediate address mode failed to evaluate address")
 	assert.Equal(t, cpu.registers.Pc+1, pc)
+	assert.False(t, pageCrossed)
+
 }
 
 func TestZeroPage(t *testing.T) {
@@ -29,10 +31,11 @@ func TestZeroPage(t *testing.T) {
 	cpu.registers.Pc = 0x00
 	cpu.bus.Write(0x00, 0x40)
 
-	pc, result, _ := cpu.evalZeroPage(cpu.registers.Pc)
+	pc, result, _, pageCrossed := cpu.evalZeroPage(cpu.registers.Pc)
 	expected := defs.Address(0x040)
 	assert.Equal(t, expected, result, fmt.Sprintf("ZeroPage address mode decoded wrongly, expected %d, got %d", expected, result))
 	assert.Equal(t, cpu.registers.Pc+1, pc)
+	assert.False(t, pageCrossed)
 }
 
 func TestZeroPageX(t *testing.T) {
@@ -42,11 +45,12 @@ func TestZeroPageX(t *testing.T) {
 	cpu.registers.X = 0x10
 
 	state := cpu.registers.Pc
-	pc, result, _ := cpu.evalZeroPageX(state)
+	pc, result, _, pageCrossed := cpu.evalZeroPageX(state)
 
 	expected := defs.Address(0x15)
 	assert.Equal(t, expected, result, fmt.Sprintf("ZeroPageX address mode decoded wrongly, expected %d, got %d", expected, result))
 	assert.Equal(t, cpu.registers.Pc+1, pc)
+	assert.False(t, pageCrossed)
 }
 
 func TestZeroPageY(t *testing.T) {
@@ -55,12 +59,13 @@ func TestZeroPageY(t *testing.T) {
 	cpu.registers.Pc = defs.Address(0x0000)
 	cpu.bus.Write(cpu.registers.Pc, 0xF0)
 
-	pc, result, _ := cpu.evalZeroPageY(cpu.registers.Pc)
+	pc, result, _, pageCrossed := cpu.evalZeroPageY(cpu.registers.Pc)
 
 	expected := defs.Address(0x00)
 
 	assert.Equal(t, expected, result, fmt.Sprintf("ZeroPageY address mode decoded wrongly, expected %d, got %d", expected, result))
 	assert.Equal(t, cpu.registers.Pc+1, pc)
+	assert.False(t, pageCrossed)
 }
 
 func TestAbsolute(t *testing.T) {
@@ -69,37 +74,75 @@ func TestAbsolute(t *testing.T) {
 	cpu.bus.Write(0x0000, 0x30)
 	cpu.bus.Write(0x0001, 0x01)
 
-	pc, result, _ := cpu.evalAbsolute(cpu.registers.Pc)
+	pc, result, _, pageCrossed := cpu.evalAbsolute(cpu.registers.Pc)
 
 	assert.Equal(t, defs.Address(0x0130), result, "Error")
 	assert.Equal(t, cpu.registers.Pc+2, pc)
+	assert.False(t, pageCrossed)
 }
 
 func TestAbsoluteXIndexed(t *testing.T) {
-	cpu := CreateCPUWithBus()
-	cpu.registers.X = 5
-	cpu.registers.Pc = 0x00
-	cpu.bus.Write(0x0000, 0x01)
-	cpu.bus.Write(0x0001, 0x01)
+	type dataProvider struct {
+		test                string
+		lsb                 byte
+		hsb                 byte
+		expectedAddress     defs.Address
+		expectedPageCrossed bool
+	}
 
-	pc, result, _ := cpu.evalAbsoluteXIndexed(cpu.registers.Pc)
+	dataProviders := [...]dataProvider{
+		{"page not crossed", 0x01, 0x01, 0x106, false},
+		{"page crossed", 0xFF, 0x00, 0x104, true},
+	}
 
-	assert.Equal(t, defs.Address(0x106), result)
-	assert.Equal(t, cpu.registers.Pc+2, pc)
+	for _, dp := range dataProviders {
+		cpu := CreateCPUWithBus()
+		cpu.registers.X = 5
+		cpu.registers.Pc = 0x00
+		//cpu.bus.Write(0x0000, 0x01)
+		//cpu.bus.Write(0x0001, 0x01)
+		cpu.bus.Write(0x0000, dp.lsb)
+		cpu.bus.Write(0x0001, dp.hsb)
+
+		pc, result, _, pageCrossed := cpu.evalAbsoluteXIndexed(cpu.registers.Pc)
+
+		assert.Equal(t, dp.expectedAddress, result)
+		assert.Equal(t, cpu.registers.Pc+2, pc)
+		assert.Equal(t, dp.expectedPageCrossed, pageCrossed)
+	}
 }
 
 func TestAbsoluteYIndexed(t *testing.T) {
-	cpu := CreateCPUWithBus()
-	cpu.registers.Pc = 0x00
-	cpu.registers.Y = 5
+	type dataProvider struct {
+		test                string
+		lsb                 byte
+		hsb                 byte
+		expectedAddress     defs.Address
+		expectedPageCrossed bool
+	}
 
-	cpu.bus.Write(0x0000, 0x01)
-	cpu.bus.Write(0x0001, 0x01)
+	dataProviders := [...]dataProvider{
+		{"page not crossed", 0x01, 0x01, 0x106, false},
+		{"page crossed", 0xFF, 0x00, 0x104, true},
+	}
 
-	pc, result, _ := cpu.evalAbsoluteYIndexed(cpu.registers.Pc)
+	for _, dp := range dataProviders {
+		cpu := CreateCPUWithBus()
+		cpu.registers.Pc = 0x00
+		cpu.registers.Y = 5
 
-	assert.Equal(t, defs.Address(0x106), result)
-	assert.Equal(t, cpu.registers.Pc+2, pc)
+		//cpu.bus.Write(0x0000, 0x01)
+		//cpu.bus.Write(0x0001, 0x01)
+
+		cpu.bus.Write(0x0000, dp.lsb)
+		cpu.bus.Write(0x0001, dp.hsb)
+
+		pc, result, _, pageCrossed := cpu.evalAbsoluteYIndexed(cpu.registers.Pc)
+
+		assert.Equal(t, dp.expectedAddress, result)
+		assert.Equal(t, dp.expectedPageCrossed, pageCrossed)
+		assert.Equal(t, cpu.registers.Pc+2, pc)
+	}
 }
 
 func TestIndirect(t *testing.T) {
@@ -114,7 +157,7 @@ func TestIndirect(t *testing.T) {
 	cpu.bus.Write(defs.Address(0x134), 0x00)
 	cpu.bus.Write(defs.Address(0x135), 0x02)
 
-	pc, result, _ := cpu.evalIndirect(cpu.registers.Pc)
+	pc, result, _, _ := cpu.evalIndirect(cpu.registers.Pc)
 	expected := defs.Address(0x200)
 
 	assert.Equal(t, expected, result, "Indirect error")
@@ -132,7 +175,7 @@ func TestIndirect_bug(t *testing.T) {
 	cpu.bus.Write(0xC100, 0x04)
 	cpu.bus.Write(0xC000, 0x01)
 
-	pc, result, _ := cpu.evalIndirect(cpu.registers.Pc)
+	pc, result, _, _ := cpu.evalIndirect(cpu.registers.Pc)
 	expected := defs.Address(0x155)
 
 	assert.Equal(t, expected, result, "Indirect error")
@@ -140,93 +183,75 @@ func TestIndirect_bug(t *testing.T) {
 }
 
 func TestIndexed_indirect(t *testing.T) {
-	cpu := CreateCPUWithBus()
-	cpu.registers.Pc = 0x00
-	cpu.registers.X = 4
+	type dataProvider struct {
+		test                string
+		x                   byte
+		operand             byte
+		lsbPtr              defs.Address
+		hsbPtr              defs.Address
+		expectedAddress     defs.Address
+		expectedPageCrossed bool
+	}
 
-	// Write Operand
-	cpu.bus.Write(0, 0x10)
+	dataProviders := [...]dataProvider{
+		{"page not crossed", 0x04, 0x10, 0x0014, 0x0015, 0x1025, false},
+		{"page crossed", 0x03, 0xFE, 0x01, 0x02, 0x510, false},
+		{"page crossed", 0x01, 0xFE, 0xFF, 0x00, 0x510, false},
+	}
 
-	// Write Offset Table
-	// write low
-	cpu.bus.Write(0x0014, 0x25)
-	// write high
-	cpu.bus.Write(0x0015, 0x10)
+	for testIdx, dp := range dataProviders {
+		cpu := CreateCPUWithBus()
+		cpu.registers.Pc = 0x00
+		cpu.registers.X = 4
 
-	_, result, _ := cpu.evalIndirectX(cpu.registers.Pc)
+		// Write Operand
+		cpu.bus.Write(0, 0x10)
 
-	expected := defs.Address(0x1025)
-	assert.Equal(t, expected, result)
-	//assert.Equal(t, cpu.registers.Pc+1, pc)
+		// Write Offset Table
+		cpu.bus.Write(0x0014, byte(dp.expectedAddress))
+		cpu.bus.Write(0x0015, byte(dp.expectedAddress>>8))
+
+		_, result, _, pageCrossed := cpu.evalIndirectX(cpu.registers.Pc)
+
+		assert.Equal(t, dp.expectedAddress, result, fmt.Sprintf("%s [%d]: address", dp.test, testIdx))
+		assert.Equal(t, dp.expectedPageCrossed, pageCrossed, fmt.Sprintf("%s [%d]: page crossed", dp.test, testIdx))
+	}
 }
 
-func TestIndexed_Indirect_X_wraps(t *testing.T) {
-	cpu := CreateCPUWithBus()
-	cpu.registers.Pc = 0x0055
-	cpu.registers.X = 3
-	// Operand
-	cpu.bus.Write(0x0055, 0xFE)
+func TestIndirectY(t *testing.T) {
+	type dataProvider struct {
+		test                string
+		y                   byte
+		operand             byte
+		lsbPtr              defs.Address
+		hsbPtr              defs.Address
+		expectedAddress     defs.Address
+		expectedPageCrossed bool
+	}
 
-	cpu.bus.Write(0x01, 0x10)
-	cpu.bus.Write(0x02, 0x05)
+	dataProviders := [...]dataProvider{
+		{"page not crossed", 0x10, 0x86, 0x86, 0x87, 0x4038, false},
+		{"page crossed", 0xFF, 0xFF, 0xFF, 0x00, 0x245, true},
+	}
 
-	_, result, _ := cpu.evalIndirectX(cpu.registers.Pc)
+	for testIdx, dp := range dataProviders {
+		cpu := CreateCPUWithBus()
+		cpu.registers.Pc = 0x50
+		cpu.registers.Y = dp.y
 
-	assert.Equal(t, defs.Address(0x0510), result)
-}
+		// Operand
+		cpu.bus.Write(0x50, dp.operand)
 
-func TestIndexed_indirect_with_wrap_around(t *testing.T) {
-	cpu := CreateCPUWithBus()
-	cpu.registers.Pc = 0x55
-	cpu.registers.X = 1
-	// Operand
-	cpu.bus.Write(0x0055, 0xFE)
+		// Indexed Table Pointers
+		cpu.bus.Write(defs.Address(dp.operand), byte(dp.expectedAddress-defs.Address(dp.y)))
+		cpu.bus.Write(defs.Address(dp.operand+1), byte((dp.expectedAddress-defs.Address(dp.y))>>8))
 
-	cpu.bus.Write(0xFF, 0x10)
-	cpu.bus.Write(0x100, 0x99)
-	cpu.bus.Write(0x00, 0x05)
+		pc, result, _, pageCrossed := cpu.evalIndirectY(cpu.registers.Pc)
 
-	_, result, _ := cpu.evalIndirectX(cpu.registers.Pc)
-
-	assert.Equal(t, defs.Address(0x0510), result)
-}
-
-func TestIndirect_indexed(t *testing.T) {
-	cpu := CreateCPUWithBus()
-	cpu.registers.Pc = 0x00
-	cpu.registers.Y = 0x10
-
-	// Operand
-	cpu.bus.Write(0x00, 0x86)
-
-	// Indexed Table Pointers
-	cpu.bus.Write(0x86, 0x28)
-	cpu.bus.Write(0x87, 0x40)
-	cpu.bus.Write(0x4038, 0x99)
-
-	pc, result, _ := cpu.evalIndirectY(cpu.registers.Pc)
-
-	assert.Equal(t, defs.Address(0x4038), result)
-	assert.Equal(t, cpu.registers.Pc+1, pc)
-}
-
-func TestIndexed_Indirect_With_Wrap_Around_at_zero_page(t *testing.T) {
-	cpu := CreateCPUWithBus()
-
-	cpu.registers.Pc = 0x100
-	cpu.registers.Y = 0xFF
-
-	// Opcode Operand
-	cpu.bus.Write(0x0100, 0xFF)
-
-	// Indexed Table Pointers
-	cpu.bus.Write(0xFF, 0x46)
-	cpu.bus.Write(0x00, 0x01)
-
-	pc, result, _ := cpu.evalIndirectY(cpu.registers.Pc)
-
-	assert.Equal(t, defs.Address(0x245), result)
-	assert.Equal(t, cpu.registers.Pc+1, pc)
+		assert.Equal(t, dp.expectedAddress, result, fmt.Sprintf("%s [%d]: address", dp.test, testIdx))
+		assert.Equal(t, cpu.registers.Pc+1, pc, fmt.Sprintf("%s [%d]: pc", dp.test, testIdx))
+		assert.Equal(t, dp.expectedPageCrossed, pageCrossed, fmt.Sprintf("%s [%d]: page crossed", dp.test, testIdx))
+	}
 }
 
 func TestRelativeAddressMode(t *testing.T) {
@@ -237,7 +262,7 @@ func TestRelativeAddressMode(t *testing.T) {
 	cpu.bus.Write(0x09, 0xFF) // OpCode
 	cpu.bus.Write(0x10, 0x04) // Operand
 
-	pc, result, _ := cpu.evalRelative(cpu.registers.Pc)
+	pc, result, _, _ := cpu.evalRelative(cpu.registers.Pc)
 
 	assert.Equal(t, defs.Address(0x15), result)
 	assert.Equal(t, cpu.registers.Pc+1, pc)
@@ -250,7 +275,7 @@ func TestRelativeAddressModeNegative(t *testing.T) {
 	// Write Operand
 	cpu.bus.Write(0x10, 0x100-4)
 
-	pc, result, _ := cpu.evalRelative(cpu.registers.Pc)
+	pc, result, _, _ := cpu.evalRelative(cpu.registers.Pc)
 
 	assert.Equal(t, defs.Address(0x0D), result)
 	assert.Equal(t, cpu.registers.Pc+1, pc)
