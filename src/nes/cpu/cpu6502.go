@@ -428,5 +428,5 @@ func (cpu Cpu6502) evaluateOperandAddress(addressMode defs.AddressMode, pc defs.
 }
 
 func memoryPageDiffer(address defs.Address, finalAddress defs.Address) bool {
-	return address&0xFF00 != (finalAddress >> 8)
+	return address&0xFF00 != finalAddress&0xFF00
 }
