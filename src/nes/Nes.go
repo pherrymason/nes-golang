@@ -18,9 +18,9 @@ func CreateNes() Nes {
 	cpu := cpu2.CreateCPU(&bus)
 
 	nes := Nes{
-		cpu:   &cpu,
+		cpu:   cpu,
 		bus:   &bus,
-		debug: NesDebugger{false, &cpu, nil, 0, nil},
+		debug: NesDebugger{false, cpu, nil, 0, nil},
 	}
 
 	return nes
@@ -32,11 +32,11 @@ func CreateDebuggableNes(debugger NesDebugger) Nes {
 	cpu := cpu2.CreateCPUDebuggable(&bus, debugger.logger)
 
 	nes := Nes{
-		&cpu,
+		cpu,
 		&bus,
 		NesDebugger{
 			true,
-			&cpu,
+			cpu,
 			debugger.logger,
 			debugger.cyclesLimit,
 			nil,

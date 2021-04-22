@@ -8,8 +8,8 @@ type Bus struct {
 	//
 	// 	0x0000 - 0x00FF  ZeroPage
 	//	0x0100 - 0x01FF  Stack
-	//	0x0200 - 0x0800  General Purpose RAM
-	//  0x0801 - 0x2000  Mirrors previous chunk of memory (0x0 - 0x7FF)
+	//	0x0200 - 0x07FF  General Purpose RAM
+	//  0x0800 - 0x1FFF  Mirrors previous chunk of memory (0x0 - 0x7FF)
 	//  0x2000 - 0x2007  PPU registers
 	//  0x2008 - 0x4000  Mirrors PPU registers
 	//  0x4000 - 0x4020  I/O Registers
@@ -18,7 +18,7 @@ type Bus struct {
 	//  0x8000 - 0xBFFF  GamePak prgROM lower bank
 	//  0xC000 - 0x10000 GamePak prgROM higher bank
 
-	Ram *RAM // is $0000 -> $07FF
+	Ram *RAM // is $0000 -> $1FFF
 	// RAM mirrors $0800 -> $1FFF
 	Cartridge *GamePak // 0x8000 -> $FFFF
 
@@ -35,9 +35,9 @@ func (bus *Bus) Read(address defs.Address) byte {
 }
 
 func (bus *Bus) ReadOnly(address defs.Address) byte {
-	if address <= 0x7FF {
+	if address <= RAM_HIGHER_ADDRESS {
 		return bus.Ram.read(address)
-	} else if address >= 0x8000 {
+	} else if address >= GAMEPAK_LOW_RANGE {
 		return bus.Cartridge.read(address)
 	}
 

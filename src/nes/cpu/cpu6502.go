@@ -22,7 +22,7 @@ type Cpu6502 struct {
 	cyclesLimit uint16
 }
 
-func CreateCPU(bus *component.Bus) Cpu6502 {
+func CreateCPU(bus *component.Bus) *Cpu6502 {
 	registers := CreateRegisters()
 	cpu := Cpu6502{
 		registers: registers,
@@ -32,10 +32,10 @@ func CreateCPU(bus *component.Bus) Cpu6502 {
 
 	cpu.Init()
 
-	return cpu
+	return &cpu
 }
 
-func CreateCPUDebuggable(bus *component.Bus, logger *Logger) Cpu6502 {
+func CreateCPUDebuggable(bus *component.Bus, logger *Logger) *Cpu6502 {
 	registers := CreateRegisters()
 	cpu := Cpu6502{
 		registers: registers,
@@ -46,11 +46,11 @@ func CreateCPUDebuggable(bus *component.Bus, logger *Logger) Cpu6502 {
 
 	cpu.Init()
 
-	return cpu
+	return &cpu
 }
 
 // CreateCPUWithBus creates a Cpu6502 with a Bus, Useful for tests
-func CreateCPUWithBus() Cpu6502 {
+func CreateCPUWithBus() *Cpu6502 {
 	registers := CreateRegisters()
 
 	ram := component.RAM{}
@@ -67,7 +67,7 @@ func CreateCPUWithBus() Cpu6502 {
 
 	cpu.Init()
 
-	return cpu
+	return &cpu
 }
 
 func (cpu *Cpu6502) Registers() *Cpu6502Registers {
