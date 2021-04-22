@@ -31,6 +31,10 @@ func CreateBus(ram *RAM) Bus {
 }
 
 func (bus *Bus) Read(address defs.Address) byte {
+	return bus.ReadOnly(address)
+}
+
+func (bus *Bus) ReadOnly(address defs.Address) byte {
 	if address <= 0x7FF {
 		return bus.Ram.read(address)
 	} else if address >= 0x8000 {
