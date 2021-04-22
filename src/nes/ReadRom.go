@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 )
 
-func readRom(path string) component.GamePak {
+func ReadRom(path string) component.GamePak {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		fmt.Println("File reading error", err)
