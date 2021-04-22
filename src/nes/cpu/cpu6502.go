@@ -24,21 +24,29 @@ type Cpu6502 struct {
 
 func CreateCPU(bus *component.Bus) Cpu6502 {
 	registers := CreateRegisters()
-	return Cpu6502{
+	cpu := Cpu6502{
 		registers: registers,
 		bus:       bus,
 		debug:     false,
 	}
+
+	cpu.Init()
+
+	return cpu
 }
 
 func CreateCPUDebuggable(bus *component.Bus, logger *Logger) Cpu6502 {
 	registers := CreateRegisters()
-	return Cpu6502{
+	cpu := Cpu6502{
 		registers: registers,
 		bus:       bus,
 		debug:     true,
 		Logger:    *logger,
 	}
+
+	cpu.Init()
+
+	return cpu
 }
 
 // CreateCPUWithBus creates a Cpu6502 with a Bus, Useful for tests
@@ -49,13 +57,17 @@ func CreateCPUWithBus() Cpu6502 {
 	gamepak := component.CreateDummyGamePak()
 
 	bus := component.CreateBus(&ram)
-	bus.AttachCartridge(&gamepak)
+	bus.InsertGamePak(&gamepak)
 
-	return Cpu6502{
+	cpu := Cpu6502{
 		registers: registers,
 		bus:       &bus,
 		debug:     false,
 	}
+
+	cpu.Init()
+
+	return cpu
 }
 
 func (cpu *Cpu6502) Registers() *Cpu6502Registers {

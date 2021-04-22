@@ -47,39 +47,21 @@ func CreateDebuggableNes(debugger NesDebugger) Nes {
 }
 
 func (nes *Nes) StartAt(address defs.Address) {
-	nes.cpu.Registers().Reset()
-	nes.cpu.Registers().Pc = address
-	nes.cpu.Cycle = 7
-
-	nes.Start()
+	nes.debug.disassembled = nes.cpu.Disassemble(0x8000, 0xFFFF)
+	nes.cpu.ResetToAddress(address)
 }
 
 func (nes *Nes) Start() {
-	nes.cpu.Init()
-
 	nes.debug.disassembled = nes.cpu.Disassemble(0x8000, 0xFFFF)
-
-	//
-	//var i uint16 = 1
-	//
-	////nes.cpu.reset()
-	//for {
-	//	opCyclesLeft := nes.cpu.Tick()
-	//	if opCyclesLeft == 0 {
-	//		i++
-	//	}
-	//	if nes.debug.cyclesLimit > 0 && i >= nes.debug.cyclesLimit {
-	//		break
-	//	}
-	//}
+	nes.cpu.Reset()
 }
 
 func (nes *Nes) Tick() byte {
 	return nes.cpu.Tick()
 }
 
-func (nes *Nes) InsertCartridge(cartridge *component.GamePak) {
-	nes.bus.AttachCartridge(cartridge)
+func (nes *Nes) InsertGamePak(cartridge *component.GamePak) {
+	nes.bus.InsertGamePak(cartridge)
 }
 
 func (nes Nes) Debugger() *NesDebugger {

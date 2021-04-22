@@ -17,7 +17,7 @@ func main() {
 	console := nes.CreateNes()
 	//gamePak := nes.ReadRom("./roms/nestest/nestest.nes")
 	gamePak := nes.ReadRom("./roms/Donkey Kong (World) (Rev A).nes")
-	console.InsertCartridge(&gamePak)
+	console.InsertGamePak(&gamePak)
 
 	//
 	console.Start()

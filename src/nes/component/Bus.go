@@ -69,6 +69,6 @@ func (bus *Bus) Write(address defs.Address, value byte) {
 	}
 }
 
-func (bus *Bus) AttachCartridge(cartridge *GamePak) {
+func (bus *Bus) InsertGamePak(cartridge *GamePak) {
 	bus.Cartridge = cartridge
 }

@@ -15,7 +15,7 @@ func TestNestest(t *testing.T) {
 	logger := cpu.CreateCPULogger(outputLogPath)
 
 	nes := CreateDebuggableNes(NesDebugger{true, nil, &logger, 5004, nil})
-	nes.InsertCartridge(&gamePak)
+	nes.InsertGamePak(&gamePak)
 	nes.StartAt(0xC000)
 
 	var i uint16 = 1
@@ -65,6 +65,6 @@ func TestCPUDummyReads(t *testing.T) {
 	cartridge := ReadRom("./../../tests/roms/cpu_dummy_reads.nes")
 
 	nes := CreateNes()
-	nes.InsertCartridge(&cartridge)
+	nes.InsertGamePak(&cartridge)
 	nes.Start()
 }

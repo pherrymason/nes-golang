@@ -17,6 +17,7 @@ func (cpu *Cpu6502) Reset() {
 	// Read Reset Vector
 	address := cpu.bus.Read16(0xFFFC)
 	cpu.registers.Pc = defs.Address(address)
+	cpu.Cycle = 7
 }
 
 func (cpu *Cpu6502) ResetToAddress(programCounter defs.Address) {
