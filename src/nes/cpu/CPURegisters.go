@@ -58,7 +58,7 @@ type Cpu6502Registers struct {
 	Status byte
 }
 
-func (registers *Cpu6502Registers) reset() {
+func (registers *Cpu6502Registers) Reset() {
 	registers.A = 0x00
 	registers.X = 0x00
 	registers.Y = 0x00

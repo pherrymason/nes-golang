@@ -36,7 +36,7 @@ func CreateState(cpu Cpu6502) State {
 		instruction,
 		rawOpcode,
 		evaluatedAddress,
-		cpu.cycle,
+		cpu.Cycle,
 	}
 
 	return state

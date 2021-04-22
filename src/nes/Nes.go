@@ -8,7 +8,7 @@ import (
 type Nes struct {
 	cpu   *cpu2.Cpu6502
 	bus   *component.Bus
-	debug DebuggableNes
+	debug NesDebugger
 }
 
 func CreateNes() Nes {
@@ -19,30 +19,26 @@ func CreateNes() Nes {
 	nes := Nes{
 		cpu:   &cpu,
 		bus:   &bus,
-		debug: DebuggableNes{false, nil, 0},
+		debug: NesDebugger{false, &cpu, nil, 0, nil},
 	}
 
 	return nes
 }
 
-type DebuggableNes struct {
-	debug       bool
-	logger      *cpu2.Logger
-	cyclesLimit uint16
-}
-
-func CreateDebuggableNes(options DebuggableNes) Nes {
+func CreateDebuggableNes(debugger NesDebugger) Nes {
 	ram := component.RAM{}
 	bus := component.CreateBus(&ram)
-	cpu := cpu2.CreateCPUDebuggable(&bus, options.logger)
+	cpu := cpu2.CreateCPUDebuggable(&bus, debugger.logger)
 
 	nes := Nes{
 		&cpu,
 		&bus,
-		DebuggableNes{
+		NesDebugger{
 			true,
-			options.logger,
-			options.cyclesLimit,
+			&cpu,
+			debugger.logger,
+			debugger.cyclesLimit,
+			nil,
 		},
 	}
 
@@ -67,4 +63,8 @@ func (nes *Nes) Start() {
 
 func (nes *Nes) InsertCartridge(cartridge *component.GamePak) {
 	nes.bus.AttachCartridge(cartridge)
+}
+
+func (nes Nes) Debugger() *NesDebugger {
+	return &nes.debug
 }

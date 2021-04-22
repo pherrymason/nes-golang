@@ -11,7 +11,7 @@ func (cpu *Cpu6502) Init() {
 }
 
 func (cpu *Cpu6502) Reset() {
-	cpu.registers.reset()
+	cpu.registers.Reset()
 	cpu.instructionCycle = 0
 
 	// Read Reset Vector
@@ -20,9 +20,9 @@ func (cpu *Cpu6502) Reset() {
 }
 
 func (cpu *Cpu6502) ResetToAddress(programCounter defs.Address) {
-	cpu.registers.reset()
+	cpu.registers.Reset()
 	cpu.registers.Pc = programCounter
-	cpu.cycle = 7
+	cpu.Cycle = 7
 }
 
 func (cpu *Cpu6502) Tick() byte {
@@ -53,7 +53,7 @@ func (cpu *Cpu6502) Tick() byte {
 		if pageCrossed && opMightNeedExtraCycle {
 			cpu.instructionCycle++
 		}
-		cpu.cycle += uint16(cpu.instructionCycle)
+		cpu.Cycle += uint16(cpu.instructionCycle)
 	}
 
 	cpu.instructionCycle--

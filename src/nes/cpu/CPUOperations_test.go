@@ -154,9 +154,9 @@ func TestADC(t *testing.T) {
 
 func TestBCC(t *testing.T) {
 	type dataProvider struct {
-		carryFlag     byte
-		pc            defs.Address
-		expectedPc    defs.Address
+		carryFlag      byte
+		pc             defs.Address
+		expectedPc     defs.Address
 		expectedCycles byte
 	}
 
@@ -182,10 +182,10 @@ func TestBCC(t *testing.T) {
 
 func TestBCS(t *testing.T) {
 	type dataProvider struct {
-		failError string
-		carry      byte
-		pc defs.Address
-		expectedPc defs.Address
+		failError      string
+		carry          byte
+		pc             defs.Address
+		expectedPc     defs.Address
 		expectedCycles byte
 	}
 
@@ -195,23 +195,23 @@ func TestBCS(t *testing.T) {
 		{"does not branch when carry is unset", 0, 0x0000, 0x0000, 0},
 	}
 
-	for _, dp  := range dataProviders {
+	for _, dp := range dataProviders {
 		cpu := CreateCPUWithBus()
 		cpu.registers.updateFlag(carryFlag, dp.carry)
 		cpu.registers.Pc = dp.pc
 		cpu.bcs(defs.OperationMethodArgument{defs.Relative, dp.expectedPc})
 
-		assert.Equal(t, dp.expectedPc, cpu.registers.Pc, dp.failError + "; invalid pc")
+		assert.Equal(t, dp.expectedPc, cpu.registers.Pc, dp.failError+"; invalid pc")
 		assert.Equal(t, dp.expectedCycles, cpu.instructionCycle, dp.failError+": invalid cycles")
 	}
 }
 
 func TestBEQ(t *testing.T) {
 	type dataProvider struct {
-		failError string
-		zero      byte
-		pc defs.Address
-		expectedPc defs.Address
+		failError      string
+		zero           byte
+		pc             defs.Address
+		expectedPc     defs.Address
 		expectedCycles byte
 	}
 
@@ -221,15 +221,15 @@ func TestBEQ(t *testing.T) {
 		{"does not branch when zero is unset", 0, 0x0000, 0x0000, 0},
 	}
 
-	for _, dp  := range dataProviders {
+	for _, dp := range dataProviders {
 		cpu := CreateCPUWithBus()
 		cpu.registers.updateFlag(zeroFlag, dp.zero)
 		cpu.registers.Pc = dp.pc
 
 		cpu.beq(defs.OperationMethodArgument{defs.Relative, dp.expectedPc})
 
-		assert.Equal(t, dp.expectedPc, cpu.registers.Pc, dp.failError + ":invalid pc")
-		assert.Equal(t, dp.expectedCycles, cpu.instructionCycle, dp.failError + ":invalid cycles")
+		assert.Equal(t, dp.expectedPc, cpu.registers.Pc, dp.failError+":invalid pc")
+		assert.Equal(t, dp.expectedCycles, cpu.instructionCycle, dp.failError+":invalid cycles")
 	}
 }
 
@@ -273,10 +273,10 @@ func TestBIT(t *testing.T) {
 
 func TestBMI(t *testing.T) {
 	type dataProvider struct {
-		failError string
-		negative      byte
-		pc defs.Address
-		expectedPc defs.Address
+		failError      string
+		negative       byte
+		pc             defs.Address
+		expectedPc     defs.Address
 		expectedCycles byte
 	}
 
@@ -286,24 +286,24 @@ func TestBMI(t *testing.T) {
 		{"does not branch when negative is unset", 0, 0x0000, 0x0000, 0},
 	}
 
-	for _, dp  := range dataProviders {
+	for _, dp := range dataProviders {
 		cpu := CreateCPUWithBus()
 		cpu.registers.updateFlag(negativeFlag, dp.negative)
 		cpu.registers.Pc = dp.pc
 
 		cpu.bmi(defs.OperationMethodArgument{defs.Relative, dp.expectedPc})
 
-		assert.Equal(t, dp.expectedPc, cpu.registers.Pc, dp.failError + ":invalid pc")
-		assert.Equal(t, dp.expectedCycles, cpu.instructionCycle, dp.failError + ":invalid cycles")
+		assert.Equal(t, dp.expectedPc, cpu.registers.Pc, dp.failError+":invalid pc")
+		assert.Equal(t, dp.expectedCycles, cpu.instructionCycle, dp.failError+":invalid cycles")
 	}
 }
 
 func TestBNE(t *testing.T) {
 	type dataProvider struct {
-		failError string
-		zero      byte
-		pc defs.Address
-		expectedPc defs.Address
+		failError      string
+		zero           byte
+		pc             defs.Address
+		expectedPc     defs.Address
 		expectedCycles byte
 	}
 
@@ -313,23 +313,23 @@ func TestBNE(t *testing.T) {
 		{"does not branch when zero is unset", 1, 0x0000, 0x0000, 0},
 	}
 
-	for _, dp  := range dataProviders {
+	for _, dp := range dataProviders {
 		cpu := CreateCPUWithBus()
 		cpu.registers.Pc = dp.pc
 		cpu.registers.updateFlag(zeroFlag, dp.zero)
 		cpu.bne(defs.OperationMethodArgument{defs.Relative, dp.expectedPc})
 
-		assert.Equal(t, dp.expectedPc, cpu.registers.Pc, dp.failError + ":invalid pc")
-		assert.Equal(t, dp.expectedCycles, cpu.instructionCycle, dp.failError + ":invalid cycles")
+		assert.Equal(t, dp.expectedPc, cpu.registers.Pc, dp.failError+":invalid pc")
+		assert.Equal(t, dp.expectedCycles, cpu.instructionCycle, dp.failError+":invalid cycles")
 	}
 }
 
 func TestBPL(t *testing.T) {
 	type dataProvider struct {
-		failError string
-		negative      byte
-		pc defs.Address
-		expectedPc defs.Address
+		failError      string
+		negative       byte
+		pc             defs.Address
+		expectedPc     defs.Address
 		expectedCycles byte
 	}
 
@@ -339,7 +339,7 @@ func TestBPL(t *testing.T) {
 		{"does not branch when negative is unset", 1, 0x0000, 0x0000, 0},
 	}
 
-	for _, dp  := range dataProviders {
+	for _, dp := range dataProviders {
 		cpu := CreateCPUWithBus()
 		cpu.registers.Pc = dp.pc
 		cpu.registers.updateFlag(negativeFlag, dp.negative)
@@ -375,10 +375,10 @@ func TestBRK(t *testing.T) {
 
 func TestBVC(t *testing.T) {
 	type dataProvider struct {
-		failError string
-		overflow      byte
-		pc defs.Address
-		expectedPc defs.Address
+		failError      string
+		overflow       byte
+		pc             defs.Address
+		expectedPc     defs.Address
 		expectedCycles byte
 	}
 
@@ -388,23 +388,23 @@ func TestBVC(t *testing.T) {
 		{"does not branch when overflow is unset", 1, 0x0000, 0x0000, 0},
 	}
 
-	for _, dp  := range dataProviders {
+	for _, dp := range dataProviders {
 		cpu := CreateCPUWithBus()
 		cpu.registers.Pc = dp.pc
 		cpu.registers.updateFlag(overflowFlag, dp.overflow)
 		cpu.bvc(defs.OperationMethodArgument{defs.Relative, dp.expectedPc})
 
-		assert.Equal(t, dp.expectedPc, cpu.registers.Pc, dp.failError + ": invalid pc")
-		assert.Equal(t, dp.expectedCycles, cpu.instructionCycle, dp.failError + ": invalid cycles")
+		assert.Equal(t, dp.expectedPc, cpu.registers.Pc, dp.failError+": invalid pc")
+		assert.Equal(t, dp.expectedCycles, cpu.instructionCycle, dp.failError+": invalid cycles")
 	}
 }
 
 func TestBVS(t *testing.T) {
 	type dataProvider struct {
-		failError string
-		overflow      byte
-		pc defs.Address
-		expectedPc defs.Address
+		failError      string
+		overflow       byte
+		pc             defs.Address
+		expectedPc     defs.Address
 		expectedCycles byte
 	}
 
@@ -414,14 +414,14 @@ func TestBVS(t *testing.T) {
 		{"does not branch when overflow is unset", 0, 0x0000, 0x0000, 0},
 	}
 
-	for _, dp  := range dataProviders {
+	for _, dp := range dataProviders {
 		cpu := CreateCPUWithBus()
 		cpu.registers.Pc = dp.pc
 		cpu.registers.updateFlag(overflowFlag, dp.overflow)
 		cpu.bvs(defs.OperationMethodArgument{defs.Relative, dp.expectedPc})
 
-		assert.Equal(t, dp.expectedPc, cpu.registers.Pc, dp.failError + ": invalid pc")
-		assert.Equal(t, dp.expectedCycles, cpu.instructionCycle, dp.failError + ": invalid cycles")
+		assert.Equal(t, dp.expectedPc, cpu.registers.Pc, dp.failError+": invalid pc")
+		assert.Equal(t, dp.expectedCycles, cpu.instructionCycle, dp.failError+": invalid cycles")
 	}
 }
 
@@ -1115,7 +1115,7 @@ func TestTAX_TAY(t *testing.T) {
 
 	for i := 0; i < len(dataProviders); i++ {
 		dp := dataProviders[i]
-		cpu.registers.reset()
+		cpu.registers.Reset()
 		cpu.registers.A = dp.a
 
 		dp.op(defs.OperationMethodArgument{defs.Implicit, 0x00})

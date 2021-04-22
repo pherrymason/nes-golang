@@ -13,7 +13,7 @@ type Cpu6502 struct {
 
 	instructions     [256]defs.Instruction
 	instructionCycle byte
-	cycle            uint16
+	Cycle            uint16
 
 	addressEvaluators [13]func(programCounter defs.Address) (pc defs.Address, address defs.Address, cycles int, pageCrossed bool)
 	// Debug parameters
