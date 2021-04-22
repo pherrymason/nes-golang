@@ -3,6 +3,7 @@ package nes
 import (
 	"github.com/raulferras/nes-golang/src/nes/component"
 	cpu2 "github.com/raulferras/nes-golang/src/nes/cpu"
+	"github.com/raulferras/nes-golang/src/nes/defs"
 )
 
 type Nes struct {
@@ -45,20 +46,36 @@ func CreateDebuggableNes(debugger NesDebugger) Nes {
 	return nes
 }
 
+func (nes *Nes) StartAt(address defs.Address) {
+	nes.cpu.Registers().Reset()
+	nes.cpu.Registers().Pc = address
+	nes.cpu.Cycle = 7
+
+	nes.Start()
+}
+
 func (nes *Nes) Start() {
 	nes.cpu.Init()
-	var i uint16 = 1
 
-	//nes.cpu.reset()
-	for {
-		opCyclesLeft := nes.cpu.Tick()
-		if opCyclesLeft == 0 {
-			i++
-		}
-		if nes.debug.cyclesLimit > 0 && i >= nes.debug.cyclesLimit {
-			break
-		}
-	}
+	nes.debug.disassembled = nes.cpu.Disassemble(0x8000, 0xFFFF)
+
+	//
+	//var i uint16 = 1
+	//
+	////nes.cpu.reset()
+	//for {
+	//	opCyclesLeft := nes.cpu.Tick()
+	//	if opCyclesLeft == 0 {
+	//		i++
+	//	}
+	//	if nes.debug.cyclesLimit > 0 && i >= nes.debug.cyclesLimit {
+	//		break
+	//	}
+	//}
+}
+
+func (nes *Nes) Tick() byte {
+	return nes.cpu.Tick()
 }
 
 func (nes *Nes) InsertCartridge(cartridge *component.GamePak) {
