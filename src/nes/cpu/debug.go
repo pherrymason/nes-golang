@@ -34,64 +34,70 @@ func (cpu *Cpu6502) Disassemble(start defs.Address, end defs.Address) map[defs.A
 		// Read instruction, and get its readable name
 		opcode := cpu.bus.Read(defs.Address(addr))
 		addr++
-		sInst += cpu.instructions[opcode].Name() + " "
+		instruction := cpu.instructions[opcode]
 
-		if cpu.instructions[opcode].AddressMode() == defs.Implicit {
+		if len(instruction.Name()) == 0 {
+			sInst += "0x" + hex(uint32(opcode), 2) + "? "
+		} else {
+			sInst += instruction.Name() + " "
+		}
+
+		if instruction.AddressMode() == defs.Implicit {
 			sInst += " {IMP}"
-		} else if cpu.instructions[opcode].AddressMode() == defs.Immediate {
+		} else if instruction.AddressMode() == defs.Immediate {
 			value = cpu.bus.ReadOnly(defs.Address(addr))
 			addr++
 			sInst += "#$" + hex(uint32(value), 2) + " {IMM}"
-		} else if cpu.instructions[opcode].AddressMode() == defs.ZeroPage {
+		} else if instruction.AddressMode() == defs.ZeroPage {
 			lo = cpu.bus.ReadOnly(defs.Address(addr))
 			addr++
 			hi = 0x00
 			sInst += "$" + hex(uint32(lo), 2) + " {ZP0}"
-		} else if cpu.instructions[opcode].AddressMode() == defs.ZeroPageX {
+		} else if instruction.AddressMode() == defs.ZeroPageX {
 			lo = cpu.bus.ReadOnly(defs.Address(addr))
 			addr++
 			hi = 0x00
 			sInst += "$" + hex(uint32(lo), 2) + ", X {ZPX}"
-		} else if cpu.instructions[opcode].AddressMode() == defs.ZeroPageY {
+		} else if instruction.AddressMode() == defs.ZeroPageY {
 			lo = cpu.bus.ReadOnly(defs.Address(addr))
 			addr++
 			hi = 0x00
 			sInst += "$" + hex(uint32(lo), 2) + ", Y {ZPY}"
-		} else if cpu.instructions[opcode].AddressMode() == defs.IndirectX {
+		} else if instruction.AddressMode() == defs.IndirectX {
 			lo = cpu.bus.ReadOnly(defs.Address(addr))
 			addr++
 			hi = 0x00
 			sInst += "($" + hex(uint32(lo), 2) + ", X) {IZX}"
-		} else if cpu.instructions[opcode].AddressMode() == defs.IndirectY {
+		} else if instruction.AddressMode() == defs.IndirectY {
 			lo = cpu.bus.ReadOnly(defs.Address(addr))
 			addr++
 			hi = 0x00
 			sInst += "($" + hex(uint32(lo), 2) + "), Y {IZY}"
-		} else if cpu.instructions[opcode].AddressMode() == defs.Absolute {
+		} else if instruction.AddressMode() == defs.Absolute {
 			lo = cpu.bus.ReadOnly(defs.Address(addr))
 			addr++
 			hi = cpu.bus.ReadOnly(defs.Address(addr))
 			addr++
 			sInst += "$" + hex(uint32(defs.CreateWord(hi, lo)), 4) + " {ABS}"
-		} else if cpu.instructions[opcode].AddressMode() == defs.AbsoluteXIndexed {
+		} else if instruction.AddressMode() == defs.AbsoluteXIndexed {
 			lo = cpu.bus.ReadOnly(defs.Address(addr))
 			addr++
 			hi = cpu.bus.ReadOnly(defs.Address(addr))
 			addr++
 			sInst += "$" + hex(uint32(defs.CreateWord(hi, lo)), 4) + ", X {ABX}"
-		} else if cpu.instructions[opcode].AddressMode() == defs.AbsoluteYIndexed {
+		} else if instruction.AddressMode() == defs.AbsoluteYIndexed {
 			lo = cpu.bus.ReadOnly(defs.Address(addr))
 			addr++
 			hi = cpu.bus.ReadOnly(defs.Address(addr))
 			addr++
 			sInst += "$" + hex(uint32(defs.CreateWord(hi, lo)), 4) + ", Y {ABY}"
-		} else if cpu.instructions[opcode].AddressMode() == defs.Indirect {
+		} else if instruction.AddressMode() == defs.Indirect {
 			lo = cpu.bus.ReadOnly(defs.Address(addr))
 			addr++
 			hi = cpu.bus.ReadOnly(defs.Address(addr))
 			addr++
 			sInst += "($" + hex(uint32(defs.CreateWord(hi, lo)), 4) + ") {IND}"
-		} else if cpu.instructions[opcode].AddressMode() == defs.Relative {
+		} else if instruction.AddressMode() == defs.Relative {
 			value = cpu.bus.ReadOnly(defs.Address(addr))
 			addr++
 			sInst += "$" + hex(uint32(value), 2) + " [$" + hex(addr+uint32(value), 4) + "] {REL}"
