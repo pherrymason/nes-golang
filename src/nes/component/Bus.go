@@ -1,6 +1,7 @@
 package component
 
 import (
+	cpu2 "github.com/raulferras/nes-golang/src/nes/cpu"
 	"github.com/raulferras/nes-golang/src/nes/defs"
 )
 
@@ -22,12 +23,40 @@ type Bus struct {
 	// RAM mirrors $0800 -> $1FFF
 	Cartridge *GamePak // 0x8000 -> $FFFF
 
+	cpu *cpu2.Cpu6502
 	// APU $4000 -> $4017
 	// PPU -> $2000 -> $2007
+
+	ticks byte
 }
 
-func CreateBus(ram *RAM) Bus {
-	return Bus{Ram: ram}
+func CreateBus(ram *RAM) *Bus {
+	return &Bus{Ram: ram}
+}
+
+func (bus *Bus) ConnectCPU(cpu *cpu2.Cpu6502) {
+	bus.cpu = cpu
+	bus.cpu.ConnectBus(bus)
+}
+
+func (bus *Bus) ConnectPPU() {
+
+}
+
+func (bus *Bus) InsertGamePak(cartridge *GamePak) {
+	bus.Cartridge = cartridge
+}
+
+func (bus *Bus) Tick() byte {
+	if bus.ticks%3 == 0 {
+		bus.cpu.Tick()
+		bus.ticks = 0xFF
+	}
+
+	//bus.ppu.Tick()
+	bus.ticks++
+
+	return bus.ticks
 }
 
 func (bus *Bus) Read(address defs.Address) byte {
@@ -67,8 +96,4 @@ func (bus *Bus) Write(address defs.Address, value byte) {
 	} else if address >= GAMEPAK_ROM_LOWER_BANK_START {
 		bus.Cartridge.write(address, value)
 	}
-}
-
-func (bus *Bus) InsertGamePak(cartridge *GamePak) {
-	bus.Cartridge = cartridge
 }

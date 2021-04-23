@@ -2,14 +2,21 @@ package cpu
 
 import (
 	"fmt"
-	"github.com/raulferras/nes-golang/src/nes/component"
 	"github.com/raulferras/nes-golang/src/nes/defs"
 )
+
+type BusInterface interface {
+	Read(address defs.Address) byte
+	ReadOnly(address defs.Address) byte
+	Read16(address defs.Address) defs.Word
+	Read16Bugged(address defs.Address) defs.Word
+	Write(address defs.Address, value byte)
+}
 
 // Cpu6502 Represents a NES cpu
 type Cpu6502 struct {
 	registers Cpu6502Registers
-	bus       *component.Bus
+	bus       BusInterface
 
 	instructions     [256]defs.Instruction
 	instructionCycle byte
@@ -20,54 +27,6 @@ type Cpu6502 struct {
 	debug       bool
 	Logger      Logger
 	cyclesLimit uint16
-}
-
-func CreateCPU(bus *component.Bus) *Cpu6502 {
-	registers := CreateRegisters()
-	cpu := Cpu6502{
-		registers: registers,
-		bus:       bus,
-		debug:     false,
-	}
-
-	cpu.Init()
-
-	return &cpu
-}
-
-func CreateCPUDebuggable(bus *component.Bus, logger *Logger) *Cpu6502 {
-	registers := CreateRegisters()
-	cpu := Cpu6502{
-		registers: registers,
-		bus:       bus,
-		debug:     true,
-		Logger:    *logger,
-	}
-
-	cpu.Init()
-
-	return &cpu
-}
-
-// CreateCPUWithBus creates a Cpu6502 with a Bus, Useful for tests
-func CreateCPUWithBus() *Cpu6502 {
-	registers := CreateRegisters()
-
-	ram := component.RAM{}
-	gamepak := component.CreateDummyGamePak()
-
-	bus := component.CreateBus(&ram)
-	bus.InsertGamePak(&gamepak)
-
-	cpu := Cpu6502{
-		registers: registers,
-		bus:       &bus,
-		debug:     false,
-	}
-
-	cpu.Init()
-
-	return &cpu
 }
 
 func (cpu *Cpu6502) Registers() *Cpu6502Registers {
@@ -437,6 +396,10 @@ func (cpu Cpu6502) evaluateOperandAddress(addressMode defs.AddressMode, pc defs.
 	operandAddress = evaluatedAddress
 
 	return
+}
+
+func (cpu *Cpu6502) ConnectBus(bus BusInterface) {
+	cpu.bus = bus
 }
 
 func memoryPageDiffer(address defs.Address, finalAddress defs.Address) bool {

@@ -12,35 +12,17 @@ type Nes struct {
 	debug NesDebugger
 }
 
-func CreateNes() Nes {
+func CreateNes(debugger NesDebugger) Nes {
 	ram := component.RAM{}
+	cpu := cpu2.CreateCPU()
+
 	bus := component.CreateBus(&ram)
-	cpu := cpu2.CreateCPU(&bus)
+	bus.ConnectCPU(cpu)
 
 	nes := Nes{
 		cpu:   cpu,
-		bus:   &bus,
-		debug: NesDebugger{false, cpu, nil, 0, nil},
-	}
-
-	return nes
-}
-
-func CreateDebuggableNes(debugger NesDebugger) Nes {
-	ram := component.RAM{}
-	bus := component.CreateBus(&ram)
-	cpu := cpu2.CreateCPUDebuggable(&bus, debugger.logger)
-
-	nes := Nes{
-		cpu,
-		&bus,
-		NesDebugger{
-			true,
-			cpu,
-			debugger.logger,
-			debugger.cyclesLimit,
-			nil,
-		},
+		bus:   bus,
+		debug: debugger,
 	}
 
 	return nes
@@ -57,7 +39,7 @@ func (nes *Nes) Start() {
 }
 
 func (nes *Nes) Tick() byte {
-	return nes.cpu.Tick()
+	return nes.bus.Tick()
 }
 
 func (nes *Nes) InsertGamePak(cartridge *component.GamePak) {

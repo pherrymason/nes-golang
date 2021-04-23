@@ -14,7 +14,7 @@ func TestNestest(t *testing.T) {
 	outputLogPath := "./../../var/nestest.log"
 	logger := cpu.CreateCPULogger(outputLogPath)
 
-	nes := CreateDebuggableNes(NesDebugger{true, nil, &logger, 5004, nil})
+	nes := CreateNes(NesDebugger{true, nil, &logger, 5004, nil})
 	nes.InsertGamePak(&gamePak)
 	nes.StartAt(0xC000)
 
@@ -64,7 +64,7 @@ func TestCPUDummyReads(t *testing.T) {
 	t.Skip()
 	cartridge := ReadRom("./../../tests/roms/cpu_dummy_reads.nes")
 
-	nes := CreateNes()
+	nes := CreateNes(NesDebugger{})
 	nes.InsertGamePak(&cartridge)
 	nes.Start()
 }
