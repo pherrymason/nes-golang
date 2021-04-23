@@ -71,12 +71,12 @@ func drawDebug(console nes.Nes) {
 func drawASM(console nes.Nes) {
 	textColor := r.RayWhite
 	yOffset := 40
+	yIteration := 0
 	ySeparation := 15
 	disassembled := console.Debugger().Disassembled()
 
 	for i := 0; i < 20; i++ {
 		currentAddress := console.Debugger().ProgramCounter() - 10 + defs.Address(i)
-		//0xc000 + defs.Address(i)
 		if currentAddress == console.Debugger().ProgramCounter() {
 			textColor = r.GopherBlue
 		} else {
@@ -84,7 +84,10 @@ func drawASM(console nes.Nes) {
 		}
 
 		code := disassembled[currentAddress]
-		graphics.DrawText(code, 380, yOffset+(i*ySeparation), textColor)
+		if len(code) > 0 {
+			graphics.DrawText(code, 380, yOffset+(yIteration*ySeparation), textColor)
+			yIteration++
+		}
 	}
 }
 
