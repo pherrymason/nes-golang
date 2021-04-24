@@ -72,11 +72,15 @@ func drawEmulation() {
 	// TODO
 }
 
+const DEBUG_X_OFFSET = 380
+
 func drawDebug(console nes.Nes) {
-	x := 380
+	x := DEBUG_X_OFFSET
 	y := 10
+	r.DrawFPS(0, 0)
+
 	textColor := r.RayWhite
-	font := r.LoadFont("./assets/Pixel_NES.otf")
+
 	r.SetTextureFilter(font.Texture, r.FilterPoint)
 
 	// Status Register
@@ -92,7 +96,7 @@ func drawDebug(console nes.Nes) {
 	//r.DrawTextEx(*font, registers, position, fontSize, 0, r.RayWhite)
 
 	drawASM(console)
-	drawCHR(font)
+	drawCHR(console, font)
 }
 
 func drawASM(console nes.Nes) {
@@ -118,6 +122,32 @@ func drawASM(console nes.Nes) {
 	}
 }
 
-func drawCHR(font *r.Font) {
+func drawCHR(console nes.Nes, font *r.Font) {
+	x := DEBUG_X_OFFSET
+	y := 40 + 15*20 + 20
 
+	// CHR Left Container
+	//r.DrawRectangle(x, y, 16*8, 16*8, r.RayWhite)
+	for i := 0; i < 8*8*512; i++ {
+		pixelValue := console.Debugger().PatternTable()[i]
+		color := pixelValueToColor(pixelValue)
+		posX := i%128 + x
+		posY := int((i+1)/128) + y
+		r.DrawPixel(posX, posY, color)
+	}
+
+	// CHR Right Container
+	//r.DrawRectangle(x, y, 16*8, 16*8, r.RayWhite)
+}
+
+func pixelValueToColor(pixelValue byte) r.Color {
+
+	min := 0
+	max := 254
+	return r.NewColor(
+		uint8(rand.Intn(max-min+1)+min),
+		uint8(rand.Intn(max-min+1)+min),
+		uint8(rand.Intn(max-min+1)+min),
+		255,
+	)
 }
