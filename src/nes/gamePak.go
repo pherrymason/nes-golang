@@ -1,5 +1,10 @@
 package nes
 
+import (
+	"fmt"
+	"io/ioutil"
+)
+
 const GAMEPAK_MEMORY_SIZE = 0xBFE0
 const GAMEPAK_LOW_RANGE = 0x4020
 const GAMEPAK_HIGH_RANGE = 0xFFFF
@@ -20,6 +25,22 @@ func CreateDummyGamePak() GamePak {
 
 func CreateGamePak(header Header, prgROM []byte) GamePak {
 	return GamePak{header, prgROM}
+}
+
+func CreateGamePakFromROMFile(romFilePath string) GamePak {
+	data, err := ioutil.ReadFile(romFilePath)
+	if err != nil {
+		fmt.Println("File reading error", err)
+	}
+
+	// Read Header
+	inesHeader := CreateINes1Header(data[0:16])
+
+	return CreateGamePak(inesHeader, data[16:])
+}
+
+func (gamePak GamePak) Header() Header {
+	return gamePak.header
 }
 
 func (gamePak *GamePak) read(address Address) byte {

@@ -8,7 +8,7 @@ import (
 )
 
 func TestNestest(t *testing.T) {
-	gamePak := ReadRom("./../../roms/nestest/nestest.nes")
+	gamePak := CreateGamePakFromROMFile("./../../roms/nestest/nestest.nes")
 	outputLogPath := "./../../var/nestest.log"
 
 	var limitCycles uint32 = 5004
@@ -65,7 +65,7 @@ func compareLogs(t *testing.T, snapshots []CpuState) {
 
 func TestCPUDummyReads(t *testing.T) {
 	t.Skip()
-	gamePak := ReadRom("./../../tests/roms/cpu_dummy_reads.nes")
+	gamePak := CreateGamePakFromROMFile("./../../tests/roms/cpu_dummy_reads.nes")
 
 	nes := CreateNes(&gamePak, NesDebugger{})
 	nes.Start()

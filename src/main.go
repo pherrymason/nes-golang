@@ -13,8 +13,10 @@ func main() {
 	graphics.InitDrawer()
 
 	fmt.Printf("Nes Emulator\n")
-	//gamePak := nes.ReadRom("./roms/nestest/nestest.nes")
-	gamePak := nes.ReadRom("./roms/Donkey Kong (World) (Rev A).nes")
+	//gamePak := nes.CreateGamePakFromROMFile("./roms/nestest/nestest.nes")
+	gamePak := nes.CreateGamePakFromROMFile("./roms/Donkey Kong (World) (Rev A).nes")
+
+	printRomInfo(&gamePak)
 
 	console := nes.CreateNes(&gamePak, nes.NesDebugger{})
 	//console.InsertGamePak(&gamePak)
@@ -29,6 +31,21 @@ func main() {
 		draw(console)
 	}
 	r.CloseWindow()
+}
+
+func printRomInfo(gamePak *nes.GamePak) {
+	inesHeader := gamePak.Header()
+
+	if inesHeader.HasTrainer() {
+		fmt.Println("Rom has trainer")
+	} else {
+		fmt.Println("Rom has no trainer")
+	}
+
+	fmt.Println("PRG:", inesHeader.ProgramSize(), "x 16KB Banks")
+	fmt.Println("CHR:", inesHeader.CHRSize(), "x 8KB Banks")
+	fmt.Println("Mapper:", inesHeader.MapperNumber())
+	fmt.Println("Tv System:", inesHeader.TvSystem())
 }
 
 func draw(console nes.Nes) {
