@@ -14,17 +14,11 @@ const GAMEPAK_ROM_LOWER_BANK_START = 0x8000
 type GamePak struct {
 	header Header
 	prgROM []byte
+	chrROM []byte
 }
 
-func CreateDummyGamePak() GamePak {
-	return GamePak{
-		header: Header{},
-		prgROM: make([]byte, 0xFFFF),
-	}
-}
-
-func CreateGamePak(header Header, prgROM []byte) GamePak {
-	return GamePak{header, prgROM}
+func CreateGamePak(header Header, prgROM []byte, chrROM []byte) GamePak {
+	return GamePak{header, prgROM, chrROM}
 }
 
 func CreateGamePakFromROMFile(romFilePath string) GamePak {
@@ -36,39 +30,18 @@ func CreateGamePakFromROMFile(romFilePath string) GamePak {
 	// Read Header
 	inesHeader := CreateINes1Header(data[0:16])
 
-	return CreateGamePak(inesHeader, data[16:])
+	prgLength := int(inesHeader.prgROMSize)*0x4000 + 16
+	prgROM := data[16:prgLength]
+
+	chrLength := int(inesHeader.chrROMSize) * 0x2000
+	chrROM := data[prgLength : chrLength+prgLength]
+	return CreateGamePak(
+		inesHeader,
+		prgROM,
+		chrROM,
+	)
 }
 
 func (gamePak GamePak) Header() Header {
 	return gamePak.header
-}
-
-func (gamePak *GamePak) read(address Address) byte {
-	romAddress := toRomAddress(address)
-	return gamePak.prgROM[romAddress]
-}
-
-func (gamePak *GamePak) write(address Address, value byte) {
-	romAddress := toRomAddress(address)
-	gamePak.prgROM[romAddress] = value
-}
-
-func toRomAddress(address Address) Address {
-	offset := Address(GAMEPAK_ROM_LOWER_BANK_START)
-	//if gamepak.header.HasTrainer() {
-	//	offset += 512
-	//}
-
-	// NROM has mirroring from 0xC000
-	if address >= 0xC000 {
-		address -= 0x4000
-	}
-
-	romAddress := address - offset
-
-	//if int(romAddress) > len(gamepak.prgROM) {
-	//	return 0
-	//}
-
-	return romAddress
 }

@@ -125,29 +125,55 @@ func drawASM(console nes.Nes) {
 func drawCHR(console nes.Nes, font *r.Font) {
 	x := DEBUG_X_OFFSET
 	y := 40 + 15*20 + 20
+	decodedPatternTable := console.Debugger().PatternTable(0)
 
 	// CHR Left Container
-	//r.DrawRectangle(x, y, 16*8, 16*8, r.RayWhite)
-	for i := 0; i < 8*8*512; i++ {
-		pixelValue := console.Debugger().PatternTable()[i]
-		color := pixelValueToColor(pixelValue)
-		posX := i%128 + x
-		posY := int((i+1)/128) + y
-		r.DrawPixel(posX, posY, color)
-	}
+	r.DrawRectangle(x-5, y-5, 16*8+10, 16*8+10, r.RayWhite)
+	posX := 0
+	posY := 0
+	scale := 3
 
+	for i := 0; i < 128*128; i++ {
+		pixelValue := decodedPatternTable[i]
+
+		color := pixelValueToColor(pixelValue.Color)
+		posX = pixelValue.X + (pixelValue.X * (scale - 1)) + DEBUG_X_OFFSET
+		posY = pixelValue.Y + (pixelValue.Y * (scale - 1)) + y
+		r.DrawRectangle(posX, posY, scale, scale, color)
+		//r.DrawPixel(posX, posY, color)
+		//r.DrawPixel(posX, posY+1, color)
+		//r.DrawPixel(posX+1, posY, color)
+		//r.DrawPixel(posX+1, posY+1, color)
+
+		/*color := pixelValueToColor(pixelValue)
+		posX = (i%128)*2 + x
+		posY = int((i*2)/128) + y
+
+		r.DrawPixel(posX, posY, color)
+		r.DrawPixel(posX, posY+1, color)
+		r.DrawPixel(posX+1, posY, color)
+		r.DrawPixel(posX+1, posY+1, color)
+		*/
+	}
+	//fmt.Printf("%d - %d\n", posX, posY)
 	// CHR Right Container
 	//r.DrawRectangle(x, y, 16*8, 16*8, r.RayWhite)
 }
 
-func pixelValueToColor(pixelValue byte) r.Color {
+func pixelValueToColor(pixelValue []byte) r.Color {
+	if len(pixelValue) != 3 {
+		return r.Red
+	}
 
-	min := 0
-	max := 254
+	//min := 0
+	//max := 254
 	return r.NewColor(
-		uint8(rand.Intn(max-min+1)+min),
-		uint8(rand.Intn(max-min+1)+min),
-		uint8(rand.Intn(max-min+1)+min),
+		pixelValue[0],
+		pixelValue[1],
+		pixelValue[2],
+		//uint8(rand.Intn(max-min+1)+min),
+		//uint8(rand.Intn(max-min+1)+min),
+		//uint8(rand.Intn(max-min+1)+min),
 		255,
 	)
 }
