@@ -7,16 +7,36 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func CreateFakeGamePak() *GamePak {
-	gamePak := CreateDummyGamePak()
+type SimpleMapper struct {
+	memory [0x10000]byte
+}
 
-	return &gamePak
+func (s SimpleMapper) prgBanks() byte {
+	return 1
+}
+
+func (s SimpleMapper) chrBanks() byte {
+	return 0
+}
+
+func (s SimpleMapper) Read(address Address) byte {
+	return s.memory[address]
+}
+
+func (s *SimpleMapper) Write(address Address, value byte) {
+	s.memory[address] = value
+}
+
+func CreateCPUMemoryWithSimpleMapper() *CPUMemory {
+	mapper := &SimpleMapper{}
+
+	return &CPUMemory{gamePak: nil, mapper: mapper, ppu: nil}
 }
 
 // CreateCPUWithGamePak creates a Cpu6502 with a Bus, Useful for tests
 func CreateCPUWithGamePak() *Cpu6502 {
 	cpu := CreateCPU(
-		CreateCPUMemory(CreateFakeGamePak()),
+		CreateCPUMemoryWithSimpleMapper(),
 		Cpu6502DebugOptions{false, ""},
 	)
 	return cpu

@@ -33,6 +33,7 @@ type Cpu6502 struct {
 	cycle        uint32
 
 	addressEvaluators [13]AddressModeMethod
+
 	// Debug parameters
 	debug       bool
 	Logger      cpu6502Logger
