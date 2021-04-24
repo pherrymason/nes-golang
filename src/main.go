@@ -5,11 +5,21 @@ import (
 	r "github.com/lachee/raylib-goplus/raylib"
 	"github.com/raulferras/nes-golang/src/graphics"
 	"github.com/raulferras/nes-golang/src/nes"
+	"math/rand"
+	"time"
 )
 
+var font *r.Font
+
 func main() {
+	rand.Seed(time.Now().UnixNano())
+
 	// Init Window System
 	r.InitWindow(800, 800, "NES golang")
+	r.SetTraceLogLevel(r.LogWarning)
+	r.SetTargetFPS(60)
+	font = r.LoadFont("./assets/Pixel_NES.otf")
+
 	graphics.InitDrawer()
 
 	fmt.Printf("Nes Emulator\n")
