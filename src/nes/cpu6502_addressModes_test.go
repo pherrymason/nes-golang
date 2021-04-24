@@ -7,11 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createBus() Bus {
-	ram := RAM{}
-	return Bus{Ram: &ram}
-}
-
 func TestImmediate(t *testing.T) {
 	cpu := CreateCPUWithGamePak()
 	cpu.registers.Pc = Address(0x100)

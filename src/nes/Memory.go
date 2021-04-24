@@ -46,10 +46,13 @@ type Memory interface {
 type CPUMemory struct {
 	ram     [0xFFFF + 1]byte
 	gamePak *GamePak
+	mapper  Mapper
 }
 
 func CreateCPUMemory(gamePak *GamePak) *CPUMemory {
-	return &CPUMemory{gamePak: gamePak}
+	mapper := CreateMapper(gamePak)
+
+	return &CPUMemory{gamePak: gamePak, mapper: mapper}
 }
 
 func (cm *CPUMemory) Peek(address Address) byte {
@@ -65,7 +68,7 @@ func (cm *CPUMemory) read(address Address, readOnly bool) byte {
 		// Read with mirror after RAM_LAST_REAL_ADDRESS
 		return cm.ram[address&RAM_LAST_REAL_ADDRESS]
 	} else if address >= GAMEPAK_LOW_RANGE {
-		return cm.gamePak.read(address)
+		return cm.mapper.Read(address)
 	}
 
 	panic(fmt.Sprintf("reading from invalid address %X", address))
@@ -75,7 +78,7 @@ func (cm *CPUMemory) Write(address Address, value byte) {
 	if address <= RAM_HIGHER_ADDRESS {
 		cm.ram[address&RAM_LAST_REAL_ADDRESS] = value
 	} else if address >= GAMEPAK_ROM_LOWER_BANK_START {
-		cm.gamePak.write(address, value)
+		cm.mapper.Write(address, value)
 	}
 }
 
