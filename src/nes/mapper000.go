@@ -1,5 +1,13 @@
 package nes
 
+// if PRGROM is 16KB
+//     CPU Address Bus          PRG ROM
+//     0x8000 -> 0xBFFF: Map    0x0000 -> 0x3FFF
+//     0xC000 -> 0xFFFF: Mirror 0x0000 -> 0x3FFF
+// if PRGROM is 32KB
+//     CPU Address Bus          PRG ROM
+//     0x8000 -> 0xFFFF: Map    0x0000 -> 0x7FFF
+
 type Mapper000 struct {
 	gamePak     *GamePak
 	prgROMBanks byte
@@ -27,13 +35,7 @@ func (mapper Mapper000) Read(address Address) byte {
 	if !satisfiableAddress(address) {
 		return 0
 	}
-	// if PRGROM is 16KB
-	//     CPU Address Bus          PRG ROM
-	//     0x8000 -> 0xBFFF: Map    0x0000 -> 0x3FFF
-	//     0xC000 -> 0xFFFF: Mirror 0x0000 -> 0x3FFF
-	// if PRGROM is 32KB
-	//     CPU Address Bus          PRG ROM
-	//     0x8000 -> 0xFFFF: Map    0x0000 -> 0x7FFF
+
 	if mapper.prgBanks() == 1 {
 		address = address & 0x3FFF
 	} else {
