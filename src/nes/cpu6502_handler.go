@@ -1,40 +1,38 @@
-package cpu
+package nes
 
 import (
 	"fmt"
-	"github.com/raulferras/nes-golang/src/nes/defs"
 )
 
 func (cpu *Cpu6502) Init() {
-	cpu.initInstructionsTable()
-	cpu.initAddressModeEvaluators()
+
 }
 
 func (cpu *Cpu6502) Reset() {
 	cpu.registers.Reset()
-	cpu.instructionCycle = 0
+	cpu.cycle = 0
 
 	// Read Reset Vector
-	address := cpu.bus.Read16(0xFFFC)
-	cpu.registers.Pc = defs.Address(address)
-	cpu.Cycle = 7
+	address := cpu.read16(0xFFFC)
+	cpu.registers.Pc = Address(address)
+	cpu.cycle = 7
 }
 
-func (cpu *Cpu6502) ResetToAddress(programCounter defs.Address) {
+func (cpu *Cpu6502) ResetToAddress(programCounter Address) {
 	cpu.registers.Reset()
 	cpu.registers.Pc = programCounter
-	cpu.Cycle = 7
+	cpu.cycle = 7
 }
 
 func (cpu *Cpu6502) Tick() byte {
-	if cpu.instructionCycle == 0 {
+	if cpu.opCyclesLeft == 0 {
 		if cpu.debug {
 			cpu.logStep()
 		}
 
-		opcode := cpu.Read(cpu.registers.Pc)
+		opcode := cpu.memory.Read(cpu.registers.Pc)
 		instruction := cpu.instructions[opcode]
-		cpu.instructionCycle = instruction.Cycles()
+		cpu.opCyclesLeft = instruction.Cycles()
 
 		if instruction.Method() == nil {
 			msg := fmt.Errorf("opcode 0x%X not implemented", opcode)
@@ -43,23 +41,24 @@ func (cpu *Cpu6502) Tick() byte {
 
 		operandAddress, pageCrossed := cpu.evaluateOperandAddress(instruction.AddressMode(), cpu.registers.Pc+1)
 
-		cpu.registers.Pc += defs.Address(instruction.Size())
+		cpu.registers.Pc += Address(instruction.Size())
 
-		step := defs.OperationMethodArgument{
+		step := OperationMethodArgument{
 			instruction.AddressMode(),
 			operandAddress,
 		}
 		opMightNeedExtraCycle := instruction.Method()(step)
 
 		if pageCrossed && opMightNeedExtraCycle {
-			cpu.instructionCycle++
+			cpu.opCyclesLeft++
 		}
-		cpu.Cycle += uint16(cpu.instructionCycle)
+		//cpu.opCyclesLeft += uint16(cpu.instructionCycle)
+		cpu.cycle += uint32(cpu.opCyclesLeft)
 	}
 
-	cpu.instructionCycle--
+	cpu.opCyclesLeft--
 
-	return cpu.instructionCycle
+	return cpu.opCyclesLeft
 }
 
 func (cpu *Cpu6502) logStep() {

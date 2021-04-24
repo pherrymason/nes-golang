@@ -1,11 +1,13 @@
 package mappers
 
-import "github.com/raulferras/nes-golang/src/nes/defs"
+import (
+	"github.com/raulferras/nes-golang/src/nes"
+)
 
 type Mapper interface {
-	readCpu(defs.Address) byte
-	writeCpu(defs.Address, byte)
+	readCpu(nes.Address) byte
+	writeCpu(nes.Address, byte)
 
-	readPpu(defs.Address) byte
-	writePpu(defs.Address, byte)
+	readPpu(nes.Address) byte
+	writePpu(nes.Address, byte)
 }

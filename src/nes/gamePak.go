@@ -1,6 +1,4 @@
-package component
-
-import "github.com/raulferras/nes-golang/src/nes/defs"
+package nes
 
 const GAMEPAK_MEMORY_SIZE = 0xBFE0
 const GAMEPAK_LOW_RANGE = 0x4020
@@ -24,18 +22,18 @@ func CreateGamePak(header Header, prgROM []byte) GamePak {
 	return GamePak{header, prgROM}
 }
 
-func (gamePak *GamePak) read(address defs.Address) byte {
+func (gamePak *GamePak) read(address Address) byte {
 	romAddress := toRomAddress(address)
 	return gamePak.prgROM[romAddress]
 }
 
-func (gamePak *GamePak) write(address defs.Address, value byte) {
+func (gamePak *GamePak) write(address Address, value byte) {
 	romAddress := toRomAddress(address)
 	gamePak.prgROM[romAddress] = value
 }
 
-func toRomAddress(address defs.Address) defs.Address {
-	offset := defs.Address(GAMEPAK_ROM_LOWER_BANK_START)
+func toRomAddress(address Address) Address {
+	offset := Address(GAMEPAK_ROM_LOWER_BANK_START)
 	//if gamepak.header.HasTrainer() {
 	//	offset += 512
 	//}

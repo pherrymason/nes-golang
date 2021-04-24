@@ -1,67 +1,65 @@
-package cpu
+package nes
 
 import (
 	"fmt"
-	"github.com/raulferras/nes-golang/src/nes/component"
-	"github.com/raulferras/nes-golang/src/nes/defs"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func createBus() component.Bus {
-	ram := component.RAM{}
-	return component.Bus{Ram: &ram}
+func createBus() Bus {
+	ram := RAM{}
+	return Bus{Ram: &ram}
 }
 
 func TestImmediate(t *testing.T) {
-	cpu := CreateCPUWithBus()
-	cpu.registers.Pc = defs.Address(0x100)
+	cpu := CreateCPUWithGamePak()
+	cpu.registers.Pc = Address(0x100)
 
 	pc, address, _, pageCrossed := cpu.evalImmediate(cpu.registers.Pc)
 
-	assert.Equal(t, defs.Address(0x100), address, "Immediate address mode failed to evaluate address")
+	assert.Equal(t, Address(0x100), address, "Immediate address mode failed to evaluate address")
 	assert.Equal(t, cpu.registers.Pc+1, pc)
 	assert.False(t, pageCrossed)
 
 }
 
 func TestZeroPage(t *testing.T) {
-	cpu := CreateCPUWithBus()
+	cpu := CreateCPUWithGamePak()
 	cpu.registers.Pc = 0x00
-	cpu.bus.Write(0x00, 0x40)
+	cpu.memory.Write(0x00, 0x40)
 
 	pc, result, _, pageCrossed := cpu.evalZeroPage(cpu.registers.Pc)
-	expected := defs.Address(0x040)
+	expected := Address(0x040)
 	assert.Equal(t, expected, result, fmt.Sprintf("ZeroPage address mode decoded wrongly, expected %d, got %d", expected, result))
 	assert.Equal(t, cpu.registers.Pc+1, pc)
 	assert.False(t, pageCrossed)
 }
 
 func TestZeroPageX(t *testing.T) {
-	cpu := CreateCPUWithBus()
+	cpu := CreateCPUWithGamePak()
 	cpu.registers.Pc = 0x00
-	cpu.bus.Write(0x00, 0x05)
+	cpu.memory.Write(0x00, 0x05)
 	cpu.registers.X = 0x10
 
 	state := cpu.registers.Pc
 	pc, result, _, pageCrossed := cpu.evalZeroPageX(state)
 
-	expected := defs.Address(0x15)
+	expected := Address(0x15)
 	assert.Equal(t, expected, result, fmt.Sprintf("ZeroPageX address mode decoded wrongly, expected %d, got %d", expected, result))
 	assert.Equal(t, cpu.registers.Pc+1, pc)
 	assert.False(t, pageCrossed)
 }
 
 func TestZeroPageY(t *testing.T) {
-	cpu := CreateCPUWithBus()
+	cpu := CreateCPUWithGamePak()
 	cpu.registers.Y = 0x10
-	cpu.registers.Pc = defs.Address(0x0000)
-	cpu.bus.Write(cpu.registers.Pc, 0xF0)
+	cpu.registers.Pc = Address(0x0000)
+	cpu.memory.Write(cpu.registers.Pc, 0xF0)
 
 	pc, result, _, pageCrossed := cpu.evalZeroPageY(cpu.registers.Pc)
 
-	expected := defs.Address(0x00)
+	expected := Address(0x00)
 
 	assert.Equal(t, expected, result, fmt.Sprintf("ZeroPageY address mode decoded wrongly, expected %d, got %d", expected, result))
 	assert.Equal(t, cpu.registers.Pc+1, pc)
@@ -69,14 +67,14 @@ func TestZeroPageY(t *testing.T) {
 }
 
 func TestAbsolute(t *testing.T) {
-	cpu := CreateCPUWithBus()
+	cpu := CreateCPUWithGamePak()
 	cpu.registers.Pc = 0x00
-	cpu.bus.Write(0x0000, 0x30)
-	cpu.bus.Write(0x0001, 0x01)
+	cpu.memory.Write(0x0000, 0x30)
+	cpu.memory.Write(0x0001, 0x01)
 
 	pc, result, _, pageCrossed := cpu.evalAbsolute(cpu.registers.Pc)
 
-	assert.Equal(t, defs.Address(0x0130), result, "Error")
+	assert.Equal(t, Address(0x0130), result, "Error")
 	assert.Equal(t, cpu.registers.Pc+2, pc)
 	assert.False(t, pageCrossed)
 }
@@ -86,7 +84,7 @@ func TestAbsoluteXIndexed(t *testing.T) {
 		test                string
 		lsb                 byte
 		hsb                 byte
-		expectedAddress     defs.Address
+		expectedAddress     Address
 		expectedPageCrossed bool
 	}
 
@@ -96,13 +94,13 @@ func TestAbsoluteXIndexed(t *testing.T) {
 	}
 
 	for _, dp := range dataProviders {
-		cpu := CreateCPUWithBus()
+		cpu := CreateCPUWithGamePak()
 		cpu.registers.X = 5
 		cpu.registers.Pc = 0x00
-		//cpu.bus.Write(0x0000, 0x01)
-		//cpu.bus.Write(0x0001, 0x01)
-		cpu.bus.Write(0x0000, dp.lsb)
-		cpu.bus.Write(0x0001, dp.hsb)
+		//cpu.memory.Write(0x0000, 0x01)
+		//cpu.memory.Write(0x0001, 0x01)
+		cpu.memory.Write(0x0000, dp.lsb)
+		cpu.memory.Write(0x0001, dp.hsb)
 
 		pc, result, _, pageCrossed := cpu.evalAbsoluteXIndexed(cpu.registers.Pc)
 
@@ -117,7 +115,7 @@ func TestAbsoluteYIndexed(t *testing.T) {
 		test                string
 		lsb                 byte
 		hsb                 byte
-		expectedAddress     defs.Address
+		expectedAddress     Address
 		expectedPageCrossed bool
 	}
 
@@ -127,15 +125,15 @@ func TestAbsoluteYIndexed(t *testing.T) {
 	}
 
 	for _, dp := range dataProviders {
-		cpu := CreateCPUWithBus()
+		cpu := CreateCPUWithGamePak()
 		cpu.registers.Pc = 0x00
 		cpu.registers.Y = 5
 
-		//cpu.bus.Write(0x0000, 0x01)
-		//cpu.bus.Write(0x0001, 0x01)
+		//cpu.memory.Write(0x0000, 0x01)
+		//cpu.memory.Write(0x0001, 0x01)
 
-		cpu.bus.Write(0x0000, dp.lsb)
-		cpu.bus.Write(0x0001, dp.hsb)
+		cpu.memory.Write(0x0000, dp.lsb)
+		cpu.memory.Write(0x0001, dp.hsb)
 
 		pc, result, _, pageCrossed := cpu.evalAbsoluteYIndexed(cpu.registers.Pc)
 
@@ -146,37 +144,37 @@ func TestAbsoluteYIndexed(t *testing.T) {
 }
 
 func TestIndirect(t *testing.T) {
-	cpu := CreateCPUWithBus()
+	cpu := CreateCPUWithGamePak()
 	cpu.registers.Pc = 0x00
 
 	// Write Pointer to address 0x0134 in Bus
-	cpu.bus.Write(0, 0x34)
-	cpu.bus.Write(1, 0x01)
+	cpu.memory.Write(0, 0x34)
+	cpu.memory.Write(1, 0x01)
 
 	// Write 0x0134 with final Address(0x200)
-	cpu.bus.Write(defs.Address(0x134), 0x00)
-	cpu.bus.Write(defs.Address(0x135), 0x02)
+	cpu.memory.Write(Address(0x134), 0x00)
+	cpu.memory.Write(Address(0x135), 0x02)
 
 	pc, result, _, _ := cpu.evalIndirect(cpu.registers.Pc)
-	expected := defs.Address(0x200)
+	expected := Address(0x200)
 
 	assert.Equal(t, expected, result, "Indirect error")
 	assert.Equal(t, cpu.registers.Pc+2, pc)
 }
 
 func TestIndirect_bug(t *testing.T) {
-	cpu := CreateCPUWithBus()
+	cpu := CreateCPUWithGamePak()
 	cpu.registers.Pc = 0x00
 	// Write Pointer to address 0xC0FF in Bus
-	cpu.bus.Write(0, 0xFF)
-	cpu.bus.Write(1, 0xC0)
+	cpu.memory.Write(0, 0xFF)
+	cpu.memory.Write(1, 0xC0)
 
-	cpu.bus.Write(0xC0FF, 0x55)
-	cpu.bus.Write(0xC100, 0x04)
-	cpu.bus.Write(0xC000, 0x01)
+	cpu.memory.Write(0xC0FF, 0x55)
+	cpu.memory.Write(0xC100, 0x04)
+	cpu.memory.Write(0xC000, 0x01)
 
 	pc, result, _, _ := cpu.evalIndirect(cpu.registers.Pc)
-	expected := defs.Address(0x155)
+	expected := Address(0x155)
 
 	assert.Equal(t, expected, result, "Indirect error")
 	assert.Equal(t, cpu.registers.Pc+2, pc)
@@ -187,9 +185,9 @@ func TestIndexed_indirect(t *testing.T) {
 		test                string
 		x                   byte
 		operand             byte
-		lsbPtr              defs.Address
-		hsbPtr              defs.Address
-		expectedAddress     defs.Address
+		lsbPtr              Address
+		hsbPtr              Address
+		expectedAddress     Address
 		expectedPageCrossed bool
 	}
 
@@ -200,16 +198,16 @@ func TestIndexed_indirect(t *testing.T) {
 	}
 
 	for testIdx, dp := range dataProviders {
-		cpu := CreateCPUWithBus()
+		cpu := CreateCPUWithGamePak()
 		cpu.registers.Pc = 0x00
 		cpu.registers.X = 4
 
 		// Write Operand
-		cpu.bus.Write(0, 0x10)
+		cpu.memory.Write(0, 0x10)
 
 		// Write Offset Table
-		cpu.bus.Write(0x0014, byte(dp.expectedAddress))
-		cpu.bus.Write(0x0015, byte(dp.expectedAddress>>8))
+		cpu.memory.Write(0x0014, byte(dp.expectedAddress))
+		cpu.memory.Write(0x0015, byte(dp.expectedAddress>>8))
 
 		_, result, _, pageCrossed := cpu.evalIndirectX(cpu.registers.Pc)
 
@@ -223,9 +221,9 @@ func TestIndirectY(t *testing.T) {
 		test                string
 		y                   byte
 		operand             byte
-		lsbPtr              defs.Address
-		hsbPtr              defs.Address
-		expectedAddress     defs.Address
+		lsbPtr              Address
+		hsbPtr              Address
+		expectedAddress     Address
 		expectedPageCrossed bool
 	}
 
@@ -235,16 +233,16 @@ func TestIndirectY(t *testing.T) {
 	}
 
 	for testIdx, dp := range dataProviders {
-		cpu := CreateCPUWithBus()
+		cpu := CreateCPUWithGamePak()
 		cpu.registers.Pc = 0x50
 		cpu.registers.Y = dp.y
 
 		// Operand
-		cpu.bus.Write(0x50, dp.operand)
+		cpu.memory.Write(0x50, dp.operand)
 
 		// Indexed Table Pointers
-		cpu.bus.Write(defs.Address(dp.operand), byte(dp.expectedAddress-defs.Address(dp.y)))
-		cpu.bus.Write(defs.Address(dp.operand+1), byte((dp.expectedAddress-defs.Address(dp.y))>>8))
+		cpu.memory.Write(Address(dp.operand), byte(dp.expectedAddress-Address(dp.y)))
+		cpu.memory.Write(Address(dp.operand+1), byte((dp.expectedAddress-Address(dp.y))>>8))
 
 		pc, result, _, pageCrossed := cpu.evalIndirectY(cpu.registers.Pc)
 
@@ -255,28 +253,28 @@ func TestIndirectY(t *testing.T) {
 }
 
 func TestRelativeAddressMode(t *testing.T) {
-	cpu := CreateCPUWithBus()
+	cpu := CreateCPUWithGamePak()
 	cpu.registers.Pc = 0x10
 
 	// Write Operand
-	cpu.bus.Write(0x09, 0xFF) // OpCode
-	cpu.bus.Write(0x10, 0x04) // Operand
+	cpu.memory.Write(0x09, 0xFF) // OpCode
+	cpu.memory.Write(0x10, 0x04) // Operand
 
 	pc, result, _, _ := cpu.evalRelative(cpu.registers.Pc)
 
-	assert.Equal(t, defs.Address(0x15), result)
+	assert.Equal(t, Address(0x15), result)
 	assert.Equal(t, cpu.registers.Pc+1, pc)
 }
 
 func TestRelativeAddressModeNegative(t *testing.T) {
-	cpu := CreateCPUWithBus()
+	cpu := CreateCPUWithGamePak()
 	cpu.registers.Pc = 0x10
 
 	// Write Operand
-	cpu.bus.Write(0x10, 0x100-4)
+	cpu.memory.Write(0x10, 0x100-4)
 
 	pc, result, _, _ := cpu.evalRelative(cpu.registers.Pc)
 
-	assert.Equal(t, defs.Address(0x0D), result)
+	assert.Equal(t, Address(0x0D), result)
 	assert.Equal(t, cpu.registers.Pc+1, pc)
 }

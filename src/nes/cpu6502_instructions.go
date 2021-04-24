@@ -1,8 +1,221 @@
-package cpu
+package nes
 
-import (
-	"github.com/raulferras/nes-golang/src/nes/defs"
-)
+type OperationMethodArgument struct {
+	AddressMode    AddressMode
+	OperandAddress Address
+}
+
+type OperationMethod func(info OperationMethodArgument) bool
+
+type Instruction struct {
+	name        string
+	addressMode AddressMode
+	method      OperationMethod
+	cycles      byte
+	size        byte
+}
+
+func CreateInstruction(name string, addressMode AddressMode, method OperationMethod, cycles byte, size byte) Instruction {
+	return Instruction{
+		name,
+		addressMode,
+		method,
+		cycles,
+		size,
+	}
+}
+
+func (instruction Instruction) Name() string {
+	return instruction.name
+}
+
+func (instruction Instruction) AddressMode() AddressMode {
+	return instruction.addressMode
+}
+
+func (instruction Instruction) Size() byte {
+	return instruction.size
+}
+
+func (instruction Instruction) Method() OperationMethod {
+	return instruction.method
+}
+
+func (instruction Instruction) Cycles() byte {
+	return instruction.cycles
+}
+
+func (cpu *Cpu6502) evalImplicit(programCounter Address) (pc Address, address Address, cycles int, pageCrossed bool) {
+	pc = programCounter
+	address = 0
+	cycles = 0
+	return
+}
+
+/**
+ * Immediate addressing allows the programmer to directly specify an 8 bit constant within the instruction.
+ * It is indicated by a '#' symbol followed by an numeric expression.
+ */
+func (cpu *Cpu6502) evalImmediate(programCounter Address) (pc Address, address Address, cycles int, pageCrossed bool) {
+	pc = programCounter
+	address = programCounter
+	pc++
+	cycles = 0
+	pageCrossed = false
+	return
+}
+
+func (cpu *Cpu6502) evalZeroPage(programCounter Address) (pc Address, address Address, cycles int, pageCrossed bool) {
+	// 2 bytes
+	var low = cpu.memory.Read(programCounter)
+
+	address = Address(low)
+	pc = programCounter + 1
+
+	return
+}
+
+func (cpu *Cpu6502) evalZeroPageX(programCounter Address) (pc Address, address Address, cycles int, pageCrossed bool) {
+	registers := cpu.registers
+	var low = cpu.memory.Read(programCounter) + registers.X
+
+	address = Address(low) & 0xFF
+	pc = programCounter + 1
+
+	return
+}
+
+func (cpu *Cpu6502) evalZeroPageY(programCounter Address) (pc Address, address Address, cycles int, pageCrossed bool) {
+	registers := cpu.registers
+	var low = cpu.memory.Read(programCounter) + registers.Y
+
+	address = Address(low) & 0xFF
+	pc = programCounter + 1
+	return
+}
+
+func (cpu *Cpu6502) evalAbsolute(programCounter Address) (pc Address, address Address, cycles int, pageCrossed bool) {
+	pc = programCounter
+	low := cpu.memory.Read(pc)
+	pc += 1
+
+	// Bug: Missing incrementing programCounter
+	high := cpu.memory.Read(pc)
+	pc += 1
+
+	address = CreateAddress(low, high)
+
+	return
+}
+
+func (cpu *Cpu6502) evalAbsoluteXIndexed(programCounter Address) (pc Address, address Address, cycles int, pageCrossed bool) {
+	pc = programCounter
+	low := cpu.memory.Read(pc)
+	pc++
+
+	high := cpu.memory.Read(pc)
+	pc++
+
+	address = CreateAddress(low, high)
+	address += Address(cpu.registers.X)
+
+	pageCrossed = memoryPageDiffer(address-Address(cpu.registers.X), address)
+
+	return
+}
+
+func (cpu *Cpu6502) evalAbsoluteYIndexed(programCounter Address) (pc Address, address Address, cycles int, pageCrossed bool) {
+	pc = programCounter
+	low := cpu.memory.Read(pc)
+	pc++
+
+	high := cpu.memory.Read(pc)
+	pc++
+
+	address = CreateAddress(low, high)
+	address += Address(cpu.registers.Y)
+
+	pageCrossed = memoryPageDiffer(address-Address(cpu.registers.Y), address)
+
+	return
+}
+
+// Address Mode: Indirect
+// The supplied 16-bit address is read to get the actual 16-bit address.
+// This is Instruction is unusual in that it has a bug in the hardware! To emulate its
+// function accurately, we also need to emulate this bug. If the low byte of the
+// supplied address is 0xFF, then to read the high byte of the actual address
+// we need to cross a page boundary. This doesnt actually work on the chip as
+// designed, instead it wraps back around in the same page, yielding an
+// invalid actual address
+// Example: supplied address is (0x1FF), LSB will be 0x00 and MSB will be 0x01 instead of 0x02.
+
+// If the 16-bit argument of an Indirect JMP is located between 2 pages (0x01FF and 0x0200 for example),
+// then the LSB will be read from 0x01FF and the MSB will be read from 0x0100.
+// This is an actual hardware bug in early revisions of the 6502 which happen to be present
+// in the 2A03 used by the NES.
+func (cpu *Cpu6502) evalIndirect(programCounter Address) (pc Address, address Address, cycles int, pageCrossed bool) {
+	pc = programCounter
+
+	// Get Pointer Address
+	ptrLow := cpu.memory.Read(pc)
+	pc++
+
+	ptrHigh := cpu.memory.Read(pc)
+	pc++
+
+	ptrAddress := CreateAddress(ptrLow, ptrHigh)
+	address = cpu.read16Bugged(ptrAddress)
+
+	return
+}
+
+func (cpu *Cpu6502) evalIndirectX(programCounter Address) (pc Address, address Address, cycles int, pageCrossed bool) {
+	pc = programCounter
+
+	operand := cpu.memory.Read(pc)
+	operand += cpu.registers.X
+	operand &= 0xFF
+
+	effectiveLow := cpu.memory.Read(Address(operand))
+	effectiveHigh := cpu.memory.Read(Address(operand + 1)) // automatic warp around
+
+	address = CreateAddress(effectiveLow, effectiveHigh)
+
+	return
+}
+
+func (cpu *Cpu6502) evalIndirectY(programCounter Address) (pc Address, address Address, cycles int, pageCrossed bool) {
+	pc = programCounter
+
+	operand := cpu.memory.Read(pc)
+	pc++
+
+	lo := cpu.memory.Read(Address(operand))
+	hi := cpu.memory.Read(Address(operand + 1)) // automatic warp around
+
+	address = CreateAddress(lo, hi)
+	address += Word(cpu.registers.Y)
+
+	pageCrossed = address&0xFF00 != Address(hi)<<8
+	return
+}
+
+func (cpu *Cpu6502) evalRelative(programCounter Address) (pc Address, address Address, cycles int, pageCrossed bool) {
+	pc = programCounter
+
+	opcodeOperand := cpu.memory.Read(pc)
+	pc++
+
+	address = pc
+	if opcodeOperand < 0x80 {
+		address += Address(opcodeOperand)
+	} else {
+		address += Address(opcodeOperand) - 0x100
+	}
+
+	return
+}
 
 /*
 	ADC  Add Memory to Accumulator with Carry
@@ -23,10 +236,10 @@ import (
 	http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
 	https://forums.nesdev.com/viewtopic.php?t=6331
 */
-func (cpu *Cpu6502) adc(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) adc(info OperationMethodArgument) bool {
 	carryIn := cpu.registers.carryFlag()
 	a := cpu.registers.A
-	value := cpu.Read(info.OperandAddress)
+	value := cpu.memory.Read(info.OperandAddress)
 	adc := uint16(a) + uint16(value) + uint16(carryIn)
 	adc8 := cpu.registers.A + value + cpu.registers.carryFlag()
 
@@ -63,8 +276,8 @@ func (cpu *Cpu6502) adc(info defs.OperationMethodArgument) bool {
 //	(Indirect, X) 		AND (Operand, X)	 	21 		2 			6
 //	(Indirect), Y 		AND (Operand), Y 		31 		2 			5*
 //	* Add 1 if page boundary is crossed.
-func (cpu *Cpu6502) and(info defs.OperationMethodArgument) bool {
-	cpu.registers.A &= cpu.Read(info.OperandAddress)
+func (cpu *Cpu6502) and(info OperationMethodArgument) bool {
+	cpu.registers.A &= cpu.memory.Read(info.OperandAddress)
 	cpu.registers.updateNegativeFlag(cpu.registers.A)
 	cpu.registers.updateZeroFlag(cpu.registers.A)
 
@@ -84,17 +297,17 @@ func (cpu *Cpu6502) and(info defs.OperationMethodArgument) bool {
      zeropage,X    ASL oper,X    16    2     6
 	 Absolute      ASL oper      0E    3     6
 */
-func (cpu *Cpu6502) asl(info defs.OperationMethodArgument) bool {
-	if info.AddressMode == defs.Implicit {
+func (cpu *Cpu6502) asl(info OperationMethodArgument) bool {
+	if info.AddressMode == Implicit {
 		cpu.registers.updateFlag(carryFlag, cpu.registers.A>>7&0x01)
 		cpu.registers.A = cpu.registers.A << 1
 		cpu.registers.updateNegativeFlag(cpu.registers.A)
 		cpu.registers.updateZeroFlag(cpu.registers.A)
 	} else {
-		value := cpu.Read(info.OperandAddress)
+		value := cpu.memory.Read(info.OperandAddress)
 		cpu.registers.updateFlag(carryFlag, value>>7&0x01)
 		value = value << 1
-		cpu.write(info.OperandAddress, value)
+		cpu.memory.Write(info.OperandAddress, value)
 		cpu.registers.updateNegativeFlag(value)
 		cpu.registers.updateZeroFlag(value)
 	}
@@ -102,10 +315,10 @@ func (cpu *Cpu6502) asl(info defs.OperationMethodArgument) bool {
 	return false
 }
 
-func (cpu *Cpu6502) addBranchCycles(info defs.OperationMethodArgument) bool {
-	cpu.instructionCycle++
+func (cpu *Cpu6502) addBranchCycles(info OperationMethodArgument) bool {
+	cpu.opCyclesLeft++
 	if memoryPageDiffer(cpu.registers.Pc, info.OperandAddress) {
-		cpu.instructionCycle++
+		cpu.opCyclesLeft++
 	}
 
 	return false
@@ -121,7 +334,7 @@ func (cpu *Cpu6502) addBranchCycles(info defs.OperationMethodArgument) bool {
 	--------------------------------------------
 	Relative      BCC oper      90    2     2**
 */
-func (cpu *Cpu6502) bcc(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) bcc(info OperationMethodArgument) bool {
 	if cpu.registers.carryFlag() == 0 {
 		cpu.addBranchCycles(info)
 		cpu.registers.Pc = info.OperandAddress
@@ -140,7 +353,7 @@ func (cpu *Cpu6502) bcc(info defs.OperationMethodArgument) bool {
 	--------------------------------------------
 	Relative      BCS oper      B0    2     2**
 */
-func (cpu *Cpu6502) bcs(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) bcs(info OperationMethodArgument) bool {
 	if cpu.registers.carryFlag() == 1 {
 		cpu.addBranchCycles(info)
 		cpu.registers.Pc = info.OperandAddress
@@ -159,7 +372,7 @@ func (cpu *Cpu6502) bcs(info defs.OperationMethodArgument) bool {
 	--------------------------------------------
 	Relative      BEQ oper      F0    2     2**
 */
-func (cpu *Cpu6502) beq(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) beq(info OperationMethodArgument) bool {
 	if cpu.registers.zeroFlag() == 1 {
 		cpu.addBranchCycles(info)
 		cpu.registers.Pc = info.OperandAddress
@@ -183,8 +396,8 @@ func (cpu *Cpu6502) beq(info defs.OperationMethodArgument) bool {
 	zeropage      BIT oper      24    2     3
 	Absolute      BIT oper      2C    3     4
 */
-func (cpu *Cpu6502) bit(info defs.OperationMethodArgument) bool {
-	value := cpu.Read(info.OperandAddress)
+func (cpu *Cpu6502) bit(info OperationMethodArgument) bool {
+	value := cpu.memory.Read(info.OperandAddress)
 	cpu.registers.updateNegativeFlag(value)
 	cpu.registers.updateFlag(overflowFlag, (value>>6)&0x01)
 	cpu.registers.updateZeroFlag(value & cpu.registers.A)
@@ -202,7 +415,7 @@ func (cpu *Cpu6502) bit(info defs.OperationMethodArgument) bool {
 	--------------------------------------------
 	Relative      BMI oper      30    2     2**
 */
-func (cpu *Cpu6502) bmi(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) bmi(info OperationMethodArgument) bool {
 	if cpu.registers.negativeFlag() == 1 {
 		cpu.addBranchCycles(info)
 		cpu.registers.Pc = info.OperandAddress
@@ -221,7 +434,7 @@ func (cpu *Cpu6502) bmi(info defs.OperationMethodArgument) bool {
 	--------------------------------------------
 	Relative      BNE oper      D0    2     2**
 */
-func (cpu *Cpu6502) bne(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) bne(info OperationMethodArgument) bool {
 	if cpu.registers.zeroFlag() == 0 {
 		cpu.addBranchCycles(info)
 		cpu.registers.Pc = info.OperandAddress
@@ -240,7 +453,7 @@ func (cpu *Cpu6502) bne(info defs.OperationMethodArgument) bool {
 	--------------------------------------------
 	Relative      BPL oper      10    2     2**
 */
-func (cpu *Cpu6502) bpl(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) bpl(info OperationMethodArgument) bool {
 	//if !cpu.Registers.NegativeFlag {
 	if cpu.registers.negativeFlag() == 0 {
 		cpu.addBranchCycles(info)
@@ -264,18 +477,18 @@ func (cpu *Cpu6502) bpl(info defs.OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       BRK           00    1     7
 */
-func (cpu *Cpu6502) brk(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) brk(info OperationMethodArgument) bool {
 	// Store PC in stack
 	pc := cpu.registers.Pc
-	cpu.pushStack(defs.HighNibble(pc))
-	cpu.pushStack(defs.LowNibble(pc))
+	cpu.pushStack(HighNibble(pc))
+	cpu.pushStack(LowNibble(pc))
 
 	// Push status with Break flag set
 	cpu.pushStack(cpu.registers.Status | 0b00010000)
 
 	cpu.registers.updateFlag(interruptFlag, 1)
 
-	cpu.registers.Pc = defs.Address(cpu.read16(0xFFFE))
+	cpu.registers.Pc = cpu.read16(0xFFFE)
 
 	return false
 }
@@ -289,7 +502,7 @@ func (cpu *Cpu6502) brk(info defs.OperationMethodArgument) bool {
 	--------------------------------------------
 	Relative      BVC oper      50    2     2**
 */
-func (cpu *Cpu6502) bvc(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) bvc(info OperationMethodArgument) bool {
 	if cpu.registers.overflowFlag() == 0 {
 		cpu.addBranchCycles(info)
 		cpu.registers.Pc = info.OperandAddress
@@ -307,7 +520,7 @@ func (cpu *Cpu6502) bvc(info defs.OperationMethodArgument) bool {
 	--------------------------------------------
 	Relative      BVC oper      70    2     2**
 */
-func (cpu *Cpu6502) bvs(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) bvs(info OperationMethodArgument) bool {
 	if cpu.registers.overflowFlag() == 1 {
 		cpu.addBranchCycles(info)
 		cpu.registers.Pc = info.OperandAddress
@@ -325,7 +538,7 @@ func (cpu *Cpu6502) bvs(info defs.OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       CLC           18    1     2
 */
-func (cpu *Cpu6502) clc(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) clc(info OperationMethodArgument) bool {
 	cpu.registers.updateFlag(carryFlag, 0)
 
 	return false
@@ -340,7 +553,7 @@ func (cpu *Cpu6502) clc(info defs.OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       CLD           D8    1     2
 */
-func (cpu *Cpu6502) cld(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) cld(info OperationMethodArgument) bool {
 	cpu.registers.updateFlag(decimalFlag, 0)
 
 	return false
@@ -355,7 +568,7 @@ func (cpu *Cpu6502) cld(info defs.OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       CLI           58    1     2
 */
-func (cpu *Cpu6502) cli(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) cli(info OperationMethodArgument) bool {
 	cpu.registers.updateFlag(interruptFlag, 0)
 
 	return false
@@ -370,7 +583,7 @@ func (cpu *Cpu6502) cli(info defs.OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       CLV           B8    1     2
 */
-func (cpu *Cpu6502) clv(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) clv(info OperationMethodArgument) bool {
 	cpu.registers.updateFlag(overflowFlag, 0)
 
 	return false
@@ -398,8 +611,8 @@ func (cpu *Cpu6502) clv(info defs.OperationMethodArgument) bool {
     the Carry will be set. The equal (Z) and sign (S) flags will be set based on
     equality or lack thereof and the sign (i.e. A>=$80) of the Accumulator.
 */
-func (cpu *Cpu6502) cmp(info defs.OperationMethodArgument) bool {
-	operand := cpu.Read(info.OperandAddress)
+func (cpu *Cpu6502) cmp(info OperationMethodArgument) bool {
+	operand := cpu.memory.Read(info.OperandAddress)
 	cpu.compare(cpu.registers.A, operand)
 
 	return false
@@ -415,8 +628,8 @@ func (cpu *Cpu6502) cmp(info defs.OperationMethodArgument) bool {
 	Zero Page     CPX $44       $E4  2   3
 	Absolute      CPX $4400     $EC  3   4
 */
-func (cpu *Cpu6502) cpx(info defs.OperationMethodArgument) bool {
-	operand := cpu.Read(info.OperandAddress)
+func (cpu *Cpu6502) cpx(info OperationMethodArgument) bool {
+	operand := cpu.memory.Read(info.OperandAddress)
 	cpu.compare(cpu.registers.X, operand)
 
 	return false
@@ -432,8 +645,8 @@ func (cpu *Cpu6502) cpx(info defs.OperationMethodArgument) bool {
 	Zero Page     CPY $44       $C4  2   3
 	Absolute      CPY $4400     $CC  3   4
 */
-func (cpu *Cpu6502) cpy(info defs.OperationMethodArgument) bool {
-	operand := cpu.Read(info.OperandAddress)
+func (cpu *Cpu6502) cpy(info OperationMethodArgument) bool {
+	operand := cpu.memory.Read(info.OperandAddress)
 	cpu.compare(cpu.registers.Y, operand)
 
 	return false
@@ -457,12 +670,12 @@ func (cpu *Cpu6502) compare(register byte, operand byte) {
 	cpu.registers.updateNegativeFlag(substraction)
 }
 
-func (cpu *Cpu6502) dec(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) dec(info OperationMethodArgument) bool {
 	address := info.OperandAddress
-	operand := cpu.Read(address)
+	operand := cpu.memory.Read(address)
 
 	operand--
-	cpu.write(address, operand)
+	cpu.memory.Write(address, operand)
 
 	cpu.registers.updateZeroFlag(operand)
 	//if operand == 0 {
@@ -480,7 +693,7 @@ func (cpu *Cpu6502) dec(info defs.OperationMethodArgument) bool {
 	return false
 }
 
-func (cpu *Cpu6502) dex(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) dex(info OperationMethodArgument) bool {
 	cpu.registers.X--
 	operand := cpu.registers.X
 
@@ -499,7 +712,7 @@ func (cpu *Cpu6502) dex(info defs.OperationMethodArgument) bool {
 	return false
 }
 
-func (cpu *Cpu6502) dey(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) dey(info OperationMethodArgument) bool {
 	operand := cpu.registers.Y
 
 	operand--
@@ -539,8 +752,8 @@ func (cpu *Cpu6502) dey(info defs.OperationMethodArgument) bool {
 
 	+ add 1 cycle if page boundary crossed
 */
-func (cpu *Cpu6502) eor(info defs.OperationMethodArgument) bool {
-	value := cpu.Read(info.OperandAddress)
+func (cpu *Cpu6502) eor(info OperationMethodArgument) bool {
+	value := cpu.memory.Read(info.OperandAddress)
 
 	cpu.registers.A = cpu.registers.A ^ value
 	cpu.registers.updateZeroFlag(cpu.registers.A)
@@ -561,11 +774,11 @@ func (cpu *Cpu6502) eor(info defs.OperationMethodArgument) bool {
 	Absolute      INC oper      EE    3     6
 	Absolute,X    INC oper,X    FE    3     7
 */
-func (cpu *Cpu6502) inc(info defs.OperationMethodArgument) bool {
-	value := cpu.Read(info.OperandAddress)
+func (cpu *Cpu6502) inc(info OperationMethodArgument) bool {
+	value := cpu.memory.Read(info.OperandAddress)
 	value += 1
 
-	cpu.write(info.OperandAddress, value)
+	cpu.memory.Write(info.OperandAddress, value)
 	cpu.registers.updateZeroFlag(value)
 	cpu.registers.updateNegativeFlag(value)
 
@@ -581,7 +794,7 @@ func (cpu *Cpu6502) inc(info defs.OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       INX           E8    1     2
 */
-func (cpu *Cpu6502) inx(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) inx(info OperationMethodArgument) bool {
 	cpu.registers.X += 1
 	cpu.registers.updateZeroFlag(cpu.registers.X)
 	cpu.registers.updateNegativeFlag(cpu.registers.X)
@@ -598,7 +811,7 @@ func (cpu *Cpu6502) inx(info defs.OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       INY           C8    1     2
 */
-func (cpu *Cpu6502) iny(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) iny(info OperationMethodArgument) bool {
 	cpu.registers.Y += 1
 	cpu.registers.updateZeroFlag(cpu.registers.Y)
 	cpu.registers.updateNegativeFlag(cpu.registers.Y)
@@ -616,7 +829,7 @@ func (cpu *Cpu6502) iny(info defs.OperationMethodArgument) bool {
 	Absolute      JMP oper      4C    3     3
 	Indirect      JMP (oper)    6C    3     5
 */
-func (cpu *Cpu6502) jmp(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) jmp(info OperationMethodArgument) bool {
 	cpu.registers.Pc = info.OperandAddress
 
 	return false
@@ -632,7 +845,7 @@ func (cpu *Cpu6502) jmp(info defs.OperationMethodArgument) bool {
 	--------------------------------------------
 	Absolute      JSR oper      20    3     6
 */
-func (cpu *Cpu6502) jsr(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) jsr(info OperationMethodArgument) bool {
 	pc := cpu.registers.Pc - 1
 	cpu.pushStack(byte(pc >> 8))
 	cpu.pushStack(byte(pc & 0xFF))
@@ -658,8 +871,8 @@ func (cpu *Cpu6502) jsr(info defs.OperationMethodArgument) bool {
 	(Indirect,X)  LDA (oper,X)  A1    2     6
 	(Indirect),Y  LDA (oper),Y  B1    2     5*
 */
-func (cpu *Cpu6502) lda(info defs.OperationMethodArgument) bool {
-	cpu.registers.A = cpu.Read(info.OperandAddress)
+func (cpu *Cpu6502) lda(info OperationMethodArgument) bool {
+	cpu.registers.A = cpu.memory.Read(info.OperandAddress)
 	cpu.registers.updateZeroFlag(cpu.registers.A)
 	cpu.registers.updateNegativeFlag(cpu.registers.A)
 
@@ -679,8 +892,8 @@ func (cpu *Cpu6502) lda(info defs.OperationMethodArgument) bool {
 	Absolute      LDX oper      AE    3     4
 	Absolute,Y    LDX oper,Y    BE    3     4*
 */
-func (cpu *Cpu6502) ldx(info defs.OperationMethodArgument) bool {
-	cpu.registers.X = cpu.Read(info.OperandAddress)
+func (cpu *Cpu6502) ldx(info OperationMethodArgument) bool {
+	cpu.registers.X = cpu.memory.Read(info.OperandAddress)
 	cpu.registers.updateZeroFlag(cpu.registers.X)
 	cpu.registers.updateNegativeFlag(cpu.registers.X)
 
@@ -700,8 +913,8 @@ func (cpu *Cpu6502) ldx(info defs.OperationMethodArgument) bool {
 	Absolute      LDY oper      AC    3     4
 	Absolute,X    LDY oper,X    BC    3     4*
 */
-func (cpu *Cpu6502) ldy(info defs.OperationMethodArgument) bool {
-	cpu.registers.Y = cpu.Read(info.OperandAddress)
+func (cpu *Cpu6502) ldy(info OperationMethodArgument) bool {
+	cpu.registers.Y = cpu.memory.Read(info.OperandAddress)
 	cpu.registers.updateZeroFlag(cpu.registers.Y)
 	cpu.registers.updateNegativeFlag(cpu.registers.Y)
 
@@ -721,12 +934,12 @@ func (cpu *Cpu6502) ldy(info defs.OperationMethodArgument) bool {
 	Absolute      LSR oper      4E    3     6
 	Absolute,X    LSR oper,X    5E    3     7
 */
-func (cpu *Cpu6502) lsr(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) lsr(info OperationMethodArgument) bool {
 	var value byte
-	if info.AddressMode == defs.Implicit {
+	if info.AddressMode == Implicit {
 		value = cpu.registers.A
 	} else {
-		value = cpu.Read(info.OperandAddress)
+		value = cpu.memory.Read(info.OperandAddress)
 	}
 
 	//cpu.Registers.CarryFlag = value & 0x01
@@ -736,10 +949,10 @@ func (cpu *Cpu6502) lsr(info defs.OperationMethodArgument) bool {
 	cpu.registers.updateZeroFlag(value)
 	cpu.registers.updateNegativeFlag(0)
 
-	if info.AddressMode == defs.Implicit {
+	if info.AddressMode == Implicit {
 		cpu.registers.A = value
 	} else {
-		cpu.write(info.OperandAddress, value)
+		cpu.memory.Write(info.OperandAddress, value)
 	}
 
 	return false
@@ -754,7 +967,7 @@ func (cpu *Cpu6502) lsr(info defs.OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       NOP           EA    1     2
 */
-func (cpu *Cpu6502) nop(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) nop(info OperationMethodArgument) bool {
 	return false
 }
 
@@ -774,8 +987,8 @@ func (cpu *Cpu6502) nop(info defs.OperationMethodArgument) bool {
 	(Indirect,X)  ORA (oper,X)  01    2     6
 	(Indirect),Y  ORA (oper),Y  11    2     5*
 */
-func (cpu *Cpu6502) ora(info defs.OperationMethodArgument) bool {
-	value := cpu.Read(info.OperandAddress)
+func (cpu *Cpu6502) ora(info OperationMethodArgument) bool {
+	value := cpu.memory.Read(info.OperandAddress)
 	cpu.registers.A |= value
 	cpu.registers.updateZeroFlag(cpu.registers.A)
 	cpu.registers.updateNegativeFlag(cpu.registers.A)
@@ -792,7 +1005,7 @@ func (cpu *Cpu6502) ora(info defs.OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       PHA           48    1     3
 */
-func (cpu *Cpu6502) pha(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) pha(info OperationMethodArgument) bool {
 	cpu.pushStack(cpu.registers.A)
 
 	return false
@@ -807,7 +1020,7 @@ func (cpu *Cpu6502) pha(info defs.OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       PHP           08    1     3
 */
-func (cpu *Cpu6502) php(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) php(info OperationMethodArgument) bool {
 	value := cpu.registers.statusRegister()
 	value |= 0b00110000
 	cpu.pushStack(value)
@@ -824,7 +1037,7 @@ func (cpu *Cpu6502) php(info defs.OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       PLA           68    1     4
 */
-func (cpu *Cpu6502) pla(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) pla(info OperationMethodArgument) bool {
 	cpu.registers.A = cpu.popStack()
 	cpu.registers.updateNegativeFlag(cpu.registers.A)
 	cpu.registers.updateZeroFlag(cpu.registers.A)
@@ -841,7 +1054,7 @@ func (cpu *Cpu6502) pla(info defs.OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       PLP           28    1     4
 */
-func (cpu *Cpu6502) plp(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) plp(info OperationMethodArgument) bool {
 	value := cpu.popStack()
 
 	// From http://nesdev.com/the%20%27B%27%20flag%20&%20BRK%20instruction.txt
@@ -867,20 +1080,20 @@ func (cpu *Cpu6502) plp(info defs.OperationMethodArgument) bool {
 	Absolute      ROL oper      2E    3     6
 	Absolute,X    ROL oper,X    3E    3     7
 */
-func (cpu *Cpu6502) rol(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) rol(info OperationMethodArgument) bool {
 	var newCarry byte
 	var value byte
-	if info.AddressMode == defs.Implicit {
+	if info.AddressMode == Implicit {
 		newCarry = cpu.registers.A & 0x80 >> 7
 		cpu.registers.A <<= 1
 		cpu.registers.A |= cpu.registers.carryFlag()
 		value = cpu.registers.A
 	} else {
-		value = cpu.Read(info.OperandAddress)
+		value = cpu.memory.Read(info.OperandAddress)
 		newCarry = value & 0x80 >> 7
 		value <<= 1
 		value |= cpu.registers.carryFlag()
-		cpu.write(info.OperandAddress, value)
+		cpu.memory.Write(info.OperandAddress, value)
 	}
 
 	cpu.registers.updateNegativeFlag(value)
@@ -903,20 +1116,20 @@ func (cpu *Cpu6502) rol(info defs.OperationMethodArgument) bool {
 	Absolute      ROR oper      6E    3     6
 	Absolute,X    ROR oper,X    7E    3     7
 */
-func (cpu *Cpu6502) ror(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) ror(info OperationMethodArgument) bool {
 	var newCarry byte
 	var value byte
-	if info.AddressMode == defs.Implicit {
+	if info.AddressMode == Implicit {
 		newCarry = cpu.registers.A & 0x01
 		cpu.registers.A >>= 1
 		cpu.registers.A |= cpu.registers.carryFlag() << 7
 		value = cpu.registers.A
 	} else {
-		value = cpu.Read(info.OperandAddress)
+		value = cpu.memory.Read(info.OperandAddress)
 		newCarry = value & 0x01
 		value >>= 1
 		value |= cpu.registers.carryFlag() << 7
-		cpu.write(info.OperandAddress, value)
+		cpu.memory.Write(info.OperandAddress, value)
 	}
 
 	cpu.registers.updateNegativeFlag(value)
@@ -936,13 +1149,13 @@ func (cpu *Cpu6502) ror(info defs.OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       RTI           40    1     6
 */
-func (cpu *Cpu6502) rti(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) rti(info OperationMethodArgument) bool {
 	statusRegister := cpu.popStack()
 	cpu.registers.loadStatusRegister(statusRegister)
 
 	lsb := cpu.popStack()
 	msb := cpu.popStack()
-	cpu.registers.Pc = defs.CreateAddress(lsb, msb)
+	cpu.registers.Pc = CreateAddress(lsb, msb)
 
 	return false
 }
@@ -956,10 +1169,10 @@ func (cpu *Cpu6502) rti(info defs.OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       RTS           60    1     6
 */
-func (cpu *Cpu6502) rts(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) rts(info OperationMethodArgument) bool {
 	lsb := cpu.popStack()
 	msb := cpu.popStack()
-	cpu.registers.Pc = defs.CreateAddress(lsb, msb) + 1
+	cpu.registers.Pc = CreateAddress(lsb, msb) + 1
 
 	return false
 }
@@ -980,8 +1193,8 @@ func (cpu *Cpu6502) rts(info defs.OperationMethodArgument) bool {
 	(Indirect,X)  SBC (oper,X)  E1    2     6
 	(Indirect),Y  SBC (oper),Y  F1    2     5*
 */
-func (cpu *Cpu6502) sbc(info defs.OperationMethodArgument) bool {
-	value := cpu.Read(info.OperandAddress)
+func (cpu *Cpu6502) sbc(info OperationMethodArgument) bool {
+	value := cpu.memory.Read(info.OperandAddress)
 	borrow := (1 - cpu.registers.carryFlag()) & 0x01 // == !CarryFlag
 	a := cpu.registers.A
 	result := a - value - borrow
@@ -1015,7 +1228,7 @@ func (cpu *Cpu6502) sbc(info defs.OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       SEC           38    1     2
 */
-func (cpu *Cpu6502) sec(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) sec(info OperationMethodArgument) bool {
 	cpu.registers.updateFlag(carryFlag, 1)
 
 	return false
@@ -1030,32 +1243,32 @@ func (cpu *Cpu6502) sec(info defs.OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       SED           F8    1     2
 */
-func (cpu *Cpu6502) sed(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) sed(info OperationMethodArgument) bool {
 	cpu.registers.updateFlag(decimalFlag, 1)
 
 	return false
 }
 
-func (cpu *Cpu6502) sei(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) sei(info OperationMethodArgument) bool {
 	cpu.registers.updateFlag(interruptFlag, 1)
 
 	return false
 }
 
-func (cpu *Cpu6502) sta(info defs.OperationMethodArgument) bool {
-	cpu.write(info.OperandAddress, cpu.registers.A)
+func (cpu *Cpu6502) sta(info OperationMethodArgument) bool {
+	cpu.memory.Write(info.OperandAddress, cpu.registers.A)
 
 	return false
 }
 
-func (cpu *Cpu6502) stx(info defs.OperationMethodArgument) bool {
-	cpu.write(info.OperandAddress, cpu.registers.X)
+func (cpu *Cpu6502) stx(info OperationMethodArgument) bool {
+	cpu.memory.Write(info.OperandAddress, cpu.registers.X)
 
 	return false
 }
 
-func (cpu *Cpu6502) sty(info defs.OperationMethodArgument) bool {
-	cpu.write(info.OperandAddress, cpu.registers.Y)
+func (cpu *Cpu6502) sty(info OperationMethodArgument) bool {
+	cpu.memory.Write(info.OperandAddress, cpu.registers.Y)
 
 	return false
 }
@@ -1069,7 +1282,7 @@ func (cpu *Cpu6502) sty(info defs.OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       TAX           AA    1     2
 */
-func (cpu *Cpu6502) tax(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) tax(info OperationMethodArgument) bool {
 	cpu.registers.X = cpu.registers.A
 	cpu.registers.updateNegativeFlag(cpu.registers.X)
 	cpu.registers.updateZeroFlag(cpu.registers.X)
@@ -1086,7 +1299,7 @@ func (cpu *Cpu6502) tax(info defs.OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       TAY           A8    1     2
 */
-func (cpu *Cpu6502) tay(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) tay(info OperationMethodArgument) bool {
 	cpu.registers.Y = cpu.registers.A
 	cpu.registers.updateNegativeFlag(cpu.registers.Y)
 	cpu.registers.updateZeroFlag(cpu.registers.Y)
@@ -1103,7 +1316,7 @@ func (cpu *Cpu6502) tay(info defs.OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       TSX           BA    1     2
 */
-func (cpu *Cpu6502) tsx(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) tsx(info OperationMethodArgument) bool {
 	cpu.registers.X = cpu.Registers().Sp
 	cpu.registers.updateZeroFlag(cpu.registers.X)
 	cpu.registers.updateNegativeFlag(cpu.registers.X)
@@ -1120,7 +1333,7 @@ func (cpu *Cpu6502) tsx(info defs.OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       TXA           8A    1     2
 */
-func (cpu *Cpu6502) txa(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) txa(info OperationMethodArgument) bool {
 	cpu.registers.A = cpu.registers.X
 	cpu.registers.updateZeroFlag(cpu.registers.A)
 	cpu.registers.updateNegativeFlag(cpu.registers.A)
@@ -1137,7 +1350,7 @@ func (cpu *Cpu6502) txa(info defs.OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       TXS           9A    1     2
 */
-func (cpu *Cpu6502) txs(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) txs(info OperationMethodArgument) bool {
 	cpu.registers.Sp = cpu.registers.X
 
 	return false
@@ -1167,7 +1380,7 @@ func (cpu *Cpu6502) txs(info defs.OperationMethodArgument) bool {
 	Note on assembler syntax:
 	Most assemblers employ "OPC *oper" for forced zeropage addressing.
 */
-func (cpu *Cpu6502) tya(info defs.OperationMethodArgument) bool {
+func (cpu *Cpu6502) tya(info OperationMethodArgument) bool {
 	cpu.registers.A = cpu.registers.Y
 	cpu.registers.updateZeroFlag(cpu.registers.A)
 	cpu.registers.updateNegativeFlag(cpu.registers.A)

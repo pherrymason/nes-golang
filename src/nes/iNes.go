@@ -1,4 +1,4 @@
-package component
+package nes
 
 type iNes interface {
 	ProgramSize() byte

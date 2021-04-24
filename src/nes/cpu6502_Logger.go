@@ -1,27 +1,26 @@
-package cpu
+package nes
 
 import (
 	"fmt"
-	"github.com/raulferras/nes-golang/src/nes/defs"
 	"os"
 )
 
-type Logger struct {
+type cpu6502Logger struct {
 	outputPath string
-	snapshots  []State
+	snapshots  []CpuState
 }
 
-func CreateCPULogger(outputPath string) Logger {
+func createCPULogger(outputPath string) cpu6502Logger {
 	f, err := os.Create(outputPath)
 	if err != nil {
 		panic(fmt.Sprintf("Could not create log file: %s", outputPath))
 	}
 	defer f.Close()
 
-	return Logger{outputPath: outputPath}
+	return cpu6502Logger{outputPath: outputPath}
 }
 
-func (logger *Logger) Log(state State) {
+func (logger *cpu6502Logger) Log(state CpuState) {
 	logger.snapshots = append(logger.snapshots, state)
 
 	f, err := os.OpenFile(logger.outputPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
@@ -34,11 +33,11 @@ func (logger *Logger) Log(state State) {
 	f.Sync()
 }
 
-func (logger Logger) Snapshots() []State {
+func (logger cpu6502Logger) Snapshots() []CpuState {
 	return logger.snapshots
 }
 
-func stateToString(state State) string {
+func stateToString(state CpuState) string {
 	var msg string
 	// Pointer
 	msg += fmt.Sprintf("%02X", state.Registers.Pc) + "  "
@@ -52,7 +51,7 @@ func stateToString(state State) string {
 
 	msg += state.CurrentInstruction.Name() + " "
 
-	if state.CurrentInstruction.AddressMode() == defs.Immediate {
+	if state.CurrentInstruction.AddressMode() == Immediate {
 		msg += fmt.Sprintf("#$%02X", state.EvaluatedAddress)
 	} else {
 		msg += fmt.Sprintf("$%02X", state.EvaluatedAddress)

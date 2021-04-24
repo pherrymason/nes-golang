@@ -1,12 +1,26 @@
-package cpu
+package nes
 
 import (
 	"fmt"
-	"github.com/raulferras/nes-golang/src/nes/defs"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func CreateFakeGamePak() *GamePak {
+	gamePak := CreateDummyGamePak()
+
+	return &gamePak
+}
+
+// CreateCPUWithGamePak creates a Cpu6502 with a Bus, Useful for tests
+func CreateCPUWithGamePak() *Cpu6502 {
+	cpu := CreateCPU(
+		CreateCPUMemory(CreateFakeGamePak()),
+		Cpu6502DebugOptions{false, ""},
+	)
+	return cpu
+}
 
 // Decode Operation Address Mode
 
@@ -26,11 +40,11 @@ func TestAND(t *testing.T) {
 
 	for i := 0; i < len(dataProviders); i++ {
 		dp := dataProviders[i]
-		cpu := CreateCPUWithBus()
-		cpu.write(0x100, dp.operand)
+		cpu := CreateCPUWithGamePak()
+		cpu.memory.Write(0x100, dp.operand)
 		cpu.registers.A = dp.A
 
-		extraCycle := cpu.and(defs.OperationMethodArgument{defs.Immediate, 0x100})
+		extraCycle := cpu.and(OperationMethodArgument{Immediate, 0x100})
 
 		assert.Equal(t, dp.expectedA, cpu.registers.A, fmt.Sprintf("Iteration %d failed, unexpected register A result", i))
 		assert.Equal(t, dp.expectedNegativeFlag, cpu.registers.negativeFlag(), fmt.Sprintf("Iteration %d failed, unexpected NegativeFlag result", i))
@@ -61,10 +75,10 @@ func TestASL_Accumulator(t *testing.T) {
 	dataProviders[3] = dataProvider{0b11000000, expectedRegisters(1, 0, 1)}
 
 	for i := 0; i < len(dataProviders); i++ {
-		cpu := CreateCPUWithBus()
+		cpu := CreateCPUWithGamePak()
 		cpu.registers.A = dataProviders[i].accumulator
 
-		cpu.asl(defs.OperationMethodArgument{defs.Implicit, 0x0000})
+		cpu.asl(OperationMethodArgument{Implicit, 0x0000})
 
 		assert.Equal(t, dataProviders[i].accumulator<<1, cpu.registers.A, fmt.Sprintf("Iteration %d failed @ expected Accumulator", i))
 		assert.Equal(t, dataProviders[i].expectedRegister.carryFlag(), cpu.registers.carryFlag(), fmt.Sprintf("Iteration %d failed @ expected CarryFlag", i))
@@ -95,13 +109,13 @@ func TestASL_Memory(t *testing.T) {
 	dataProviders[3] = dataProvider{0b11000000, expectedRegisters(1, 0, 1)}
 
 	for i := 0; i < len(dataProviders); i++ {
-		cpu := CreateCPUWithBus()
+		cpu := CreateCPUWithGamePak()
 		cpu.registers.A = dataProviders[i].operand
 
-		cpu.write(0x0000, dataProviders[i].operand)
-		cpu.asl(defs.OperationMethodArgument{defs.ZeroPage, 0x0000})
+		cpu.memory.Write(0x0000, dataProviders[i].operand)
+		cpu.asl(OperationMethodArgument{ZeroPage, 0x0000})
 
-		assert.Equal(t, dataProviders[i].operand<<1, cpu.Read(0x0000), fmt.Sprintf("Iteration %d failed @ expected operand", i))
+		assert.Equal(t, dataProviders[i].operand<<1, cpu.memory.Read(0x0000), fmt.Sprintf("Iteration %d failed @ expected operand", i))
 		assert.Equal(t, dataProviders[i].expectedRegister.carryFlag(), cpu.registers.carryFlag(), fmt.Sprintf("Iteration %d failed @ expected CarryFlag", i))
 		assert.Equal(t, dataProviders[i].expectedRegister.zeroFlag(), cpu.registers.zeroFlag(), fmt.Sprintf("Iteration %d failed @ expected ZeroFlag", i))
 		assert.Equal(t, dataProviders[i].expectedRegister.negativeFlag(), cpu.registers.negativeFlag(), fmt.Sprintf("Iteration %d failed @ expected NegativeFlag", i))
@@ -110,7 +124,7 @@ func TestASL_Memory(t *testing.T) {
 
 func TestADC(t *testing.T) {
 
-	cpu := CreateCPUWithBus()
+	cpu := CreateCPUWithGamePak()
 
 	type dataProvider struct {
 		accumulator      byte
@@ -139,9 +153,9 @@ func TestADC(t *testing.T) {
 		dp := dataProviders[i]
 		cpu.registers.A = dp.accumulator
 		cpu.registers.updateFlag(carryFlag, dp.carryFlag)
-		cpu.write(0x0000, dp.operand)
+		cpu.memory.Write(0x0000, dp.operand)
 
-		extraCycle := cpu.adc(defs.OperationMethodArgument{defs.Immediate, 0x0000})
+		extraCycle := cpu.adc(OperationMethodArgument{Immediate, 0x0000})
 
 		assert.Equal(t, dp.expectedRegister.A, cpu.registers.A, fmt.Sprintf("Iteration %d failed, unexpected A", i))
 		assert.Equal(t, dp.expectedRegister.negativeFlag(), cpu.registers.negativeFlag(), fmt.Sprintf("Iteration %d failed, unexpected NegativeFlag", i))
@@ -155,8 +169,8 @@ func TestADC(t *testing.T) {
 func TestBCC(t *testing.T) {
 	type dataProvider struct {
 		carryFlag      byte
-		pc             defs.Address
-		expectedPc     defs.Address
+		pc             Address
+		expectedPc     Address
 		expectedCycles byte
 	}
 
@@ -169,14 +183,14 @@ func TestBCC(t *testing.T) {
 	for i := 0; i < len(dataProviders); i++ {
 		dp := dataProviders[i]
 
-		cpu := CreateCPUWithBus()
+		cpu := CreateCPUWithGamePak()
 		cpu.registers.updateFlag(carryFlag, dp.carryFlag)
 		cpu.registers.Pc = dp.pc
 
-		cpu.bcc(defs.OperationMethodArgument{defs.Relative, dp.expectedPc})
+		cpu.bcc(OperationMethodArgument{Relative, dp.expectedPc})
 
 		assert.Equal(t, dp.expectedPc, cpu.registers.Pc, "invalid pc")
-		assert.Equal(t, dp.expectedCycles, cpu.instructionCycle, "invalid cycles")
+		assert.Equal(t, dp.expectedCycles, cpu.opCyclesLeft, "invalid cycles")
 	}
 }
 
@@ -184,8 +198,8 @@ func TestBCS(t *testing.T) {
 	type dataProvider struct {
 		failError      string
 		carry          byte
-		pc             defs.Address
-		expectedPc     defs.Address
+		pc             Address
+		expectedPc     Address
 		expectedCycles byte
 	}
 
@@ -196,13 +210,13 @@ func TestBCS(t *testing.T) {
 	}
 
 	for _, dp := range dataProviders {
-		cpu := CreateCPUWithBus()
+		cpu := CreateCPUWithGamePak()
 		cpu.registers.updateFlag(carryFlag, dp.carry)
 		cpu.registers.Pc = dp.pc
-		cpu.bcs(defs.OperationMethodArgument{defs.Relative, dp.expectedPc})
+		cpu.bcs(OperationMethodArgument{Relative, dp.expectedPc})
 
 		assert.Equal(t, dp.expectedPc, cpu.registers.Pc, dp.failError+"; invalid pc")
-		assert.Equal(t, dp.expectedCycles, cpu.instructionCycle, dp.failError+": invalid cycles")
+		assert.Equal(t, dp.expectedCycles, cpu.opCyclesLeft, dp.failError+": invalid cycles")
 	}
 }
 
@@ -210,8 +224,8 @@ func TestBEQ(t *testing.T) {
 	type dataProvider struct {
 		failError      string
 		zero           byte
-		pc             defs.Address
-		expectedPc     defs.Address
+		pc             Address
+		expectedPc     Address
 		expectedCycles byte
 	}
 
@@ -222,14 +236,14 @@ func TestBEQ(t *testing.T) {
 	}
 
 	for _, dp := range dataProviders {
-		cpu := CreateCPUWithBus()
+		cpu := CreateCPUWithGamePak()
 		cpu.registers.updateFlag(zeroFlag, dp.zero)
 		cpu.registers.Pc = dp.pc
 
-		cpu.beq(defs.OperationMethodArgument{defs.Relative, dp.expectedPc})
+		cpu.beq(OperationMethodArgument{Relative, dp.expectedPc})
 
 		assert.Equal(t, dp.expectedPc, cpu.registers.Pc, dp.failError+":invalid pc")
-		assert.Equal(t, dp.expectedCycles, cpu.instructionCycle, dp.failError+":invalid cycles")
+		assert.Equal(t, dp.expectedCycles, cpu.opCyclesLeft, dp.failError+":invalid cycles")
 	}
 }
 
@@ -261,11 +275,11 @@ func TestBIT(t *testing.T) {
 
 	for i := 0; i < len(dataProviders); i++ {
 		dp := dataProviders[i]
-		cpu := CreateCPUWithBus()
+		cpu := CreateCPUWithGamePak()
 		cpu.registers.A = dp.accumulator
-		cpu.write(0x0001, dp.operand)
+		cpu.memory.Write(0x0001, dp.operand)
 
-		cpu.bit(defs.OperationMethodArgument{defs.ZeroPage, 0x0001})
+		cpu.bit(OperationMethodArgument{ZeroPage, 0x0001})
 
 		assert.Equal(t, dp.expectedRegister, cpu.registers, fmt.Sprintf("Iteration %d failed", i))
 	}
@@ -275,8 +289,8 @@ func TestBMI(t *testing.T) {
 	type dataProvider struct {
 		failError      string
 		negative       byte
-		pc             defs.Address
-		expectedPc     defs.Address
+		pc             Address
+		expectedPc     Address
 		expectedCycles byte
 	}
 
@@ -287,14 +301,14 @@ func TestBMI(t *testing.T) {
 	}
 
 	for _, dp := range dataProviders {
-		cpu := CreateCPUWithBus()
+		cpu := CreateCPUWithGamePak()
 		cpu.registers.updateFlag(negativeFlag, dp.negative)
 		cpu.registers.Pc = dp.pc
 
-		cpu.bmi(defs.OperationMethodArgument{defs.Relative, dp.expectedPc})
+		cpu.bmi(OperationMethodArgument{Relative, dp.expectedPc})
 
 		assert.Equal(t, dp.expectedPc, cpu.registers.Pc, dp.failError+":invalid pc")
-		assert.Equal(t, dp.expectedCycles, cpu.instructionCycle, dp.failError+":invalid cycles")
+		assert.Equal(t, dp.expectedCycles, cpu.opCyclesLeft, dp.failError+":invalid cycles")
 	}
 }
 
@@ -302,8 +316,8 @@ func TestBNE(t *testing.T) {
 	type dataProvider struct {
 		failError      string
 		zero           byte
-		pc             defs.Address
-		expectedPc     defs.Address
+		pc             Address
+		expectedPc     Address
 		expectedCycles byte
 	}
 
@@ -314,13 +328,13 @@ func TestBNE(t *testing.T) {
 	}
 
 	for _, dp := range dataProviders {
-		cpu := CreateCPUWithBus()
+		cpu := CreateCPUWithGamePak()
 		cpu.registers.Pc = dp.pc
 		cpu.registers.updateFlag(zeroFlag, dp.zero)
-		cpu.bne(defs.OperationMethodArgument{defs.Relative, dp.expectedPc})
+		cpu.bne(OperationMethodArgument{Relative, dp.expectedPc})
 
 		assert.Equal(t, dp.expectedPc, cpu.registers.Pc, dp.failError+":invalid pc")
-		assert.Equal(t, dp.expectedCycles, cpu.instructionCycle, dp.failError+":invalid cycles")
+		assert.Equal(t, dp.expectedCycles, cpu.opCyclesLeft, dp.failError+":invalid cycles")
 	}
 }
 
@@ -328,8 +342,8 @@ func TestBPL(t *testing.T) {
 	type dataProvider struct {
 		failError      string
 		negative       byte
-		pc             defs.Address
-		expectedPc     defs.Address
+		pc             Address
+		expectedPc     Address
 		expectedCycles byte
 	}
 
@@ -340,35 +354,35 @@ func TestBPL(t *testing.T) {
 	}
 
 	for _, dp := range dataProviders {
-		cpu := CreateCPUWithBus()
+		cpu := CreateCPUWithGamePak()
 		cpu.registers.Pc = dp.pc
 		cpu.registers.updateFlag(negativeFlag, dp.negative)
 
-		cpu.bpl(defs.OperationMethodArgument{defs.Relative, dp.expectedPc})
+		cpu.bpl(OperationMethodArgument{Relative, dp.expectedPc})
 
 		assert.Equal(t, dp.expectedPc, cpu.registers.Pc, dp.failError+":invalid pc")
-		assert.Equal(t, dp.expectedCycles, cpu.instructionCycle, dp.failError+":invalid cycles")
+		assert.Equal(t, dp.expectedCycles, cpu.opCyclesLeft, dp.failError+":invalid cycles")
 	}
 }
 
 func TestBRK(t *testing.T) {
-	programCounter := defs.Address(0x2030)
-	expectedPc := defs.Address(0x9999)
-	cpu := CreateCPUWithBus()
+	programCounter := Address(0x2030)
+	expectedPc := Address(0x9999)
+	cpu := CreateCPUWithGamePak()
 	cpu.registers.Pc = programCounter
 	cpu.registers.Status = 0b11100011
-	cpu.write(defs.Address(0xFFFE), defs.LowNibble(expectedPc))
-	cpu.write(defs.Address(0xFFFF), defs.HighNibble(expectedPc))
+	cpu.memory.Write(Address(0xFFFE), LowNibble(expectedPc))
+	cpu.memory.Write(Address(0xFFFF), HighNibble(expectedPc))
 
-	cpu.brk(defs.OperationMethodArgument{defs.Implicit, 0x0000})
+	cpu.brk(OperationMethodArgument{Implicit, 0x0000})
 
 	assert.Equal(t, programCounter, cpu.read16(0x1FE))
 	// Stored status Registers in stack should be...
-	assert.Equal(t, byte(0b11110011), cpu.Read(0x1FD))
+	assert.Equal(t, byte(0b11110011), cpu.memory.Read(0x1FD))
 	assert.Equal(t, byte(1), cpu.registers.interruptFlag())
 	assert.Equal(t, byte(0xF3), cpu.popStack(), "unexpected StatusRegister pushed in stack")
-	assert.Equal(t, defs.LowNibble(programCounter), cpu.popStack(), "unexpected low nibble in stack pointer")
-	assert.Equal(t, defs.HighNibble(programCounter), cpu.popStack(), "unexpected high nibble in stack pointer")
+	assert.Equal(t, LowNibble(programCounter), cpu.popStack(), "unexpected low nibble in stack pointer")
+	assert.Equal(t, HighNibble(programCounter), cpu.popStack(), "unexpected high nibble in stack pointer")
 
 	assert.Equal(t, expectedPc, cpu.registers.Pc)
 }
@@ -377,8 +391,8 @@ func TestBVC(t *testing.T) {
 	type dataProvider struct {
 		failError      string
 		overflow       byte
-		pc             defs.Address
-		expectedPc     defs.Address
+		pc             Address
+		expectedPc     Address
 		expectedCycles byte
 	}
 
@@ -389,13 +403,13 @@ func TestBVC(t *testing.T) {
 	}
 
 	for _, dp := range dataProviders {
-		cpu := CreateCPUWithBus()
+		cpu := CreateCPUWithGamePak()
 		cpu.registers.Pc = dp.pc
 		cpu.registers.updateFlag(overflowFlag, dp.overflow)
-		cpu.bvc(defs.OperationMethodArgument{defs.Relative, dp.expectedPc})
+		cpu.bvc(OperationMethodArgument{Relative, dp.expectedPc})
 
 		assert.Equal(t, dp.expectedPc, cpu.registers.Pc, dp.failError+": invalid pc")
-		assert.Equal(t, dp.expectedCycles, cpu.instructionCycle, dp.failError+": invalid cycles")
+		assert.Equal(t, dp.expectedCycles, cpu.opCyclesLeft, dp.failError+": invalid cycles")
 	}
 }
 
@@ -403,8 +417,8 @@ func TestBVS(t *testing.T) {
 	type dataProvider struct {
 		failError      string
 		overflow       byte
-		pc             defs.Address
-		expectedPc     defs.Address
+		pc             Address
+		expectedPc     Address
 		expectedCycles byte
 	}
 
@@ -415,54 +429,54 @@ func TestBVS(t *testing.T) {
 	}
 
 	for _, dp := range dataProviders {
-		cpu := CreateCPUWithBus()
+		cpu := CreateCPUWithGamePak()
 		cpu.registers.Pc = dp.pc
 		cpu.registers.updateFlag(overflowFlag, dp.overflow)
-		cpu.bvs(defs.OperationMethodArgument{defs.Relative, dp.expectedPc})
+		cpu.bvs(OperationMethodArgument{Relative, dp.expectedPc})
 
 		assert.Equal(t, dp.expectedPc, cpu.registers.Pc, dp.failError+": invalid pc")
-		assert.Equal(t, dp.expectedCycles, cpu.instructionCycle, dp.failError+": invalid cycles")
+		assert.Equal(t, dp.expectedCycles, cpu.opCyclesLeft, dp.failError+": invalid cycles")
 	}
 }
 
 func TestCLC(t *testing.T) {
-	cpu := CreateCPUWithBus()
+	cpu := CreateCPUWithGamePak()
 	cpu.registers.updateFlag(carryFlag, 1)
 
-	cpu.clc(defs.OperationMethodArgument{defs.Implicit, 0x00})
+	cpu.clc(OperationMethodArgument{Implicit, 0x00})
 
 	assert.Zero(t, cpu.registers.carryFlag())
 }
 
 func TestCLD(t *testing.T) {
-	cpu := CreateCPUWithBus()
+	cpu := CreateCPUWithGamePak()
 	cpu.registers.updateFlag(decimalFlag, 1)
 
-	cpu.cld(defs.OperationMethodArgument{defs.Implicit, 0x00})
+	cpu.cld(OperationMethodArgument{Implicit, 0x00})
 
 	assert.Zero(t, cpu.registers.decimalFlag())
 }
 
 func TestCLI(t *testing.T) {
-	cpu := CreateCPUWithBus()
+	cpu := CreateCPUWithGamePak()
 	cpu.registers.updateFlag(interruptFlag, 1)
 
-	cpu.cli(defs.OperationMethodArgument{defs.Implicit, 0x00})
+	cpu.cli(OperationMethodArgument{Implicit, 0x00})
 
 	assert.Zero(t, cpu.registers.interruptFlag())
 }
 
 func TestCLV(t *testing.T) {
-	cpu := CreateCPUWithBus()
+	cpu := CreateCPUWithGamePak()
 	cpu.registers.updateFlag(overflowFlag, 1)
 
-	cpu.clv(defs.OperationMethodArgument{defs.Implicit, 0x00})
+	cpu.clv(OperationMethodArgument{Implicit, 0x00})
 
 	assert.Zero(t, cpu.registers.overflowFlag())
 }
 
 func TestCompareOperations(t *testing.T) {
-	cpu := CreateCPUWithBus()
+	cpu := CreateCPUWithGamePak()
 	cpu.registers.X = 0x10
 	cpu.registers.A = 0x10
 	cpu.registers.Y = 0x10
@@ -470,7 +484,7 @@ func TestCompareOperations(t *testing.T) {
 	type dataProvider struct {
 		title            string
 		operand          byte
-		op               defs.OperationMethod
+		op               OperationMethod
 		expectedCarry    byte
 		expectedZero     byte
 		expectedNegative byte
@@ -491,9 +505,9 @@ func TestCompareOperations(t *testing.T) {
 	for i := 0; i < len(dps); i++ {
 		dp := dps[i]
 
-		cpu.write(0x00, dp.operand)
+		cpu.memory.Write(0x00, dp.operand)
 
-		dp.op(defs.OperationMethodArgument{defs.ZeroPage, defs.Address(0x00)})
+		dp.op(OperationMethodArgument{ZeroPage, Address(0x00)})
 
 		assert.Equal(t, dp.expectedCarry, cpu.registers.carryFlag(), dp.title+": Carry")
 		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag(), dp.title+": Zero")
@@ -502,27 +516,27 @@ func TestCompareOperations(t *testing.T) {
 }
 
 func TestDEC(t *testing.T) {
-	cpu := CreateCPUWithBus()
+	cpu := CreateCPUWithGamePak()
 
-	cpu.write(0x0000, 0x02)
+	cpu.memory.Write(0x0000, 0x02)
 
-	cpu.dec(defs.OperationMethodArgument{defs.ZeroPage, defs.Address(0x0000)})
+	cpu.dec(OperationMethodArgument{ZeroPage, Address(0x0000)})
 
-	assert.Equal(t, byte(0x01), cpu.Read(0))
+	assert.Equal(t, byte(0x01), cpu.memory.Read(0))
 	assert.Equal(t, byte(0), cpu.registers.zeroFlag())
 	assert.Equal(t, byte(0), cpu.registers.negativeFlag())
 
 	// Zero result
-	cpu.dec(defs.OperationMethodArgument{defs.ZeroPage, defs.Address(0x0000)})
+	cpu.dec(OperationMethodArgument{ZeroPage, Address(0x0000)})
 
-	assert.Equal(t, byte(0x00), cpu.Read(0))
+	assert.Equal(t, byte(0x00), cpu.memory.Read(0))
 	assert.Equal(t, byte(0), cpu.registers.negativeFlag())
 	assert.Equal(t, byte(1), cpu.registers.zeroFlag())
 
 	// Negative result
-	cpu.dec(defs.OperationMethodArgument{defs.ZeroPage, defs.Address(0x0000)})
+	cpu.dec(OperationMethodArgument{ZeroPage, Address(0x0000)})
 
-	assert.Equal(t, byte(0xFF), cpu.Read(0))
+	assert.Equal(t, byte(0xFF), cpu.memory.Read(0))
 	assert.Equal(t, byte(1), cpu.registers.negativeFlag())
 	assert.Equal(t, byte(0), cpu.registers.zeroFlag())
 }
@@ -530,14 +544,14 @@ func TestDEC(t *testing.T) {
 func TestDECXY(t *testing.T) {
 	type dataProvider struct {
 		title            string
-		op               defs.OperationMethod
+		op               OperationMethod
 		expectedX        byte
 		expectedY        byte
 		expectedZero     byte
 		expectedNegative byte
 	}
 
-	cpu := CreateCPUWithBus()
+	cpu := CreateCPUWithGamePak()
 	cpu.registers.X = 2
 	cpu.registers.Y = 2
 
@@ -554,7 +568,7 @@ func TestDECXY(t *testing.T) {
 		dp := dps[i]
 		msg := fmt.Sprintf("%s: Unexpected when value is X:%X Y:%X", dp.title, cpu.registers.X, cpu.registers.Y)
 
-		dp.op(defs.OperationMethodArgument{defs.Implicit, 0})
+		dp.op(OperationMethodArgument{Implicit, 0})
 		assert.Equal(t, dp.expectedX, cpu.registers.X, dp.title)
 		assert.Equal(t, dp.expectedY, cpu.registers.Y, dp.title)
 		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag(), msg)
@@ -576,13 +590,13 @@ func TestEOR(t *testing.T) {
 		{0x80, 0x00, 0x80, 0, 1},
 	}
 
-	cpu := CreateCPUWithBus()
+	cpu := CreateCPUWithGamePak()
 	for i := 0; i < len(dps); i++ {
 		dp := dps[i]
 		cpu.registers.A = dp.a
-		cpu.write(0x05, dp.value)
+		cpu.memory.Write(0x05, dp.value)
 
-		extraCycle := cpu.eor(defs.OperationMethodArgument{defs.Immediate, 0x05})
+		extraCycle := cpu.eor(OperationMethodArgument{Immediate, 0x05})
 
 		assert.Equal(t, dp.expectedA, cpu.registers.A)
 		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag())
@@ -606,11 +620,11 @@ func TestINC(t *testing.T) {
 
 	for i := 0; i < len(dps); i++ {
 		dp := dps[i]
-		cpu := CreateCPUWithBus()
-		cpu.write(0x00, dp.value)
+		cpu := CreateCPUWithGamePak()
+		cpu.memory.Write(0x00, dp.value)
 
-		cpu.inc(defs.OperationMethodArgument{defs.ZeroPage, 0x00})
-		assert.Equal(t, dp.expectedValue, cpu.Read(0x00))
+		cpu.inc(OperationMethodArgument{ZeroPage, 0x00})
+		assert.Equal(t, dp.expectedValue, cpu.memory.Read(0x00))
 		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag())
 		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag())
 	}
@@ -631,10 +645,10 @@ func TestINX(t *testing.T) {
 
 	for i := 0; i < len(dps); i++ {
 		dp := dps[i]
-		cpu := CreateCPUWithBus()
+		cpu := CreateCPUWithGamePak()
 		cpu.registers.X = dp.value
 
-		cpu.inx(defs.OperationMethodArgument{defs.ZeroPage, 0x00})
+		cpu.inx(OperationMethodArgument{ZeroPage, 0x00})
 		assert.Equal(t, dp.expectedValue, cpu.registers.X)
 		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag())
 		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag())
@@ -655,10 +669,10 @@ func TestINY(t *testing.T) {
 
 	for i := 0; i < len(dps); i++ {
 		dp := dps[i]
-		cpu := CreateCPUWithBus()
+		cpu := CreateCPUWithGamePak()
 		cpu.registers.Y = dp.value
 
-		cpu.iny(defs.OperationMethodArgument{defs.ZeroPage, 0x00})
+		cpu.iny(OperationMethodArgument{ZeroPage, 0x00})
 		assert.Equal(t, dp.expectedValue, cpu.registers.Y)
 		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag())
 		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag())
@@ -666,23 +680,23 @@ func TestINY(t *testing.T) {
 }
 
 func TestJMP(t *testing.T) {
-	cpu := CreateCPUWithBus()
+	cpu := CreateCPUWithGamePak()
 
-	cpu.jmp(defs.OperationMethodArgument{defs.Absolute, 0x100})
+	cpu.jmp(OperationMethodArgument{Absolute, 0x100})
 
-	assert.Equal(t, defs.Address(0x100), cpu.registers.Pc)
+	assert.Equal(t, Address(0x100), cpu.registers.Pc)
 }
 
 func TestJSR(t *testing.T) {
-	cpu := CreateCPUWithBus()
-	cpu.write(defs.Address(0x201), 0x20) // JSR Opcode
-	cpu.write(defs.Address(0x202), 0x55) // LSB
-	cpu.write(defs.Address(0x203), 0x05) // MSB
+	cpu := CreateCPUWithGamePak()
+	cpu.memory.Write(Address(0x201), 0x20) // JSR Opcode
+	cpu.memory.Write(Address(0x202), 0x55) // LSB
+	cpu.memory.Write(Address(0x203), 0x05) // MSB
 
 	cpu.registers.Pc = 0x0203
-	cpu.jsr(defs.OperationMethodArgument{defs.Absolute, 0x202})
+	cpu.jsr(OperationMethodArgument{Absolute, 0x202})
 
-	assert.Equal(t, defs.Address(0x0202), cpu.registers.Pc)
+	assert.Equal(t, Address(0x0202), cpu.registers.Pc)
 	assert.Equal(t, byte(0x02), cpu.popStack())
 	assert.Equal(t, byte(0x02), cpu.popStack())
 }
@@ -701,10 +715,10 @@ func TestLDA(t *testing.T) {
 
 	for i := 0; i < len(dataProviders); i++ {
 		dp := dataProviders[i]
-		cpu := CreateCPUWithBus()
-		cpu.write(defs.Address(0x00), dp.value)
+		cpu := CreateCPUWithGamePak()
+		cpu.memory.Write(Address(0x00), dp.value)
 
-		extraCycle := cpu.lda(defs.OperationMethodArgument{defs.Immediate, 0x00})
+		extraCycle := cpu.lda(OperationMethodArgument{Immediate, 0x00})
 
 		assert.Equal(t, dp.value, cpu.registers.A)
 		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag())
@@ -727,10 +741,10 @@ func TestLDX(t *testing.T) {
 
 	for i := 0; i < len(dataProviders); i++ {
 		dp := dataProviders[i]
-		cpu := CreateCPUWithBus()
-		cpu.write(defs.Address(0x00), dp.value)
+		cpu := CreateCPUWithGamePak()
+		cpu.memory.Write(Address(0x00), dp.value)
 
-		extraCycle := cpu.ldx(defs.OperationMethodArgument{defs.Immediate, 0x00})
+		extraCycle := cpu.ldx(OperationMethodArgument{Immediate, 0x00})
 
 		assert.Equal(t, dp.value, cpu.registers.X)
 		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag())
@@ -753,10 +767,10 @@ func TestLDY(t *testing.T) {
 
 	for i := 0; i < len(dataProviders); i++ {
 		dp := dataProviders[i]
-		cpu := CreateCPUWithBus()
-		cpu.write(defs.Address(0x00), dp.value)
+		cpu := CreateCPUWithGamePak()
+		cpu.memory.Write(Address(0x00), dp.value)
 
-		extraCycle := cpu.ldy(defs.OperationMethodArgument{defs.Immediate, 0x00})
+		extraCycle := cpu.ldy(OperationMethodArgument{Immediate, 0x00})
 
 		assert.Equal(t, dp.value, cpu.registers.Y)
 		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag())
@@ -767,34 +781,34 @@ func TestLDY(t *testing.T) {
 
 func TestLSR(t *testing.T) {
 	type dataProvider struct {
-		addressingMode defs.AddressMode
+		addressingMode AddressMode
 		value          byte
 		expectedResult byte
 		expectedZero   byte
 		expectedCarry  byte
 	}
 	dataProviders := [...]dataProvider{
-		{defs.Implicit, 0b00000010, 0b00000001, 0, 0},
-		{defs.Implicit, 0b00000011, 0b00000001, 0, 1},
-		{defs.Implicit, 0b00000001, 0b00000000, 1, 1},
-		{defs.ZeroPage, 0b00000010, 0b00000001, 0, 0},
-		{defs.ZeroPage, 0b00000011, 0b00000001, 0, 1},
-		{defs.ZeroPage, 0b00000001, 0b00000000, 1, 1},
+		{Implicit, 0b00000010, 0b00000001, 0, 0},
+		{Implicit, 0b00000011, 0b00000001, 0, 1},
+		{Implicit, 0b00000001, 0b00000000, 1, 1},
+		{ZeroPage, 0b00000010, 0b00000001, 0, 0},
+		{ZeroPage, 0b00000011, 0b00000001, 0, 1},
+		{ZeroPage, 0b00000001, 0b00000000, 1, 1},
 	}
 
 	for i := 0; i < len(dataProviders); i++ {
 		dp := dataProviders[i]
-		cpu := CreateCPUWithBus()
+		cpu := CreateCPUWithGamePak()
 		cpu.registers.Status = 0xFF
 		cpu.registers.A = dp.value
-		cpu.write(defs.Address(0x00), dp.value)
+		cpu.memory.Write(Address(0x00), dp.value)
 
-		cpu.lsr(defs.OperationMethodArgument{dp.addressingMode, 0x00})
+		cpu.lsr(OperationMethodArgument{dp.addressingMode, 0x00})
 
-		if dp.addressingMode == defs.Implicit {
+		if dp.addressingMode == Implicit {
 			assert.Equal(t, dp.expectedResult, cpu.registers.A)
 		} else {
-			assert.Equal(t, dp.expectedResult, cpu.Read(0x00))
+			assert.Equal(t, dp.expectedResult, cpu.memory.Read(0x00))
 		}
 		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag(), fmt.Sprintf("Iteration[%d] unexpected ZeroFlag", i))
 		assert.Equal(t, dp.expectedCarry, cpu.registers.carryFlag())
@@ -817,11 +831,11 @@ func TestORA(t *testing.T) {
 
 	for i := 0; i < len(dataProviders); i++ {
 		dp := dataProviders[i]
-		cpu := CreateCPUWithBus()
+		cpu := CreateCPUWithGamePak()
 		cpu.registers.A = dp.a
-		cpu.write(0x00, dp.value)
+		cpu.memory.Write(0x00, dp.value)
 
-		extraCycle := cpu.ora(defs.OperationMethodArgument{defs.Immediate, 0x00})
+		extraCycle := cpu.ora(OperationMethodArgument{Immediate, 0x00})
 
 		assert.Equal(t, dp.expectedResult, cpu.registers.A)
 		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag())
@@ -831,18 +845,18 @@ func TestORA(t *testing.T) {
 }
 
 func TestPHA(t *testing.T) {
-	cpu := CreateCPUWithBus()
+	cpu := CreateCPUWithGamePak()
 	cpu.registers.A = 0x30
-	cpu.pha(defs.OperationMethodArgument{defs.Implicit, 0x00})
+	cpu.pha(OperationMethodArgument{Implicit, 0x00})
 
 	assert.Equal(t, byte(0x30), cpu.popStack())
 }
 
 func TestPHP(t *testing.T) {
-	cpu := CreateCPUWithBus()
+	cpu := CreateCPUWithGamePak()
 	cpu.registers.Status = 0b11001111
 
-	cpu.php(defs.OperationMethodArgument{defs.Implicit, 0x00})
+	cpu.php(OperationMethodArgument{Implicit, 0x00})
 
 	assert.Equal(t, byte(0xFF), cpu.popStack())
 }
@@ -862,10 +876,10 @@ func TestPLA(t *testing.T) {
 
 	for i := 0; i < len(dataProviders); i++ {
 		dp := dataProviders[i]
-		cpu := CreateCPUWithBus()
+		cpu := CreateCPUWithGamePak()
 		cpu.pushStack(dp.pulledValue)
 
-		cpu.pla(defs.OperationMethodArgument{defs.Implicit, 0x00})
+		cpu.pla(OperationMethodArgument{Implicit, 0x00})
 
 		assert.Equal(t, dp.pulledValue, cpu.registers.A)
 		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag())
@@ -876,10 +890,10 @@ func TestPLA(t *testing.T) {
 
 func TestPLP(t *testing.T) {
 	initialPointerStack := byte(0xFF)
-	cpu := CreateCPUWithBus()
+	cpu := CreateCPUWithGamePak()
 	cpu.pushStack(0xFF)
 
-	cpu.plp(defs.OperationMethodArgument{defs.Implicit, 0x00})
+	cpu.plp(OperationMethodArgument{Implicit, 0x00})
 
 	assert.Equal(t, byte(0), (cpu.registers.Status>>4)&0x01, "PLP must set B flag to 0")
 	assert.Equal(t, byte(0xEF), cpu.registers.Status)
@@ -888,7 +902,7 @@ func TestPLP(t *testing.T) {
 
 func TestROL(t *testing.T) {
 	type dataProvider struct {
-		addressingMode   defs.AddressMode
+		addressingMode   AddressMode
 		value            byte
 		carry            byte
 		expectedResult   byte
@@ -897,32 +911,32 @@ func TestROL(t *testing.T) {
 		expectedCarry    byte
 	}
 	dataProviders := [...]dataProvider{
-		{defs.Implicit, 0b00000000, 0, 0, 1, 0, 0},
-		{defs.Implicit, 0b00000000, 1, 1, 0, 0, 0},
-		{defs.Implicit, 0b00000001, 0, 0b10, 0, 0, 0},
-		{defs.Implicit, 0b10000000, 0, 0, 1, 0, 1},
-		{defs.Implicit, 0b01000000, 0, 0x80, 0, 1, 0},
+		{Implicit, 0b00000000, 0, 0, 1, 0, 0},
+		{Implicit, 0b00000000, 1, 1, 0, 0, 0},
+		{Implicit, 0b00000001, 0, 0b10, 0, 0, 0},
+		{Implicit, 0b10000000, 0, 0, 1, 0, 1},
+		{Implicit, 0b01000000, 0, 0x80, 0, 1, 0},
 
-		{defs.ZeroPage, 0b00000000, 0, 0, 1, 0, 0},
-		{defs.ZeroPage, 0b00000000, 1, 1, 0, 0, 0},
-		{defs.ZeroPage, 0b00000001, 0, 0b10, 0, 0, 0},
-		{defs.ZeroPage, 0b10000000, 0, 0, 1, 0, 1},
-		{defs.ZeroPage, 0b01000000, 0, 0x80, 0, 1, 0},
+		{ZeroPage, 0b00000000, 0, 0, 1, 0, 0},
+		{ZeroPage, 0b00000000, 1, 1, 0, 0, 0},
+		{ZeroPage, 0b00000001, 0, 0b10, 0, 0, 0},
+		{ZeroPage, 0b10000000, 0, 0, 1, 0, 1},
+		{ZeroPage, 0b01000000, 0, 0x80, 0, 1, 0},
 	}
 
 	for i := 0; i < len(dataProviders); i++ {
 		dp := dataProviders[i]
-		cpu := CreateCPUWithBus()
+		cpu := CreateCPUWithGamePak()
 		cpu.registers.A = dp.value
 		cpu.registers.updateFlag(carryFlag, dp.carry)
-		cpu.write(defs.Address(0x00), dp.value)
+		cpu.memory.Write(Address(0x00), dp.value)
 
-		cpu.rol(defs.OperationMethodArgument{dp.addressingMode, 0x00})
+		cpu.rol(OperationMethodArgument{dp.addressingMode, 0x00})
 
-		if dp.addressingMode == defs.Implicit {
+		if dp.addressingMode == Implicit {
 			assert.Equal(t, dp.expectedResult, cpu.registers.A)
 		} else {
-			assert.Equal(t, dp.expectedResult, cpu.Read(0x00))
+			assert.Equal(t, dp.expectedResult, cpu.memory.Read(0x00))
 		}
 		assert.Equal(t, dp.expectedCarry, cpu.registers.carryFlag())
 		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag(), fmt.Sprintf("Iteration[%d] unexpected ZeroFlag", i))
@@ -933,7 +947,7 @@ func TestROL(t *testing.T) {
 
 func TestROR(t *testing.T) {
 	type dataProvider struct {
-		addressingMode   defs.AddressMode
+		addressingMode   AddressMode
 		value            byte
 		carry            byte
 		expectedResult   byte
@@ -942,32 +956,32 @@ func TestROR(t *testing.T) {
 		expectedCarry    byte
 	}
 	dataProviders := [...]dataProvider{
-		{defs.Implicit, 0b00000000, 0, 0, 1, 0, 0},
-		{defs.Implicit, 0b00000001, 0, 0, 1, 0, 1},
-		{defs.Implicit, 0b00000000, 1, 0x80, 0, 1, 0},
-		{defs.Implicit, 0b10000000, 0, 0x40, 0, 0, 0},
-		{defs.Implicit, 0b10000001, 1, 0xC0, 0, 1, 1},
+		{Implicit, 0b00000000, 0, 0, 1, 0, 0},
+		{Implicit, 0b00000001, 0, 0, 1, 0, 1},
+		{Implicit, 0b00000000, 1, 0x80, 0, 1, 0},
+		{Implicit, 0b10000000, 0, 0x40, 0, 0, 0},
+		{Implicit, 0b10000001, 1, 0xC0, 0, 1, 1},
 
-		{defs.ZeroPage, 0b00000000, 0, 0, 1, 0, 0},
-		{defs.ZeroPage, 0b00000001, 0, 0, 1, 0, 1},
-		{defs.ZeroPage, 0b00000000, 1, 0x80, 0, 1, 0},
-		{defs.ZeroPage, 0b10000000, 0, 0x40, 0, 0, 0},
-		{defs.ZeroPage, 0b10000001, 1, 0xC0, 0, 1, 1},
+		{ZeroPage, 0b00000000, 0, 0, 1, 0, 0},
+		{ZeroPage, 0b00000001, 0, 0, 1, 0, 1},
+		{ZeroPage, 0b00000000, 1, 0x80, 0, 1, 0},
+		{ZeroPage, 0b10000000, 0, 0x40, 0, 0, 0},
+		{ZeroPage, 0b10000001, 1, 0xC0, 0, 1, 1},
 	}
 
 	for i := 0; i < len(dataProviders); i++ {
 		dp := dataProviders[i]
-		cpu := CreateCPUWithBus()
+		cpu := CreateCPUWithGamePak()
 		cpu.registers.A = dp.value
 		cpu.registers.updateFlag(carryFlag, dp.carry)
-		cpu.write(defs.Address(0x00), dp.value)
+		cpu.memory.Write(Address(0x00), dp.value)
 
-		cpu.ror(defs.OperationMethodArgument{dp.addressingMode, 0x00})
+		cpu.ror(OperationMethodArgument{dp.addressingMode, 0x00})
 
-		if dp.addressingMode == defs.Implicit {
+		if dp.addressingMode == Implicit {
 			assert.Equal(t, dp.expectedResult, cpu.registers.A)
 		} else {
-			assert.Equal(t, dp.expectedResult, cpu.Read(0x00))
+			assert.Equal(t, dp.expectedResult, cpu.memory.Read(0x00))
 		}
 		assert.Equal(t, dp.expectedCarry, cpu.registers.carryFlag())
 		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag(), fmt.Sprintf("Iteration[%d] unexpected ZeroFlag", i))
@@ -977,30 +991,30 @@ func TestROR(t *testing.T) {
 }
 
 func TestRTI(t *testing.T) {
-	cpu := CreateCPUWithBus()
+	cpu := CreateCPUWithGamePak()
 	// Push an Address into Stack
-	pc := defs.Address(0x532)
-	cpu.pushStack(defs.HighNibble(pc))
-	cpu.pushStack(defs.LowNibble(pc))
+	pc := Address(0x532)
+	cpu.pushStack(HighNibble(pc))
+	cpu.pushStack(LowNibble(pc))
 	// Push a StatusRegister into stack
 	cpu.pushStack(0xFF)
 
-	cpu.rti(defs.OperationMethodArgument{AddressMode: defs.Implicit, OperandAddress: 0xFF})
+	cpu.rti(OperationMethodArgument{AddressMode: Implicit, OperandAddress: 0xFF})
 
 	assert.Equal(t, pc, cpu.registers.Pc)
 	assert.Equal(t, byte(0xeF), cpu.registers.Status)
 }
 
 func TestRTS(t *testing.T) {
-	cpu := CreateCPUWithBus()
+	cpu := CreateCPUWithGamePak()
 	// Push an Address into Stack
-	pc := defs.Address(0x532)
-	cpu.pushStack(defs.HighNibble(pc))
-	cpu.pushStack(defs.LowNibble(pc))
+	pc := Address(0x532)
+	cpu.pushStack(HighNibble(pc))
+	cpu.pushStack(LowNibble(pc))
 
-	cpu.rts(defs.OperationMethodArgument{defs.Implicit, 0x00})
+	cpu.rts(OperationMethodArgument{Implicit, 0x00})
 
-	expectedProgramCounter := defs.Address(0x533)
+	expectedProgramCounter := Address(0x533)
 	assert.Equal(t, expectedProgramCounter, cpu.registers.Pc)
 }
 
@@ -1027,12 +1041,12 @@ func TestSBC(t *testing.T) {
 
 	for i := 0; i < len(dataProviders); i++ {
 		dp := dataProviders[i]
-		cpu := CreateCPUWithBus()
+		cpu := CreateCPUWithGamePak()
 		cpu.registers.A = dp.a
 		cpu.registers.updateFlag(carryFlag, dp.carry)
-		cpu.write(0x00, dp.value)
+		cpu.memory.Write(0x00, dp.value)
 
-		extraCycle := cpu.sbc(defs.OperationMethodArgument{defs.Immediate, 0x00})
+		extraCycle := cpu.sbc(OperationMethodArgument{Immediate, 0x00})
 
 		assert.Equal(t, dp.expectedResult, cpu.registers.A, "Invalid subtraction result")
 		assert.Equal(t, dp.expectedCarry, cpu.registers.carryFlag(), "Invalid CarryFlag")
@@ -1044,66 +1058,66 @@ func TestSBC(t *testing.T) {
 }
 
 func TestSEC(t *testing.T) {
-	cpu := CreateCPUWithBus()
+	cpu := CreateCPUWithGamePak()
 
-	cpu.sec(defs.OperationMethodArgument{defs.Implicit, 0x00})
+	cpu.sec(OperationMethodArgument{Implicit, 0x00})
 
 	assert.Equal(t, byte(1), cpu.registers.carryFlag())
 }
 
 func TestSED(t *testing.T) {
-	cpu := CreateCPUWithBus()
+	cpu := CreateCPUWithGamePak()
 
-	cpu.sed(defs.OperationMethodArgument{defs.Implicit, 0x00})
+	cpu.sed(OperationMethodArgument{Implicit, 0x00})
 
 	assert.Equal(t, byte(1), cpu.registers.decimalFlag())
 }
 
 func TestSEI(t *testing.T) {
-	cpu := CreateCPUWithBus()
+	cpu := CreateCPUWithGamePak()
 
-	cpu.sei(defs.OperationMethodArgument{defs.Implicit, 0x00})
+	cpu.sei(OperationMethodArgument{Implicit, 0x00})
 
 	assert.Equal(t, byte(1), cpu.registers.interruptFlag())
 }
 
 func TestSTA(t *testing.T) {
-	cpu := CreateCPUWithBus()
+	cpu := CreateCPUWithGamePak()
 	cpu.registers.A = 0xFF
 
-	cpu.sta(defs.OperationMethodArgument{defs.Implicit, 0x522})
+	cpu.sta(OperationMethodArgument{Implicit, 0x522})
 
-	assert.Equal(t, byte(0xFF), cpu.Read(0x522))
+	assert.Equal(t, byte(0xFF), cpu.memory.Read(0x522))
 }
 
 func TestSTX(t *testing.T) {
-	cpu := CreateCPUWithBus()
+	cpu := CreateCPUWithGamePak()
 	cpu.registers.X = 0xFF
 
-	cpu.stx(defs.OperationMethodArgument{defs.Implicit, 0x522})
+	cpu.stx(OperationMethodArgument{Implicit, 0x522})
 
-	assert.Equal(t, byte(0xFF), cpu.Read(0x522))
+	assert.Equal(t, byte(0xFF), cpu.memory.Read(0x522))
 }
 
 func TestSTY(t *testing.T) {
-	cpu := CreateCPUWithBus()
+	cpu := CreateCPUWithGamePak()
 	cpu.registers.Y = 0xFF
 
-	cpu.sty(defs.OperationMethodArgument{defs.Implicit, 0x522})
+	cpu.sty(OperationMethodArgument{Implicit, 0x522})
 
-	assert.Equal(t, byte(0xFF), cpu.Read(0x522))
+	assert.Equal(t, byte(0xFF), cpu.memory.Read(0x522))
 }
 
 func TestTAX_TAY(t *testing.T) {
 	type dataProvider struct {
 		name             string
-		op               defs.OperationMethod
+		op               OperationMethod
 		a                byte
 		expectedNegative byte
 		expectedZero     byte
 	}
 
-	cpu := CreateCPUWithBus()
+	cpu := CreateCPUWithGamePak()
 	dataProviders := [...]dataProvider{
 		{"tax", cpu.tax, 0x00, 0, 1},
 		{"tax", cpu.tax, 0x80, 1, 0},
@@ -1118,7 +1132,7 @@ func TestTAX_TAY(t *testing.T) {
 		cpu.registers.Reset()
 		cpu.registers.A = dp.a
 
-		dp.op(defs.OperationMethodArgument{defs.Implicit, 0x00})
+		dp.op(OperationMethodArgument{Implicit, 0x00})
 
 		if dp.name == "tax" {
 			assert.Equal(t, cpu.registers.A, cpu.registers.X)
@@ -1145,11 +1159,11 @@ func TestTSX(t *testing.T) {
 
 	for i := 0; i < len(dataProviders); i++ {
 		dp := dataProviders[i]
-		cpu := CreateCPUWithBus()
+		cpu := CreateCPUWithGamePak()
 		//cpu.pushStack(dp.sp)
 		cpu.Registers().setStackPointer(dp.sp)
 
-		cpu.tsx(defs.OperationMethodArgument{defs.Implicit, 0x00})
+		cpu.tsx(OperationMethodArgument{Implicit, 0x00})
 
 		assert.Equal(t, dp.sp, cpu.registers.X)
 		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag(), "Incorrect Zero Flag")
@@ -1172,10 +1186,10 @@ func TestTXA(t *testing.T) {
 
 	for i := 0; i < len(dataProviders); i++ {
 		dp := dataProviders[i]
-		cpu := CreateCPUWithBus()
+		cpu := CreateCPUWithGamePak()
 		cpu.registers.X = dp.x
 
-		cpu.txa(defs.OperationMethodArgument{defs.Implicit, 0x00})
+		cpu.txa(OperationMethodArgument{Implicit, 0x00})
 
 		assert.Equal(t, dp.x, cpu.registers.A)
 		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag())
@@ -1184,10 +1198,10 @@ func TestTXA(t *testing.T) {
 }
 
 func TestTXS(t *testing.T) {
-	cpu := CreateCPUWithBus()
+	cpu := CreateCPUWithGamePak()
 	cpu.registers.X = 0xFF
 
-	cpu.txs(defs.OperationMethodArgument{defs.Implicit, 0x00})
+	cpu.txs(OperationMethodArgument{Implicit, 0x00})
 
 	assert.Equal(t, byte(0xFF), cpu.registers.Sp)
 }
@@ -1207,10 +1221,10 @@ func TestTYA(t *testing.T) {
 
 	for i := 0; i < len(dataProviders); i++ {
 		dp := dataProviders[i]
-		cpu := CreateCPUWithBus()
+		cpu := CreateCPUWithGamePak()
 		cpu.registers.Y = dp.y
 
-		cpu.tya(defs.OperationMethodArgument{defs.Implicit, 0x00})
+		cpu.tya(OperationMethodArgument{Implicit, 0x00})
 
 		assert.Equal(t, cpu.registers.Y, cpu.registers.A)
 		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag())

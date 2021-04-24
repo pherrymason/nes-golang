@@ -1,6 +1,8 @@
 package mappers
 
-import "github.com/raulferras/nes-golang/src/nes/defs"
+import (
+	"github.com/raulferras/nes-golang/src/nes"
+)
 
 /**
 	NROM Mapper
@@ -25,18 +27,18 @@ type Mapper000 struct {
 	chrBanks int
 }
 
-func (mapper *Mapper000) readCpu(address defs.Address) byte {
+func (mapper *Mapper000) readCpu(address nes.Address) byte {
 	panic("implement me")
 }
 
-func (mapper *Mapper000) writeCpu(address defs.Address, b byte) {
+func (mapper *Mapper000) writeCpu(address nes.Address, b byte) {
 	panic("implement me")
 }
 
-func (mapper *Mapper000) readPpu(address defs.Address) byte {
+func (mapper *Mapper000) readPpu(address nes.Address) byte {
 	panic("implement me")
 }
 
-func (mapper *Mapper000) writePpu(address defs.Address, b byte) {
+func (mapper *Mapper000) writePpu(address nes.Address, b byte) {
 	panic("implement me")
 }

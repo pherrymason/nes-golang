@@ -1,4 +1,4 @@
-package component
+package nes
 
 import (
 	"github.com/stretchr/testify/assert"

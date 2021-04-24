@@ -1,55 +1,54 @@
-package cpu
+package nes
 
 import (
 	"fmt"
-	"github.com/raulferras/nes-golang/src/nes/defs"
 	"github.com/raulferras/nes-golang/src/utils"
 	"regexp"
 	"strconv"
 	"strings"
 )
 
-type State struct {
+type CpuState struct {
 	Registers          Cpu6502Registers
-	CurrentInstruction defs.Instruction
+	CurrentInstruction Instruction
 	RawOpcode          []byte
-	EvaluatedAddress   defs.Address
-	CyclesSinceReset   uint16
+	EvaluatedAddress   Address
+	CyclesSinceReset   uint32
 }
 
-func CreateState(cpu Cpu6502) State {
+func CreateState(cpu Cpu6502) CpuState {
 	pc := cpu.Registers().Pc
 
 	var rawOpcode []byte
-	rawOpcode = append(rawOpcode, cpu.Read(pc))
+	rawOpcode = append(rawOpcode, cpu.memory.Read(pc))
 	pc++
 	instruction := cpu.instructions[rawOpcode[0]]
 
 	for i := byte(0); i < (instruction.Size() - 1); i++ {
-		rawOpcode = append(rawOpcode, cpu.Read(pc+defs.Address(i)))
+		rawOpcode = append(rawOpcode, cpu.memory.Read(pc+Address(i)))
 	}
 
 	_, evaluatedAddress, _, _ := cpu.addressEvaluators[instruction.AddressMode()](pc)
 
-	state := State{
+	state := CpuState{
 		*cpu.Registers(),
 		instruction,
 		rawOpcode,
 		evaluatedAddress,
-		cpu.Cycle,
+		cpu.cycle,
 	}
 
 	return state
 }
 
-func CreateStateFromNesTestLine(nesTestLine string) State {
+func CreateStateFromNesTestLine(nesTestLine string) CpuState {
 	fields := strings.Fields(nesTestLine)
 	_ = fields
 
 	blocks := utils.StringSplitByRegex(nesTestLine)
 
 	result := utils.HexStringToByteArray(blocks[0])
-	pc := defs.CreateAddress(result[1], result[0])
+	pc := CreateAddress(result[1], result[0])
 
 	fields = strings.Fields(blocks[1])
 	opcode := utils.HexStringToByteArray(fields[0])
@@ -61,7 +60,7 @@ func CreateStateFromNesTestLine(nesTestLine string) State {
 
 	cpuCycles, _ := strconv.ParseUint(cpuCyclesString[1], 10, 16)
 
-	state := State{
+	state := CpuState{
 		Cpu6502Registers{
 			utils.NestestDecodeRegisterFlag(flagFields[0]),
 			utils.NestestDecodeRegisterFlag(flagFields[1]),
@@ -70,22 +69,22 @@ func CreateStateFromNesTestLine(nesTestLine string) State {
 			utils.NestestDecodeRegisterFlag(flagFields[4]),
 			utils.NestestDecodeRegisterFlag(flagFields[3]),
 		},
-		defs.CreateInstruction(
+		CreateInstruction(
 			strings.Fields(blocks[2])[0],
-			defs.Implicit,
+			Implicit,
 			nil,
 			0,
 			0,
 		),
 		opcode,
-		defs.CreateAddress(0x00, 0x00),
-		uint16(cpuCycles),
+		CreateAddress(0x00, 0x00),
+		uint32(cpuCycles),
 	}
 
 	return state
 }
 
-func (state State) Equals(b State) bool {
+func (state CpuState) Equals(b CpuState) bool {
 	if state.Registers.Pc != b.Registers.Pc ||
 		state.Registers.A != b.Registers.A ||
 		state.Registers.X != b.Registers.X ||
@@ -99,7 +98,7 @@ func (state State) Equals(b State) bool {
 	return true
 }
 
-func (state State) ToString() string {
+func (state CpuState) ToString() string {
 	msg := fmt.Sprintf("%X ", state.Registers.Pc)
 	msg += fmt.Sprintf("%X ", state.RawOpcode)
 	msg += fmt.Sprintf("%s - ", state.CurrentInstruction.Name())

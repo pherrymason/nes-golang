@@ -5,19 +5,19 @@ import (
 	r "github.com/lachee/raylib-goplus/raylib"
 	"github.com/raulferras/nes-golang/src/graphics"
 	"github.com/raulferras/nes-golang/src/nes"
-	"github.com/raulferras/nes-golang/src/nes/defs"
 )
 
 func main() {
-	// Init systems
+	// Init Window System
 	r.InitWindow(800, 800, "NES golang")
 	graphics.InitDrawer()
 
 	fmt.Printf("Nes Emulator\n")
-	console := nes.CreateNes()
 	//gamePak := nes.ReadRom("./roms/nestest/nestest.nes")
 	gamePak := nes.ReadRom("./roms/Donkey Kong (World) (Rev A).nes")
-	console.InsertGamePak(&gamePak)
+
+	console := nes.CreateNes(&gamePak, nes.NesDebugger{})
+	//console.InsertGamePak(&gamePak)
 
 	//
 	console.Start()
@@ -76,7 +76,7 @@ func drawASM(console nes.Nes) {
 	disassembled := console.Debugger().Disassembled()
 
 	for i := 0; i < 20; i++ {
-		currentAddress := console.Debugger().ProgramCounter() - 10 + defs.Address(i)
+		currentAddress := console.Debugger().ProgramCounter() - 10 + nes.Address(i)
 		if currentAddress == console.Debugger().ProgramCounter() {
 			textColor = r.GopherBlue
 		} else {

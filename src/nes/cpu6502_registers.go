@@ -1,6 +1,4 @@
-package cpu
-
-import "github.com/raulferras/nes-golang/src/nes/defs"
+package nes
 
 type StatusRegisterFlag int
 
@@ -29,10 +27,10 @@ type Cpu6502Registers struct {
 	Y byte
 
 	// Program Counter:
-	// supports 65536 direct (unbanked) memory locations, however not all values are sent to the cartridge.
+	// supports 65536 direct (unbanked) memory locations, however not all values are sent to the gamePak.
 	// It can be accessed either by allowing Cpu6502's internal fetch logic increment the address bus, an interrupt
 	// (NMI, Reset, IRQ/BRQ), and using the RTS/JMP/JSR/Branch instructions.
-	Pc defs.Address
+	Pc Address
 
 	// Stack Pointer:
 	// The NMOS 65xx processors have 256 bytes of stack memory, ranging
@@ -63,7 +61,7 @@ func (registers *Cpu6502Registers) Reset() {
 	registers.X = 0x00
 	registers.Y = 0x00
 	registers.Sp = 0xFD
-	registers.Pc = defs.Address(0xFFFC)
+	registers.Pc = Address(0xFFFC)
 	registers.Status = 0x24
 }
 
@@ -71,8 +69,8 @@ func (registers *Cpu6502Registers) setStackPointer(stackPointer byte) {
 	registers.Sp = stackPointer
 }
 
-func (registers Cpu6502Registers) stackPointerAddress() defs.Address {
-	return defs.Address(0x100 + uint16(registers.Sp))
+func (registers Cpu6502Registers) stackPointerAddress() Address {
+	return Address(0x100 + uint16(registers.Sp))
 }
 
 func (registers *Cpu6502Registers) stackPointerPushed() {

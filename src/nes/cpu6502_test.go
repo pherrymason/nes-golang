@@ -1,4 +1,4 @@
-package cpu
+package nes
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -6,27 +6,27 @@ import (
 )
 
 func TestPushIntoStack(t *testing.T) {
-	cpu := CreateCPUWithBus()
+	cpu := CreateCPUWithGamePak()
 
 	cpu.pushStack(0x20)
 
 	assert.Equal(t, byte(0xff-1), cpu.registers.Sp)
-	assert.Equal(t, byte(0x20), cpu.Read(0x1FF))
+	assert.Equal(t, byte(0x20), cpu.memory.Read(0x1FF))
 }
 
 func TestPushIntoStackWrapsAround(t *testing.T) {
-	cpu := CreateCPUWithBus()
+	cpu := CreateCPUWithGamePak()
 	cpu.registers.Sp = 0x00
 	cpu.pushStack(0x20)
 	cpu.pushStack(0x21)
 
 	assert.Equal(t, byte(0xff-1), cpu.registers.Sp)
-	assert.Equal(t, byte(0x20), cpu.Read(0x100))
-	assert.Equal(t, byte(0x21), cpu.Read(0x1FF))
+	assert.Equal(t, byte(0x20), cpu.memory.Read(0x100))
+	assert.Equal(t, byte(0x21), cpu.memory.Read(0x1FF))
 }
 
 func TestGetStatusRegister(t *testing.T) {
-	cpu := CreateCPUWithBus()
+	cpu := CreateCPUWithGamePak()
 	cpu.registers.Status = 0
 
 	cpu.registers.setFlag(carryFlag)
