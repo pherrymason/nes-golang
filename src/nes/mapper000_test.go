@@ -57,7 +57,4 @@ func TestReads_from_last_byte_in_32KB_ROM(t *testing.T) {
 
 	result = mapper.Read(startOfCPUMap + 0x7FFF)
 	assert.Equal(t, byte(0x7F), result)
-
-	result = mapper.Read(startOfCPUMap + 0x8000)
-	assert.Equal(t, byte(0x01), result, "mirroring failed")
 }
