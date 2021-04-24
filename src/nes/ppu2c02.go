@@ -48,7 +48,8 @@ func (ppu *Ppu2c02) PatternTable(patternTable int) []Pixel {
 				pixelMSB := ppu.Read(offset + Address(row+8))
 
 				for col := 0; col < 8; col++ {
-					value := (pixelLSB & 0x01) + pixelMSB&0x01
+					value := (pixelLSB & 0x01) | ((pixelMSB & 0x01) << 1)
+
 					pixelLSB >>= 1
 					pixelMSB >>= 1
 
@@ -91,13 +92,13 @@ func palette(nesColor byte) []byte {
 
 	switch nesColor {
 	case 0:
-		return SystemPalette[0x28]
+		return SystemPalette[0x0D]
 	case 1:
 		return SystemPalette[0x06]
 	case 2:
 		return SystemPalette[0x18]
 	case 3:
-		return SystemPalette[0x50]
+		return SystemPalette[0x08]
 	}
 
 	if int(nesColor) > len(SystemPalette) {
