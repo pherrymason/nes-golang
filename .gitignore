@@ -17,4 +17,5 @@
 .DS_Store
 .vscode
 var/*.log
-/tools
+tools
+examples
