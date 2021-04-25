@@ -23,8 +23,11 @@ func main() {
 	graphics.InitDrawer()
 
 	fmt.Printf("Nes Emulator\n")
-	//gamePak := nes.CreateGamePakFromROMFile("./roms/nestest/nestest.nes")
-	gamePak := nes.CreateGamePakFromROMFile("./roms/Donkey Kong (World) (Rev A).nes")
+	path := "./roms/nestest/nestest.nes"
+	//path :="./roms/Donkey Kong (World) (Rev A).nes"
+	//path := "./roms/Super Mario Bros. (World).nes"
+	//path = "./roms/Mega Man 2 (Europe).nes"
+	gamePak := nes.CreateGamePakFromROMFile(path)
 
 	printRomInfo(&gamePak)
 
