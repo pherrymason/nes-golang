@@ -45,31 +45,32 @@ func CreateCPUWithGamePak() *Cpu6502 {
 // Decode Operation Address Mode
 
 func TestAND(t *testing.T) {
-	type dataProvider struct {
+	cases := []struct {
+		name                 string
 		operand              byte
 		A                    byte
 		expectedA            byte
 		expectedNegativeFlag byte
 		expectedZeroFlag     byte
+	}{
+		{"result is > 0", 0b01001100, 0b01000101, 0b01000100, 0, 0},
+		{"result is < 0", 0b10000000, 0b10000000, 0b10000000, 1, 0},
+		{"result is 0", 0b10000000, 0b01000000, 0b00000000, 0, 1},
 	}
 
-	var dataProviders [3]dataProvider
-	dataProviders[0] = dataProvider{0b01001100, 0b01000101, 0b01000100, 0, 0}
-	dataProviders[1] = dataProvider{0b10000000, 0b10000000, 0b10000000, 1, 0}
-	dataProviders[2] = dataProvider{0b10000000, 0b01000000, 0b00000000, 0, 1}
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			cpu := CreateCPUWithGamePak()
+			cpu.memory.Write(0x100, tt.operand)
+			cpu.registers.A = tt.A
 
-	for i := 0; i < len(dataProviders); i++ {
-		dp := dataProviders[i]
-		cpu := CreateCPUWithGamePak()
-		cpu.memory.Write(0x100, dp.operand)
-		cpu.registers.A = dp.A
+			extraCycle := cpu.and(OperationMethodArgument{Immediate, 0x100})
 
-		extraCycle := cpu.and(OperationMethodArgument{Immediate, 0x100})
-
-		assert.Equal(t, dp.expectedA, cpu.registers.A, fmt.Sprintf("Iteration %d failed, unexpected register A result", i))
-		assert.Equal(t, dp.expectedNegativeFlag, cpu.registers.negativeFlag(), fmt.Sprintf("Iteration %d failed, unexpected NegativeFlag result", i))
-		assert.Equal(t, dp.expectedZeroFlag, cpu.registers.zeroFlag(), fmt.Sprintf("Iteration %d failed, unexpected ZeroFlag result", i))
-		assert.True(t, extraCycle)
+			assert.Equal(t, tt.expectedA, cpu.registers.A, fmt.Sprintf("unexpected register A result"))
+			assert.Equal(t, tt.expectedNegativeFlag, cpu.registers.negativeFlag(), fmt.Sprintf("unexpected NegativeFlag result"))
+			assert.Equal(t, tt.expectedZeroFlag, cpu.registers.zeroFlag(), fmt.Sprintf("unexpected ZeroFlag result"))
+			assert.True(t, extraCycle)
+		})
 	}
 }
 
