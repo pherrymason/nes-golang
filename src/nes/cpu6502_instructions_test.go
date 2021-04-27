@@ -128,12 +128,6 @@ func TestADC(t *testing.T) {
 
 	cpu := CreateCPUWithGamePak()
 
-	type dataProvider struct {
-		accumulator      byte
-		carryFlag        byte
-		operand          byte
-		expectedRegister Cpu6502Registers
-	}
 	expectedRegisters := func(accumulator byte, negative byte, zero byte, carry byte, overflow byte) Cpu6502Registers {
 		registers := Cpu6502Registers{}
 		registers.A = accumulator
@@ -144,55 +138,63 @@ func TestADC(t *testing.T) {
 
 		return registers
 	}
-	dataProviders := [...]dataProvider{
-		{0x05, 0, 0x10, expectedRegisters(0x15, 0, 0, 0, 0)},
-		{0x05, 1, 0x10, expectedRegisters(0x16, 0, 0, 0, 0)},
-		{0b10000000, 0, 0b10000001, expectedRegisters(0x01, 0, 0, 1, 1)},
-		{80, 1, 80, expectedRegisters(161, 1, 0, 0, 1)},
+
+	cases := []struct {
+		name             string
+		accumulator      byte
+		carryFlag        byte
+		operand          byte
+		expectedRegister Cpu6502Registers
+	}{
+		{"result is > 0 w/o C and O", 0x05, 0, 0x10, expectedRegisters(0x15, 0, 0, 0, 0)},
+		{"result is > 0 w/o C and O", 0x05, 1, 0x10, expectedRegisters(0x16, 0, 0, 0, 0)},
+		{"result is > 0 with C and O", 0b10000000, 0, 0b10000001, expectedRegisters(0x01, 0, 0, 1, 1)},
+		{"result is < 0 w/o C and with O", 80, 1, 80, expectedRegisters(161, 1, 0, 0, 1)},
+		//TODO {"result is < 0 with C and w/o O", ?, ?, ?, expectedRegisters()},
+		//TODO {"result is 0 w/o C and O", ?, ?, ?, expectedRegisters()},
 	}
 
-	for i := 0; i < len(dataProviders); i++ {
-		dp := dataProviders[i]
-		cpu.registers.A = dp.accumulator
-		cpu.registers.updateFlag(carryFlag, dp.carryFlag)
-		cpu.memory.Write(0x0000, dp.operand)
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			cpu.registers.A = tt.accumulator
+			cpu.registers.updateFlag(carryFlag, tt.carryFlag)
+			cpu.memory.Write(0x0000, tt.operand)
 
-		extraCycle := cpu.adc(OperationMethodArgument{Immediate, 0x0000})
+			extraCycle := cpu.adc(OperationMethodArgument{Immediate, 0x0000})
 
-		assert.Equal(t, dp.expectedRegister.A, cpu.registers.A, fmt.Sprintf("Iteration %d failed, unexpected A", i))
-		assert.Equal(t, dp.expectedRegister.negativeFlag(), cpu.registers.negativeFlag(), fmt.Sprintf("Iteration %d failed, unexpected NegativeFlag", i))
-		assert.Equal(t, dp.expectedRegister.zeroFlag(), cpu.registers.zeroFlag(), fmt.Sprintf("Iteration %d failed, unexpected ZeroFlag", i))
-		assert.Equal(t, dp.expectedRegister.carryFlag(), cpu.registers.carryFlag(), fmt.Sprintf("Iteration %d failed, unexpected CarryFlag", i))
-		assert.Equal(t, dp.expectedRegister.overflowFlag(), cpu.registers.overflowFlag(), fmt.Sprintf("Iteration %d failed, unexpected OverflowFlag", i))
-		assert.True(t, extraCycle)
+			assert.Equal(t, tt.expectedRegister.A, cpu.registers.A, "unexpected A")
+			assert.Equal(t, tt.expectedRegister.negativeFlag(), cpu.registers.negativeFlag(), "unexpected NegativeFlag")
+			assert.Equal(t, tt.expectedRegister.zeroFlag(), cpu.registers.zeroFlag(), "unexpected ZeroFlag")
+			assert.Equal(t, tt.expectedRegister.carryFlag(), cpu.registers.carryFlag(), "unexpected CarryFlag")
+			assert.Equal(t, tt.expectedRegister.overflowFlag(), cpu.registers.overflowFlag(), "unexpected OverflowFlag")
+			assert.True(t, extraCycle)
+		})
 	}
 }
 
 func TestBCC(t *testing.T) {
-	type dataProvider struct {
+	cases := []struct {
 		carryFlag      byte
 		pc             Address
 		expectedPc     Address
 		expectedCycles byte
-	}
-
-	dataProviders := [...]dataProvider{
+	}{
 		{0, 0x02, 0x04, 1},
 		{0, 0x02, 0x0200, 2},
 		{1, 0x02, 0x02, 0},
 	}
 
-	for i := 0; i < len(dataProviders); i++ {
-		dp := dataProviders[i]
+	for _, tt := range cases {
+		t.Run("", func(t *testing.T) {
+			cpu := CreateCPUWithGamePak()
+			cpu.registers.updateFlag(carryFlag, tt.carryFlag)
+			cpu.registers.Pc = tt.pc
 
-		cpu := CreateCPUWithGamePak()
-		cpu.registers.updateFlag(carryFlag, dp.carryFlag)
-		cpu.registers.Pc = dp.pc
+			cpu.bcc(OperationMethodArgument{Relative, tt.expectedPc})
 
-		cpu.bcc(OperationMethodArgument{Relative, dp.expectedPc})
-
-		assert.Equal(t, dp.expectedPc, cpu.registers.Pc, "invalid pc")
-		assert.Equal(t, dp.expectedCycles, cpu.opCyclesLeft, "invalid cycles")
+			assert.Equal(t, tt.expectedPc, cpu.registers.Pc, "invalid pc")
+			assert.Equal(t, tt.expectedCycles, cpu.opCyclesLeft, "invalid cycles")
+		})
 	}
 }
 
