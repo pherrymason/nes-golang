@@ -9,7 +9,7 @@ jobs:
     steps: # steps that comprise the `build` job
       - checkout
       - run: sudo apt-get update
-      - run: sudo apt-get install libx11-dev
+      - run: sudo apt-get install libx11-dev libgl1-mesa-dev xorg-dev
       - run: make build
       - persist_to_workspace:
           root: .
