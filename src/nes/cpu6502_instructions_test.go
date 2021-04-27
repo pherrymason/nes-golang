@@ -87,62 +87,40 @@ func TestASL_Accumulator(t *testing.T) {
 	cases := []struct {
 		name             string
 		accumulator      byte
+		addressMode      AddressMode
 		expectedRegister Cpu6502Registers
 	}{
-		{"result is > 0 without carry", 0b00000001, expectedRegisters(0, 0, 0)},
-		{"result is > 0 with carry", 0b10000001, expectedRegisters(0, 0, 1)},
-		{"result is 0 with carry", 0b10000000, expectedRegisters(0, 1, 1)},
-		{"result is < 0 with carry", 0b11000000, expectedRegisters(1, 0, 1)},
-		{"result is < 0 without carry", 0b01000000, expectedRegisters(1, 0, 0)},
+		// Acumulator
+		{"Shift left Acumulator, result is > 0 without carry", 0b00000001, Implicit, expectedRegisters(0, 0, 0)},
+		{"Shift left Acumulator,result is > 0 with carry", 0b10000001, Implicit, expectedRegisters(0, 0, 1)},
+		{"Shift left Acumulator,result is 0 with carry", 0b10000000, Implicit, expectedRegisters(0, 1, 1)},
+		{"Shift left Acumulator,result is < 0 with carry", 0b11000000, Implicit, expectedRegisters(1, 0, 1)},
+		{"Shift left Acumulator,result is < 0 without carry", 0b01000000, Implicit, expectedRegisters(1, 0, 0)},
+		// Over memory
+		{"Shift left $, result > 0 without carry", 0b00000001, ZeroPage, expectedRegisters(0, 0, 0)},
+		{"Shift left $, result is > 0 with carry", 0b10000001, ZeroPage, expectedRegisters(0, 0, 1)},
+		{"Shift left $, result is 0 with carry", 0b10000000, ZeroPage, expectedRegisters(0, 1, 1)},
+		{"Shift left $, result is < 0, with carry", 0b11000000, ZeroPage, expectedRegisters(1, 0, 1)},
+		{"Shift left $, result is < 0, without carry", 0b01000000, ZeroPage, expectedRegisters(1, 0, 0)},
 	}
 
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
 			cpu := CreateCPUWithGamePak()
 			cpu.registers.A = tt.accumulator
+			cpu.memory.Write(0x0000, tt.accumulator)
 
-			cpu.asl(OperationMethodArgument{Implicit, 0x0000})
+			cpu.asl(OperationMethodArgument{tt.addressMode, 0x0000})
 
-			assert.Equal(t, tt.accumulator<<1, cpu.registers.A, "unexpected Accumulator")
+			if tt.addressMode == Implicit {
+				assert.Equal(t, tt.accumulator<<1, cpu.registers.A, "unexpected Accumulator")
+			} else {
+				assert.Equal(t, tt.accumulator<<1, cpu.memory.Read(0x0000), "unexpected result")
+			}
 			assert.Equal(t, tt.expectedRegister.carryFlag(), cpu.registers.carryFlag(), "unexpected CarryFlag")
 			assert.Equal(t, tt.expectedRegister.zeroFlag(), cpu.registers.zeroFlag(), "unexpected ZeroFlag")
 			assert.Equal(t, tt.expectedRegister.negativeFlag(), cpu.registers.negativeFlag(), "unexpected NegativeFlag")
 		})
-	}
-}
-
-func TestASL_Memory(t *testing.T) {
-	type dataProvider struct {
-		operand          byte
-		expectedRegister Cpu6502Registers
-	}
-
-	expectedRegisters := func(negative byte, zero byte, carry byte) Cpu6502Registers {
-		registers := Cpu6502Registers{}
-		registers.updateFlag(negativeFlag, negative)
-		registers.updateFlag(zeroFlag, zero)
-		registers.updateFlag(carryFlag, carry)
-
-		return registers
-	}
-
-	var dataProviders [4]dataProvider
-	dataProviders[0] = dataProvider{0b00000001, expectedRegisters(0, 0, 0)}
-	dataProviders[1] = dataProvider{0b10000001, expectedRegisters(0, 0, 1)}
-	dataProviders[2] = dataProvider{0b10000000, expectedRegisters(0, 1, 1)}
-	dataProviders[3] = dataProvider{0b11000000, expectedRegisters(1, 0, 1)}
-
-	for i := 0; i < len(dataProviders); i++ {
-		cpu := CreateCPUWithGamePak()
-		cpu.registers.A = dataProviders[i].operand
-
-		cpu.memory.Write(0x0000, dataProviders[i].operand)
-		cpu.asl(OperationMethodArgument{ZeroPage, 0x0000})
-
-		assert.Equal(t, dataProviders[i].operand<<1, cpu.memory.Read(0x0000), fmt.Sprintf("Iteration %d failed @ expected operand", i))
-		assert.Equal(t, dataProviders[i].expectedRegister.carryFlag(), cpu.registers.carryFlag(), fmt.Sprintf("Iteration %d failed @ expected CarryFlag", i))
-		assert.Equal(t, dataProviders[i].expectedRegister.zeroFlag(), cpu.registers.zeroFlag(), fmt.Sprintf("Iteration %d failed @ expected ZeroFlag", i))
-		assert.Equal(t, dataProviders[i].expectedRegister.negativeFlag(), cpu.registers.negativeFlag(), fmt.Sprintf("Iteration %d failed @ expected NegativeFlag", i))
 	}
 }
 
