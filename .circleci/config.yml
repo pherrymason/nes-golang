@@ -10,6 +10,11 @@ jobs:
       - checkout
       - run: sudo apt-get update
       - run: sudo apt-get install libx11-dev
+      - run: make build
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .
   test:
     docker:
       # CircleCI Go images available at: https://hub.docker.com/r/circleci/golang/
