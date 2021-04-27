@@ -11,6 +11,7 @@ func CreateMapper000ForTest(prgROMSize byte) Mapper {
 	gamePak := CreateGamePak(
 		Header{prgROMSize, 1, 0, 0, 0, 0, 0},
 		rom,
+		make([]byte, 100),
 	)
 
 	return CreateMapper(&gamePak)

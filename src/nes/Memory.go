@@ -68,6 +68,8 @@ func (cm *CPUMemory) read(address Address, readOnly bool) byte {
 	if address <= RAM_HIGHER_ADDRESS {
 		// Read with mirror after RAM_LAST_REAL_ADDRESS
 		return cm.ram[address&RAM_LAST_REAL_ADDRESS]
+	} else if address <= 0x3FFF {
+		return cm.ppu.ReadRegister(address&0x2007 - 0x2000)
 	} else if address >= GAMEPAK_LOW_RANGE {
 		return cm.mapper.Read(address)
 	}
@@ -78,49 +80,10 @@ func (cm *CPUMemory) read(address Address, readOnly bool) byte {
 func (cm *CPUMemory) Write(address Address, value byte) {
 	if address <= RAM_HIGHER_ADDRESS {
 		cm.ram[address&RAM_LAST_REAL_ADDRESS] = value
+	} else if address <= 0x3FFF {
+		register := address&0x2007 - 0x2000
+		cm.ppu.WriteRegister(register, value)
 	} else if address >= GAMEPAK_ROM_LOWER_BANK_START {
 		cm.mapper.Write(address, value)
 	}
-}
-
-// PPUMemory map
-// -------------
-// $0000-$0FFF 	$1000 	Pattern table 0 \ CHR ROM 4KB
-// $1000-$1FFF 	$1000 	Pattern table 1 / CHR ROM 4KB
-// $2000-$23FF 	$0400 	Nametable 0		\
-// $2400-$27FF 	$0400 	Nametable 1		| NameTable Memory
-// $2800-$2BFF 	$0400 	Nametable 2		|
-// $2C00-$2FFF 	$0400 	Nametable 3		/
-// $3000-$3EFF 	$0F00 	Mirrors of $2000-$2EFF
-// $3F00-$3F1F 	$0020 	Palette RAM indexes		} Palette Memory
-// $3F20-$3FFF 	$00E0 	Mirrors of $3F00-$3F1F
-type PPUMemory struct {
-	gamePak *GamePak
-}
-
-func CreatePPUMemory(gamePak *GamePak) *PPUMemory {
-	return &PPUMemory{
-		gamePak: gamePak,
-	}
-}
-
-func (ppu *PPUMemory) Peek(address Address) byte {
-	return ppu.read(address, false)
-}
-
-func (ppu *PPUMemory) Read(address Address) byte {
-	return ppu.read(address, true)
-}
-
-func (ppu *PPUMemory) read(address Address, readOnly bool) byte {
-	// CHR ROM address
-	if address < 0x0FFFF {
-		return ppu.gamePak.chrROM[address]
-	}
-
-	panic("unmapped ppu address")
-}
-
-func (ppu *PPUMemory) Write(address Address, value byte) {
-
 }

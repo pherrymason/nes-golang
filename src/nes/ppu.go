@@ -2,13 +2,39 @@ package nes
 
 import "fmt"
 
+type Pixel struct {
+	X     int
+	Y     int
+	Color []byte
+}
+
 // Ppu2c02 Processor
 //  Registers mapped to memory locations: $2000 through $2007
 //  mirrored in every 8 bytes from $2008 through $3FFF
 type Ppu2c02 struct {
+	registers PPURegisters
 	Memory
 	patternTable []byte // Decoded pattern table
 }
+
+type PPURegisters struct {
+	ppuAddr      Address
+	addressLatch byte
+	readBuffer   byte
+}
+
+const PPUCTRL = 0x2000 // NMI enable (V), PPU master/slave (P), sprite height (H),
+// background tile select (B), sprite tile select (S), increment mode (I),
+//nametable select (NN)
+const PPUMASK = 0x2001 // color emphasis (BGR), sprite enable (s), background enable (b),
+// sprite left column enable (M), background left column enable (m), greyscale (G)
+const PPUSTATUS = 0x2002 // vblank (V), sprite 0 hit (S), sprite overflow (O); read resets write pair for $2005/$2006
+const OAMADDR = 0x2003
+const OAMDATA = 0x2004
+const PPUSCROLL = 0x2005
+const PPUADDR = 0x2006
+const PPUDATA = 0x2007
+const OAMDMA = 0x4014
 
 const NES_PALETTE_COLORS = 64
 
@@ -25,10 +51,68 @@ func (ppu *Ppu2c02) Tick() {
 
 }
 
-type Pixel struct {
-	X     int
-	Y     int
-	Color []byte
+func (ppu *Ppu2c02) ReadRegister(register Address) byte {
+	value := byte(0x00)
+
+	switch register {
+	case PPUCTRL:
+		break
+	case PPUMASK:
+		break
+	case PPUSTATUS:
+		break
+	case OAMADDR:
+		break
+	case OAMDATA:
+		break
+	case PPUSCROLL:
+		break
+	case PPUADDR:
+		break
+
+	case PPUDATA:
+		value = ppu.registers.readBuffer
+		ppu.registers.readBuffer = ppu.Read(ppu.registers.ppuAddr)
+		ppu.registers.ppuAddr = (ppu.registers.ppuAddr + 1) & 0x3FFF
+		break
+	case OAMDMA:
+		break
+	}
+
+	return value
+}
+
+func (ppu *Ppu2c02) WriteRegister(register Address, value byte) {
+	switch register {
+	case PPUCTRL:
+		break
+	case PPUMASK:
+		break
+	case PPUSTATUS:
+		// READONLY!
+		panic("tried to write @PPUSTATUS")
+
+	case OAMADDR:
+		break
+	case OAMDATA:
+		break
+	case PPUSCROLL:
+		break
+	case PPUADDR:
+		if ppu.registers.addressLatch == 0 {
+			ppu.registers.ppuAddr = Address(value) << 8
+		} else {
+			ppu.registers.ppuAddr |= Address(value)
+		}
+
+		ppu.registers.addressLatch++
+		ppu.registers.addressLatch &= 0b1
+		break
+	case PPUDATA:
+		break
+	case OAMDMA:
+		break
+	}
 }
 
 //func (ppu *Ppu2c02) PatternTable(patternTable int) [][]byte {

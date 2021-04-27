@@ -15,7 +15,7 @@ func TestNestest(t *testing.T) {
 
 	nes := CreateNes(
 		&gamePak,
-		NesDebugger{true, nil, outputLogPath, nil},
+		NesDebugger{true, nil, nil, outputLogPath, nil},
 	)
 
 	nes.StartAt(0xC000)
