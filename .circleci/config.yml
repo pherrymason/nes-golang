@@ -8,7 +8,8 @@ jobs:
     #working_directory: /go/src/github.com/{{ORG_NAME}}/{{REPO_NAME}}
     steps: # steps that comprise the `build` job
       - checkout
-      - run: apt-get install libx11-dev
+      - run: sudo apt-get update
+      - run: sudo apt-get install libx11-dev
   test:
     docker:
       # CircleCI Go images available at: https://hub.docker.com/r/circleci/golang/
