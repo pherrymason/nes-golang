@@ -16,3 +16,9 @@ jobs:
       - image: circleci/golang:1.14
     steps:
       - run: make test
+
+workflows:
+  build_and_test:
+    jobs:
+      - build
+      - test
