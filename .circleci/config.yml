@@ -4,31 +4,8 @@ jobs:
     docker:
       # CircleCI Go images available at: https://hub.docker.com/r/circleci/golang/
       - image: circleci/golang:1.14
-    
-    #working_directory: /go/src/github.com/{{ORG_NAME}}/{{REPO_NAME}}
     steps: # steps that comprise the `build` job
       - checkout
       - run: sudo apt-get update
       - run: sudo apt-get install libx11-dev libgl1-mesa-dev xorg-dev
-      - run: make build
-      - persist_to_workspace:
-          root: .
-          paths:
-            - .
-  test:
-    docker:
-      # CircleCI Go images available at: https://hub.docker.com/r/circleci/golang/
-      - image: circleci/golang:1.14
-    steps:
-      # Reuse the workspace from the build job
-      - attach_workspace:
-          at: .
       - run: make test
-
-workflows:
-  build_and_test:
-    jobs:
-      - build
-      - test:
-          requires:
-            - build
