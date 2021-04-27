@@ -75,11 +75,6 @@ func TestAND(t *testing.T) {
 }
 
 func TestASL_Accumulator(t *testing.T) {
-	type dataProvider struct {
-		accumulator      byte
-		expectedRegister Cpu6502Registers
-	}
-
 	expectedRegisters := func(negative byte, zero byte, carry byte) Cpu6502Registers {
 		registers := Cpu6502Registers{}
 		registers.updateFlag(negativeFlag, negative)
@@ -89,22 +84,30 @@ func TestASL_Accumulator(t *testing.T) {
 		return registers
 	}
 
-	var dataProviders [4]dataProvider
-	dataProviders[0] = dataProvider{0b00000001, expectedRegisters(0, 0, 0)}
-	dataProviders[1] = dataProvider{0b10000001, expectedRegisters(0, 0, 1)}
-	dataProviders[2] = dataProvider{0b10000000, expectedRegisters(0, 1, 1)}
-	dataProviders[3] = dataProvider{0b11000000, expectedRegisters(1, 0, 1)}
+	cases := []struct {
+		name             string
+		accumulator      byte
+		expectedRegister Cpu6502Registers
+	}{
+		{"result is > 0 without carry", 0b00000001, expectedRegisters(0, 0, 0)},
+		{"result is > 0 with carry", 0b10000001, expectedRegisters(0, 0, 1)},
+		{"result is 0 with carry", 0b10000000, expectedRegisters(0, 1, 1)},
+		{"result is < 0 with carry", 0b11000000, expectedRegisters(1, 0, 1)},
+		{"result is < 0 without carry", 0b01000000, expectedRegisters(1, 0, 0)},
+	}
 
-	for i := 0; i < len(dataProviders); i++ {
-		cpu := CreateCPUWithGamePak()
-		cpu.registers.A = dataProviders[i].accumulator
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			cpu := CreateCPUWithGamePak()
+			cpu.registers.A = tt.accumulator
 
-		cpu.asl(OperationMethodArgument{Implicit, 0x0000})
+			cpu.asl(OperationMethodArgument{Implicit, 0x0000})
 
-		assert.Equal(t, dataProviders[i].accumulator<<1, cpu.registers.A, fmt.Sprintf("Iteration %d failed @ expected Accumulator", i))
-		assert.Equal(t, dataProviders[i].expectedRegister.carryFlag(), cpu.registers.carryFlag(), fmt.Sprintf("Iteration %d failed @ expected CarryFlag", i))
-		assert.Equal(t, dataProviders[i].expectedRegister.zeroFlag(), cpu.registers.zeroFlag(), fmt.Sprintf("Iteration %d failed @ expected ZeroFlag", i))
-		assert.Equal(t, dataProviders[i].expectedRegister.negativeFlag(), cpu.registers.negativeFlag(), fmt.Sprintf("Iteration %d failed @ expected NegativeFlag", i))
+			assert.Equal(t, tt.accumulator<<1, cpu.registers.A, "unexpected Accumulator")
+			assert.Equal(t, tt.expectedRegister.carryFlag(), cpu.registers.carryFlag(), "unexpected CarryFlag")
+			assert.Equal(t, tt.expectedRegister.zeroFlag(), cpu.registers.zeroFlag(), "unexpected ZeroFlag")
+			assert.Equal(t, tt.expectedRegister.negativeFlag(), cpu.registers.negativeFlag(), "unexpected NegativeFlag")
+		})
 	}
 }
 
