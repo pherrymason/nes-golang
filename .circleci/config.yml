@@ -15,10 +15,15 @@ jobs:
       # CircleCI Go images available at: https://hub.docker.com/r/circleci/golang/
       - image: circleci/golang:1.14
     steps:
+      # Reuse the workspace from the build job
+      - attach_workspace:
+          at: .
       - run: make test
 
 workflows:
   build_and_test:
     jobs:
       - build
-      - test
+      - test:
+          requires:
+            - build
