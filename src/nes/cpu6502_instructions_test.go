@@ -86,7 +86,7 @@ func TestASL_Accumulator(t *testing.T) {
 
 	cases := []struct {
 		name             string
-		accumulator      byte
+		input            byte
 		addressMode      AddressMode
 		expectedRegister Cpu6502Registers
 	}{
@@ -107,15 +107,15 @@ func TestASL_Accumulator(t *testing.T) {
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
 			cpu := CreateCPUWithGamePak()
-			cpu.registers.A = tt.accumulator
-			cpu.memory.Write(0x0000, tt.accumulator)
+			cpu.registers.A = tt.input
+			cpu.memory.Write(0x0000, tt.input)
 
 			cpu.asl(OperationMethodArgument{tt.addressMode, 0x0000})
 
 			if tt.addressMode == Implicit {
-				assert.Equal(t, tt.accumulator<<1, cpu.registers.A, "unexpected Accumulator")
+				assert.Equal(t, tt.input<<1, cpu.registers.A, "unexpected Accumulator")
 			} else {
-				assert.Equal(t, tt.accumulator<<1, cpu.memory.Read(0x0000), "unexpected result")
+				assert.Equal(t, tt.input<<1, cpu.memory.Read(0x0000), "unexpected result")
 			}
 			assert.Equal(t, tt.expectedRegister.carryFlag(), cpu.registers.carryFlag(), "unexpected CarryFlag")
 			assert.Equal(t, tt.expectedRegister.zeroFlag(), cpu.registers.zeroFlag(), "unexpected ZeroFlag")
