@@ -20,10 +20,12 @@ type Ppu2c02 struct {
 }
 
 type PPURegisters struct {
+	ctrl byte // Controls PPU operation
+	mask byte // Controls the rendering of sprites and backgrounds
+
 	ppuAddr      Address
 	addressLatch byte
 	readBuffer   byte
-	ctrl         byte
 }
 
 type PPUCtrlFlag int
@@ -36,6 +38,19 @@ const (
 	backgroundPatternTableAddress
 	spriteSize
 	generateNMIAtVBlank
+)
+
+type PPUMASKFlag int
+
+const (
+	greyScale PPUMASKFlag = iota
+	showBackgroundLeftEdge
+	showSpritesLeftEdge
+	showBackground
+	showSprites
+	emphasizeRed
+	emphasizeGreen
+	emphasizeBlue
 )
 
 const PPUCTRL = 0x2000 // NMI enable (V), PPU master/slave (P), sprite height (H),
@@ -111,6 +126,7 @@ func (ppu *Ppu2c02) WriteRegister(register Address, value byte) {
 		}
 		break
 	case PPUMASK:
+		ppu.registers.mask = value
 		break
 	case PPUSTATUS:
 		// READONLY!

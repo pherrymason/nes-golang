@@ -13,10 +13,15 @@ func CreateDummyGamePak() *GamePak {
 	}
 }
 
-func TestPPU_PPUCTRL_writes_are_ignored_first_30000_cycles(t *testing.T) {
+func aPPU() *Ppu2c02 {
 	gamePak := CreateDummyGamePak()
 	memory := CreatePPUMemory(gamePak)
 	ppu := CreatePPU(memory)
+	return ppu
+}
+
+func TestPPU_PPUCTRL_writes_are_ignored_first_30000_cycles(t *testing.T) {
+	ppu := aPPU()
 	for i := 0; i < 30000; i++ {
 		ppu.Tick()
 		ppu.WriteRegister(PPUCTRL, 0x11)
@@ -26,6 +31,25 @@ func TestPPU_PPUCTRL_writes_are_ignored_first_30000_cycles(t *testing.T) {
 			t.FailNow()
 		}
 	}
+}
+
+func TestPPU_PPUCTRL_write(t *testing.T) {
+	ppu := aPPU()
+	for i := 0; i < 30001; i++ {
+		ppu.Tick() // Advance ppu cycles
+	}
+
+	ppu.WriteRegister(PPUCTRL, 0xFF)
+
+	assert.Equal(t, byte(0xFF), ppu.registers.ctrl)
+}
+
+func TestPPU_PPUMASK_write(t *testing.T) {
+	ppu := aPPU()
+
+	ppu.WriteRegister(PPUMASK, 0xFF)
+
+	assert.Equal(t, byte(0xFF), ppu.registers.mask)
 }
 
 func TestPPU_PPUADDR_write_twice_to_set_address(t *testing.T) {
