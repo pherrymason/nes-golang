@@ -75,175 +75,168 @@ func TestAbsolute(t *testing.T) {
 }
 
 func TestAbsoluteXIndexed(t *testing.T) {
-	type dataProvider struct {
-		test                string
+	cases := []struct {
+		name                string
 		lsb                 byte
 		hsb                 byte
 		expectedAddress     Address
 		expectedPageCrossed bool
-	}
-
-	dataProviders := [...]dataProvider{
+	}{
 		{"page not crossed", 0x01, 0x01, 0x106, false},
 		{"page crossed", 0xFF, 0x00, 0x104, true},
 	}
 
-	for _, dp := range dataProviders {
-		cpu := CreateCPUWithGamePak()
-		cpu.registers.X = 5
-		cpu.registers.Pc = 0x00
-		//cpu.memory.Write(0x0000, 0x01)
-		//cpu.memory.Write(0x0001, 0x01)
-		cpu.memory.Write(0x0000, dp.lsb)
-		cpu.memory.Write(0x0001, dp.hsb)
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			cpu := CreateCPUWithGamePak()
+			cpu.registers.X = 5
+			cpu.registers.Pc = 0x00
+			//cpu.memory.Write(0x0000, 0x01)
+			//cpu.memory.Write(0x0001, 0x01)
+			cpu.memory.Write(0x0000, tt.lsb)
+			cpu.memory.Write(0x0001, tt.hsb)
 
-		pc, result, _, pageCrossed := cpu.evalAbsoluteXIndexed(cpu.registers.Pc)
+			pc, result, _, pageCrossed := cpu.evalAbsoluteXIndexed(cpu.registers.Pc)
 
-		assert.Equal(t, dp.expectedAddress, result)
-		assert.Equal(t, cpu.registers.Pc+2, pc)
-		assert.Equal(t, dp.expectedPageCrossed, pageCrossed)
+			assert.Equal(t, tt.expectedAddress, result)
+			assert.Equal(t, cpu.registers.Pc+2, pc)
+			assert.Equal(t, tt.expectedPageCrossed, pageCrossed)
+		})
 	}
 }
 
 func TestAbsoluteYIndexed(t *testing.T) {
-	type dataProvider struct {
+	cases := []struct {
 		test                string
 		lsb                 byte
 		hsb                 byte
 		expectedAddress     Address
 		expectedPageCrossed bool
-	}
-
-	dataProviders := [...]dataProvider{
+	}{
 		{"page not crossed", 0x01, 0x01, 0x106, false},
 		{"page crossed", 0xFF, 0x00, 0x104, true},
 	}
 
-	for _, dp := range dataProviders {
-		cpu := CreateCPUWithGamePak()
-		cpu.registers.Pc = 0x00
-		cpu.registers.Y = 5
+	for _, tt := range cases {
+		t.Run(tt.test, func(t *testing.T) {
+			cpu := CreateCPUWithGamePak()
+			cpu.registers.Pc = 0x00
+			cpu.registers.Y = 5
 
-		//cpu.memory.Write(0x0000, 0x01)
-		//cpu.memory.Write(0x0001, 0x01)
+			//cpu.memory.Write(0x0000, 0x01)
+			//cpu.memory.Write(0x0001, 0x01)
 
-		cpu.memory.Write(0x0000, dp.lsb)
-		cpu.memory.Write(0x0001, dp.hsb)
+			cpu.memory.Write(0x0000, tt.lsb)
+			cpu.memory.Write(0x0001, tt.hsb)
 
-		pc, result, _, pageCrossed := cpu.evalAbsoluteYIndexed(cpu.registers.Pc)
+			pc, result, _, pageCrossed := cpu.evalAbsoluteYIndexed(cpu.registers.Pc)
 
-		assert.Equal(t, dp.expectedAddress, result)
-		assert.Equal(t, dp.expectedPageCrossed, pageCrossed)
-		assert.Equal(t, cpu.registers.Pc+2, pc)
+			assert.Equal(t, tt.expectedAddress, result)
+			assert.Equal(t, tt.expectedPageCrossed, pageCrossed)
+			assert.Equal(t, cpu.registers.Pc+2, pc)
+		})
 	}
 }
 
 func TestIndirect(t *testing.T) {
-	cpu := CreateCPUWithGamePak()
-	cpu.registers.Pc = 0x00
 
-	// Write Pointer to address 0x0134 in Bus
-	cpu.memory.Write(0, 0x34)
-	cpu.memory.Write(1, 0x01)
+	cases := []struct {
+		name           string
+		pointerAddress Address
+		finalAddress   Address
+	}{
+		{"normal indirect jump", Address(0x0134), Address(0x200)},
+		{"indirect jump across page", Address(0xC0FF), Address(0x155)},
+	}
 
-	// Write 0x0134 with final Address(0x200)
-	cpu.memory.Write(Address(0x134), 0x00)
-	cpu.memory.Write(Address(0x135), 0x02)
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			cpu := CreateCPUWithGamePak()
+			cpu.registers.Pc = 0x00
+			cpu.memory.Write(0xC000, 0x01) // This is to pass jump with bug
 
-	pc, result, _, _ := cpu.evalIndirect(cpu.registers.Pc)
-	expected := Address(0x200)
+			cpu.memory.Write(0, byte(tt.pointerAddress))
+			cpu.memory.Write(1, byte(tt.pointerAddress>>8))
 
-	assert.Equal(t, expected, result, "Indirect error")
-	assert.Equal(t, cpu.registers.Pc+2, pc)
-}
+			cpu.memory.Write(tt.pointerAddress, byte(tt.finalAddress))
+			cpu.memory.Write(tt.pointerAddress+1, byte(tt.finalAddress>>8))
 
-func TestIndirect_bug(t *testing.T) {
-	cpu := CreateCPUWithGamePak()
-	cpu.registers.Pc = 0x00
-	// Write Pointer to address 0xC0FF in Bus
-	cpu.memory.Write(0, 0xFF)
-	cpu.memory.Write(1, 0xC0)
-
-	cpu.memory.Write(0xC0FF, 0x55)
-	cpu.memory.Write(0xC100, 0x04)
-	cpu.memory.Write(0xC000, 0x01)
-
-	pc, result, _, _ := cpu.evalIndirect(cpu.registers.Pc)
-	expected := Address(0x155)
-
-	assert.Equal(t, expected, result, "Indirect error")
-	assert.Equal(t, cpu.registers.Pc+2, pc)
+			pc, result, _, _ := cpu.evalIndirect(cpu.registers.Pc)
+			assert.Equal(t, tt.finalAddress, result, "Indirect error")
+			assert.Equal(t, cpu.registers.Pc+2, pc)
+		})
+	}
 }
 
 func TestIndexed_indirect(t *testing.T) {
-	type dataProvider struct {
-		test                string
+	cases := []struct {
+		name                string
 		x                   byte
 		operand             byte
 		lsbPtr              Address
 		hsbPtr              Address
 		expectedAddress     Address
 		expectedPageCrossed bool
-	}
-
-	dataProviders := [...]dataProvider{
+	}{
 		{"page not crossed", 0x04, 0x10, 0x0014, 0x0015, 0x1025, false},
 		{"page crossed", 0x03, 0xFE, 0x01, 0x02, 0x510, false},
 		{"page crossed", 0x01, 0xFE, 0xFF, 0x00, 0x510, false},
 	}
 
-	for testIdx, dp := range dataProviders {
-		cpu := CreateCPUWithGamePak()
-		cpu.registers.Pc = 0x00
-		cpu.registers.X = 4
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			cpu := CreateCPUWithGamePak()
+			cpu.registers.Pc = 0x00
+			cpu.registers.X = 4
 
-		// Write Operand
-		cpu.memory.Write(0, 0x10)
+			// Write Operand
+			cpu.memory.Write(0, 0x10)
 
-		// Write Offset Table
-		cpu.memory.Write(0x0014, byte(dp.expectedAddress))
-		cpu.memory.Write(0x0015, byte(dp.expectedAddress>>8))
+			// Write Offset Table
+			cpu.memory.Write(0x0014, byte(tt.expectedAddress))
+			cpu.memory.Write(0x0015, byte(tt.expectedAddress>>8))
 
-		_, result, _, pageCrossed := cpu.evalIndirectX(cpu.registers.Pc)
+			_, result, _, pageCrossed := cpu.evalIndirectX(cpu.registers.Pc)
 
-		assert.Equal(t, dp.expectedAddress, result, fmt.Sprintf("%s [%d]: address", dp.test, testIdx))
-		assert.Equal(t, dp.expectedPageCrossed, pageCrossed, fmt.Sprintf("%s [%d]: page crossed", dp.test, testIdx))
+			assert.Equal(t, tt.expectedAddress, result, "unexpected address")
+			assert.Equal(t, tt.expectedPageCrossed, pageCrossed, "page crossed")
+		})
 	}
 }
 
 func TestIndirectY(t *testing.T) {
-	type dataProvider struct {
-		test                string
+	cases := []struct {
+		name                string
 		y                   byte
 		operand             byte
 		lsbPtr              Address
 		hsbPtr              Address
 		expectedAddress     Address
 		expectedPageCrossed bool
-	}
-
-	dataProviders := [...]dataProvider{
+	}{
 		{"page not crossed", 0x10, 0x86, 0x86, 0x87, 0x4038, false},
 		{"page crossed", 0xFF, 0xFF, 0xFF, 0x00, 0x245, true},
 	}
 
-	for testIdx, dp := range dataProviders {
-		cpu := CreateCPUWithGamePak()
-		cpu.registers.Pc = 0x50
-		cpu.registers.Y = dp.y
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			cpu := CreateCPUWithGamePak()
+			cpu.registers.Pc = 0x50
+			cpu.registers.Y = tt.y
 
-		// Operand
-		cpu.memory.Write(0x50, dp.operand)
+			// Operand
+			cpu.memory.Write(0x50, tt.operand)
 
-		// Indexed Table Pointers
-		cpu.memory.Write(Address(dp.operand), byte(dp.expectedAddress-Address(dp.y)))
-		cpu.memory.Write(Address(dp.operand+1), byte((dp.expectedAddress-Address(dp.y))>>8))
+			// Indexed Table Pointers
+			cpu.memory.Write(Address(tt.operand), byte(tt.expectedAddress-Address(tt.y)))
+			cpu.memory.Write(Address(tt.operand+1), byte((tt.expectedAddress-Address(tt.y))>>8))
 
-		pc, result, _, pageCrossed := cpu.evalIndirectY(cpu.registers.Pc)
+			pc, result, _, pageCrossed := cpu.evalIndirectY(cpu.registers.Pc)
 
-		assert.Equal(t, dp.expectedAddress, result, fmt.Sprintf("%s [%d]: address", dp.test, testIdx))
-		assert.Equal(t, cpu.registers.Pc+1, pc, fmt.Sprintf("%s [%d]: pc", dp.test, testIdx))
-		assert.Equal(t, dp.expectedPageCrossed, pageCrossed, fmt.Sprintf("%s [%d]: page crossed", dp.test, testIdx))
+			assert.Equal(t, tt.expectedAddress, result, "unexpected address")
+			assert.Equal(t, cpu.registers.Pc+1, pc, "unexpected pc")
+			assert.Equal(t, tt.expectedPageCrossed, pageCrossed, "page crossed")
+		})
 	}
 }
 

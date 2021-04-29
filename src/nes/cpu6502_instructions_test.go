@@ -420,27 +420,30 @@ func TestBVC(t *testing.T) {
 
 func TestBVS(t *testing.T) {
 	type dataProvider struct {
-		failError      string
+	}
+
+	cases := []struct {
+		name           string
 		overflow       byte
 		pc             Address
 		expectedPc     Address
 		expectedCycles byte
-	}
-
-	dataProviders := [...]dataProvider{
+	}{
 		{"branches when overflow is set", 1, 0x0000, 0x0010, 1},
 		{"branches when overflow is set, crossing page", 1, 0x0000, 0x0110, 2},
 		{"does not branch when overflow is unset", 0, 0x0000, 0x0000, 0},
 	}
 
-	for _, dp := range dataProviders {
-		cpu := CreateCPUWithGamePak()
-		cpu.registers.Pc = dp.pc
-		cpu.registers.updateFlag(overflowFlag, dp.overflow)
-		cpu.bvs(OperationMethodArgument{Relative, dp.expectedPc})
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			cpu := CreateCPUWithGamePak()
+			cpu.registers.Pc = tt.pc
+			cpu.registers.updateFlag(overflowFlag, tt.overflow)
+			cpu.bvs(OperationMethodArgument{Relative, tt.expectedPc})
 
-		assert.Equal(t, dp.expectedPc, cpu.registers.Pc, dp.failError+": invalid pc")
-		assert.Equal(t, dp.expectedCycles, cpu.opCyclesLeft, dp.failError+": invalid cycles")
+			assert.Equal(t, tt.expectedPc, cpu.registers.Pc, "invalid pc")
+			assert.Equal(t, tt.expectedCycles, cpu.opCyclesLeft, "invalid cycles")
+		})
 	}
 }
 
@@ -495,7 +498,14 @@ func TestCompareOperations(t *testing.T) {
 		expectedNegative byte
 	}
 
-	dps := [...]dataProvider{
+	cases := []struct {
+		title            string
+		operand          byte
+		op               OperationMethod
+		expectedCarry    byte
+		expectedZero     byte
+		expectedNegative byte
+	}{
 		{"A>M", byte(0x09), cpu.cmp, 1, 0, 0},
 		{"A<M", byte(0x15), cpu.cmp, 0, 0, 1},
 		{"A=M", byte(0x10), cpu.cmp, 1, 1, 0},
@@ -507,60 +517,59 @@ func TestCompareOperations(t *testing.T) {
 		{"Y=M", byte(0x10), cpu.cpy, 1, 1, 0},
 	}
 
-	for i := 0; i < len(dps); i++ {
-		dp := dps[i]
+	for _, tt := range cases {
+		t.Run(tt.title, func(t *testing.T) {
+			cpu.memory.Write(0x00, tt.operand)
 
-		cpu.memory.Write(0x00, dp.operand)
+			tt.op(OperationMethodArgument{ZeroPage, Address(0x00)})
 
-		dp.op(OperationMethodArgument{ZeroPage, Address(0x00)})
-
-		assert.Equal(t, dp.expectedCarry, cpu.registers.carryFlag(), dp.title+": Carry")
-		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag(), dp.title+": Zero")
-		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag(), dp.title+": Negative")
+			assert.Equal(t, tt.expectedCarry, cpu.registers.carryFlag(), "unexpected Carry")
+			assert.Equal(t, tt.expectedZero, cpu.registers.zeroFlag(), "unexpected Zero")
+			assert.Equal(t, tt.expectedNegative, cpu.registers.negativeFlag(), "unexpected Negative")
+		})
 	}
 }
 
 func TestDEC(t *testing.T) {
-	cpu := CreateCPUWithGamePak()
+	cases := []struct {
+		name             string
+		initialValue     byte
+		expectedValue    byte
+		expectedZero     byte
+		expectedNegative byte
+	}{
+		{"result > 0", 0x02, 0x01, 0, 0},
+		{"result is 0", 0x01, 0x00, 1, 0},
+		{"result < 0", 0x00, 0xFF, 0, 1},
+	}
 
-	cpu.memory.Write(0x0000, 0x02)
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			cpu := CreateCPUWithGamePak()
+			cpu.memory.Write(0x0000, tt.initialValue)
 
-	cpu.dec(OperationMethodArgument{ZeroPage, Address(0x0000)})
+			cpu.dec(OperationMethodArgument{ZeroPage, Address(0x0000)})
 
-	assert.Equal(t, byte(0x01), cpu.memory.Read(0))
-	assert.Equal(t, byte(0), cpu.registers.zeroFlag())
-	assert.Equal(t, byte(0), cpu.registers.negativeFlag())
-
-	// Zero result
-	cpu.dec(OperationMethodArgument{ZeroPage, Address(0x0000)})
-
-	assert.Equal(t, byte(0x00), cpu.memory.Read(0))
-	assert.Equal(t, byte(0), cpu.registers.negativeFlag())
-	assert.Equal(t, byte(1), cpu.registers.zeroFlag())
-
-	// Negative result
-	cpu.dec(OperationMethodArgument{ZeroPage, Address(0x0000)})
-
-	assert.Equal(t, byte(0xFF), cpu.memory.Read(0))
-	assert.Equal(t, byte(1), cpu.registers.negativeFlag())
-	assert.Equal(t, byte(0), cpu.registers.zeroFlag())
+			assert.Equal(t, tt.expectedValue, cpu.memory.Read(0))
+			assert.Equal(t, tt.expectedZero, cpu.registers.zeroFlag())
+			assert.Equal(t, tt.expectedNegative, cpu.registers.negativeFlag())
+		})
+	}
 }
 
 func TestDECXY(t *testing.T) {
-	type dataProvider struct {
+	cpu := CreateCPUWithGamePak()
+	cpu.registers.X = 2
+	cpu.registers.Y = 2
+
+	cases := []struct {
 		title            string
 		op               OperationMethod
 		expectedX        byte
 		expectedY        byte
 		expectedZero     byte
 		expectedNegative byte
-	}
-
-	cpu := CreateCPUWithGamePak()
-	cpu.registers.X = 2
-	cpu.registers.Y = 2
-
-	dps := [...]dataProvider{
+	}{
 		{"X=2", cpu.dex, 1, 2, 0, 0},
 		{"X=1", cpu.dex, 0, 2, 1, 0},
 		{"X=0", cpu.dex, 0xFF, 2, 0, 1},
@@ -569,118 +578,125 @@ func TestDECXY(t *testing.T) {
 		{"Y=0", cpu.dey, 0xFF, 0xFF, 0, 1},
 	}
 
-	for i := 0; i < len(dps); i++ {
-		dp := dps[i]
-		msg := fmt.Sprintf("%s: Unexpected when value is X:%X Y:%X", dp.title, cpu.registers.X, cpu.registers.Y)
-
-		dp.op(OperationMethodArgument{Implicit, 0})
-		assert.Equal(t, dp.expectedX, cpu.registers.X, dp.title)
-		assert.Equal(t, dp.expectedY, cpu.registers.Y, dp.title)
-		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag(), msg)
-		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag(), msg)
+	for _, tt := range cases {
+		t.Run(tt.title, func(t *testing.T) {
+			tt.op(OperationMethodArgument{Implicit, 0})
+			assert.Equal(t, tt.expectedX, cpu.registers.X, "unexpected X")
+			assert.Equal(t, tt.expectedY, cpu.registers.Y, "unexpected Y")
+			assert.Equal(t, tt.expectedNegative, cpu.registers.negativeFlag(), "unexpected Negative flag")
+			assert.Equal(t, tt.expectedZero, cpu.registers.zeroFlag(), "unexpected Zero flag")
+		})
 	}
 }
 
 func TestEOR(t *testing.T) {
-	type dataProvider struct {
+	cases := []struct {
+		name             string
 		value            byte
 		a                byte
 		expectedA        byte
 		expectedZero     byte
 		expectedNegative byte
-	}
-	dps := [...]dataProvider{
-		{0x00, 0x00, 0x00, 1, 0},
-		{0x01, 0x00, 0x01, 0, 0},
-		{0x80, 0x00, 0x80, 0, 1},
+	}{
+		{"", 0x00, 0x00, 0x00, 1, 0},
+		{"", 0x01, 0x00, 0x01, 0, 0},
+		{"", 0x80, 0x00, 0x80, 0, 1},
 	}
 
 	cpu := CreateCPUWithGamePak()
-	for i := 0; i < len(dps); i++ {
-		dp := dps[i]
-		cpu.registers.A = dp.a
-		cpu.memory.Write(0x05, dp.value)
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			cpu.registers.A = tt.a
+			cpu.memory.Write(0x05, tt.value)
 
-		extraCycle := cpu.eor(OperationMethodArgument{Immediate, 0x05})
+			extraCycle := cpu.eor(OperationMethodArgument{Immediate, 0x05})
 
-		assert.Equal(t, dp.expectedA, cpu.registers.A)
-		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag())
-		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag())
-		assert.True(t, extraCycle)
+			assert.Equal(t, tt.expectedA, cpu.registers.A)
+			assert.Equal(t, tt.expectedZero, cpu.registers.zeroFlag())
+			assert.Equal(t, tt.expectedNegative, cpu.registers.negativeFlag())
+			assert.True(t, extraCycle)
+		})
 	}
 }
 
 func TestINC(t *testing.T) {
-	type dataProvider struct {
+	cases := []struct {
+		name             string
 		value            byte
 		expectedValue    byte
 		expectedZero     byte
 		expectedNegative byte
-	}
-	dps := [...]dataProvider{
-		{0x00, 0x01, 0, 0},
-		{0x7F, 0x80, 0, 1},
-		{0xFF, 0x00, 1, 0},
+	}{
+		{"", 0x00, 0x01, 0, 0},
+		{"", 0x7F, 0x80, 0, 1},
+		{"", 0xFF, 0x00, 1, 0},
 	}
 
-	for i := 0; i < len(dps); i++ {
-		dp := dps[i]
-		cpu := CreateCPUWithGamePak()
-		cpu.memory.Write(0x00, dp.value)
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			cpu := CreateCPUWithGamePak()
+			cpu.memory.Write(0x00, tt.value)
 
-		cpu.inc(OperationMethodArgument{ZeroPage, 0x00})
-		assert.Equal(t, dp.expectedValue, cpu.memory.Read(0x00))
-		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag())
-		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag())
+			cpu.inc(OperationMethodArgument{ZeroPage, 0x00})
+
+			assert.Equal(t, tt.expectedValue, cpu.memory.Read(0x00))
+			assert.Equal(t, tt.expectedNegative, cpu.registers.negativeFlag())
+			assert.Equal(t, tt.expectedZero, cpu.registers.zeroFlag())
+		})
 	}
 }
 
 func TestINX(t *testing.T) {
-	type dataProvider struct {
+	cases := []struct {
+		name             string
 		value            byte
 		expectedValue    byte
 		expectedZero     byte
 		expectedNegative byte
-	}
-	dps := [...]dataProvider{
-		{0x00, 0x01, 0, 0},
-		{0x7F, 0x80, 0, 1},
-		{0xFF, 0x00, 1, 0},
+	}{
+		{"", 0x00, 0x01, 0, 0},
+		{"", 0x7F, 0x80, 0, 1},
+		{"", 0xFF, 0x00, 1, 0},
 	}
 
-	for i := 0; i < len(dps); i++ {
-		dp := dps[i]
-		cpu := CreateCPUWithGamePak()
-		cpu.registers.X = dp.value
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			cpu := CreateCPUWithGamePak()
+			cpu.registers.X = tt.value
 
-		cpu.inx(OperationMethodArgument{ZeroPage, 0x00})
-		assert.Equal(t, dp.expectedValue, cpu.registers.X)
-		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag())
-		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag())
+			cpu.inx(OperationMethodArgument{ZeroPage, 0x00})
+
+			assert.Equal(t, tt.expectedValue, cpu.registers.X)
+			assert.Equal(t, tt.expectedNegative, cpu.registers.negativeFlag())
+			assert.Equal(t, tt.expectedZero, cpu.registers.zeroFlag())
+		})
 	}
 }
+
 func TestINY(t *testing.T) {
-	type dataProvider struct {
+	cases := []struct {
+		name             string
 		value            byte
 		expectedValue    byte
 		expectedZero     byte
 		expectedNegative byte
-	}
-	dps := [...]dataProvider{
-		{0x00, 0x01, 0, 0},
-		{0x7F, 0x80, 0, 1},
-		{0xFF, 0x00, 1, 0},
+	}{
+		{"", 0x00, 0x01, 0, 0},
+		{"", 0x7F, 0x80, 0, 1},
+		{"", 0xFF, 0x00, 1, 0},
 	}
 
-	for i := 0; i < len(dps); i++ {
-		dp := dps[i]
-		cpu := CreateCPUWithGamePak()
-		cpu.registers.Y = dp.value
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			cpu := CreateCPUWithGamePak()
+			cpu.registers.Y = tt.value
 
-		cpu.iny(OperationMethodArgument{ZeroPage, 0x00})
-		assert.Equal(t, dp.expectedValue, cpu.registers.Y)
-		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag())
-		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag())
+			cpu.iny(OperationMethodArgument{ZeroPage, 0x00})
+
+			assert.Equal(t, tt.expectedValue, cpu.registers.Y)
+			assert.Equal(t, tt.expectedNegative, cpu.registers.negativeFlag())
+			assert.Equal(t, tt.expectedZero, cpu.registers.zeroFlag())
+		})
 	}
 }
 
@@ -707,145 +723,149 @@ func TestJSR(t *testing.T) {
 }
 
 func TestLDA(t *testing.T) {
-	type dataProvider struct {
+	cases := []struct {
+		name             string
 		value            byte
 		expectedZero     byte
 		expectedNegative byte
+	}{
+		{"", 0x20, 0, 0},
+		{"", 0x00, 1, 0},
+		{"", 0x80, 0, 1},
 	}
-	dataProviders := [...]dataProvider{
-		{0x20, 0, 0},
-		{0x00, 1, 0},
-		{0x80, 0, 1},
-	}
 
-	for i := 0; i < len(dataProviders); i++ {
-		dp := dataProviders[i]
-		cpu := CreateCPUWithGamePak()
-		cpu.memory.Write(Address(0x00), dp.value)
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			cpu := CreateCPUWithGamePak()
+			cpu.memory.Write(Address(0x00), tt.value)
 
-		extraCycle := cpu.lda(OperationMethodArgument{Immediate, 0x00})
+			extraCycle := cpu.lda(OperationMethodArgument{Immediate, 0x00})
 
-		assert.Equal(t, dp.value, cpu.registers.A)
-		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag())
-		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag())
-		assert.True(t, extraCycle)
+			assert.Equal(t, tt.value, cpu.registers.A)
+			assert.Equal(t, tt.expectedZero, cpu.registers.zeroFlag())
+			assert.Equal(t, tt.expectedNegative, cpu.registers.negativeFlag())
+			assert.True(t, extraCycle)
+		})
 	}
 }
 
 func TestLDX(t *testing.T) {
-	type dataProvider struct {
+	cases := []struct {
+		name             string
 		value            byte
 		expectedZero     byte
 		expectedNegative byte
+	}{
+		{"", 0x20, 0, 0},
+		{"", 0x00, 1, 0},
+		{"", 0x80, 0, 1},
 	}
-	dataProviders := [...]dataProvider{
-		{0x20, 0, 0},
-		{0x00, 1, 0},
-		{0x80, 0, 1},
-	}
 
-	for i := 0; i < len(dataProviders); i++ {
-		dp := dataProviders[i]
-		cpu := CreateCPUWithGamePak()
-		cpu.memory.Write(Address(0x00), dp.value)
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			cpu := CreateCPUWithGamePak()
+			cpu.memory.Write(Address(0x00), tt.value)
 
-		extraCycle := cpu.ldx(OperationMethodArgument{Immediate, 0x00})
+			extraCycle := cpu.ldx(OperationMethodArgument{Immediate, 0x00})
 
-		assert.Equal(t, dp.value, cpu.registers.X)
-		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag())
-		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag())
-		assert.True(t, extraCycle)
+			assert.Equal(t, tt.value, cpu.registers.X)
+			assert.Equal(t, tt.expectedZero, cpu.registers.zeroFlag())
+			assert.Equal(t, tt.expectedNegative, cpu.registers.negativeFlag())
+			assert.True(t, extraCycle)
+		})
 	}
 }
 
 func TestLDY(t *testing.T) {
-	type dataProvider struct {
+	cases := []struct {
+		name             string
 		value            byte
 		expectedZero     byte
 		expectedNegative byte
+	}{
+		{"", 0x20, 0, 0},
+		{"", 0x00, 1, 0},
+		{"", 0x80, 0, 1},
 	}
-	dataProviders := [...]dataProvider{
-		{0x20, 0, 0},
-		{0x00, 1, 0},
-		{0x80, 0, 1},
-	}
 
-	for i := 0; i < len(dataProviders); i++ {
-		dp := dataProviders[i]
-		cpu := CreateCPUWithGamePak()
-		cpu.memory.Write(Address(0x00), dp.value)
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			cpu := CreateCPUWithGamePak()
+			cpu.memory.Write(Address(0x00), tt.value)
 
-		extraCycle := cpu.ldy(OperationMethodArgument{Immediate, 0x00})
+			extraCycle := cpu.ldy(OperationMethodArgument{Immediate, 0x00})
 
-		assert.Equal(t, dp.value, cpu.registers.Y)
-		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag())
-		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag())
-		assert.True(t, extraCycle)
+			assert.Equal(t, tt.value, cpu.registers.Y)
+			assert.Equal(t, tt.expectedZero, cpu.registers.zeroFlag())
+			assert.Equal(t, tt.expectedNegative, cpu.registers.negativeFlag())
+			assert.True(t, extraCycle)
+		})
 	}
 }
 
 func TestLSR(t *testing.T) {
-	type dataProvider struct {
+	cases := []struct {
+		name           string
 		addressingMode AddressMode
 		value          byte
 		expectedResult byte
 		expectedZero   byte
 		expectedCarry  byte
+	}{
+		{"", Implicit, 0b00000010, 0b00000001, 0, 0},
+		{"", Implicit, 0b00000011, 0b00000001, 0, 1},
+		{"", Implicit, 0b00000001, 0b00000000, 1, 1},
+		{"", ZeroPage, 0b00000010, 0b00000001, 0, 0},
+		{"", ZeroPage, 0b00000011, 0b00000001, 0, 1},
+		{"", ZeroPage, 0b00000001, 0b00000000, 1, 1},
 	}
-	dataProviders := [...]dataProvider{
-		{Implicit, 0b00000010, 0b00000001, 0, 0},
-		{Implicit, 0b00000011, 0b00000001, 0, 1},
-		{Implicit, 0b00000001, 0b00000000, 1, 1},
-		{ZeroPage, 0b00000010, 0b00000001, 0, 0},
-		{ZeroPage, 0b00000011, 0b00000001, 0, 1},
-		{ZeroPage, 0b00000001, 0b00000000, 1, 1},
-	}
 
-	for i := 0; i < len(dataProviders); i++ {
-		dp := dataProviders[i]
-		cpu := CreateCPUWithGamePak()
-		cpu.registers.Status = 0xFF
-		cpu.registers.A = dp.value
-		cpu.memory.Write(Address(0x00), dp.value)
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			cpu := CreateCPUWithGamePak()
+			cpu.registers.Status = 0xFF
+			cpu.registers.A = tt.value
+			cpu.memory.Write(Address(0x00), tt.value)
 
-		cpu.lsr(OperationMethodArgument{dp.addressingMode, 0x00})
+			cpu.lsr(OperationMethodArgument{tt.addressingMode, 0x00})
 
-		if dp.addressingMode == Implicit {
-			assert.Equal(t, dp.expectedResult, cpu.registers.A)
-		} else {
-			assert.Equal(t, dp.expectedResult, cpu.memory.Read(0x00))
-		}
-		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag(), fmt.Sprintf("Iteration[%d] unexpected ZeroFlag", i))
-		assert.Equal(t, dp.expectedCarry, cpu.registers.carryFlag())
-		assert.Zero(t, cpu.registers.negativeFlag())
+			if tt.addressingMode == Implicit {
+				assert.Equal(t, tt.expectedResult, cpu.registers.A)
+			} else {
+				assert.Equal(t, tt.expectedResult, cpu.memory.Read(0x00))
+			}
+			assert.Equal(t, tt.expectedZero, cpu.registers.zeroFlag(), "unexpected ZeroFlag")
+			assert.Equal(t, tt.expectedCarry, cpu.registers.carryFlag())
+			assert.Zero(t, cpu.registers.negativeFlag())
+		})
 	}
 }
 
 func TestORA(t *testing.T) {
-	type dataProvider struct {
+	cases := []struct {
 		a                byte
 		value            byte
 		expectedResult   byte
 		expectedZero     byte
 		expectedNegative byte
-	}
-	dataProviders := [...]dataProvider{
+	}{
 		{0x00, 0x00, 0x00, 1, 0},
 		{0x80, 0x00, 0x80, 0, 1},
 	}
 
-	for i := 0; i < len(dataProviders); i++ {
-		dp := dataProviders[i]
-		cpu := CreateCPUWithGamePak()
-		cpu.registers.A = dp.a
-		cpu.memory.Write(0x00, dp.value)
+	for _, tt := range cases {
+		t.Run("", func(t *testing.T) {
+			cpu := CreateCPUWithGamePak()
+			cpu.registers.A = tt.a
+			cpu.memory.Write(0x00, tt.value)
 
-		extraCycle := cpu.ora(OperationMethodArgument{Immediate, 0x00})
+			extraCycle := cpu.ora(OperationMethodArgument{Immediate, 0x00})
 
-		assert.Equal(t, dp.expectedResult, cpu.registers.A)
-		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag())
-		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag())
-		assert.True(t, extraCycle)
+			assert.Equal(t, tt.expectedResult, cpu.registers.A)
+			assert.Equal(t, tt.expectedZero, cpu.registers.zeroFlag())
+			assert.Equal(t, tt.expectedNegative, cpu.registers.negativeFlag())
+			assert.True(t, extraCycle)
+		})
 	}
 }
 
@@ -867,29 +887,28 @@ func TestPHP(t *testing.T) {
 }
 
 func TestPLA(t *testing.T) {
-	type dataProvider struct {
+	cases := []struct {
 		pulledValue      byte
 		expectedNegative byte
 		expectedZero     byte
-	}
-
-	dataProviders := [...]dataProvider{
+	}{
 		{0x00, 0, 1},
 		{0x80, 1, 0},
 		{0x20, 0, 0},
 	}
 
-	for i := 0; i < len(dataProviders); i++ {
-		dp := dataProviders[i]
-		cpu := CreateCPUWithGamePak()
-		cpu.pushStack(dp.pulledValue)
+	for _, tt := range cases {
+		t.Run("", func(t *testing.T) {
+			cpu := CreateCPUWithGamePak()
+			cpu.pushStack(tt.pulledValue)
 
-		cpu.pla(OperationMethodArgument{Implicit, 0x00})
+			cpu.pla(OperationMethodArgument{Implicit, 0x00})
 
-		assert.Equal(t, dp.pulledValue, cpu.registers.A)
-		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag())
-		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag())
-		assert.Equal(t, byte(0xFF), cpu.registers.Sp)
+			assert.Equal(t, tt.pulledValue, cpu.registers.A)
+			assert.Equal(t, tt.expectedNegative, cpu.registers.negativeFlag())
+			assert.Equal(t, tt.expectedZero, cpu.registers.zeroFlag())
+			assert.Equal(t, byte(0xFF), cpu.registers.Sp)
+		})
 	}
 }
 
@@ -906,7 +925,7 @@ func TestPLP(t *testing.T) {
 }
 
 func TestROL(t *testing.T) {
-	type dataProvider struct {
+	cases := []struct {
 		addressingMode   AddressMode
 		value            byte
 		carry            byte
@@ -914,8 +933,7 @@ func TestROL(t *testing.T) {
 		expectedZero     byte
 		expectedNegative byte
 		expectedCarry    byte
-	}
-	dataProviders := [...]dataProvider{
+	}{
 		{Implicit, 0b00000000, 0, 0, 1, 0, 0},
 		{Implicit, 0b00000000, 1, 1, 0, 0, 0},
 		{Implicit, 0b00000001, 0, 0b10, 0, 0, 0},
@@ -929,29 +947,30 @@ func TestROL(t *testing.T) {
 		{ZeroPage, 0b01000000, 0, 0x80, 0, 1, 0},
 	}
 
-	for i := 0; i < len(dataProviders); i++ {
-		dp := dataProviders[i]
-		cpu := CreateCPUWithGamePak()
-		cpu.registers.A = dp.value
-		cpu.registers.updateFlag(carryFlag, dp.carry)
-		cpu.memory.Write(Address(0x00), dp.value)
+	for _, tt := range cases {
+		t.Run("", func(t *testing.T) {
+			cpu := CreateCPUWithGamePak()
+			cpu.registers.A = tt.value
+			cpu.registers.updateFlag(carryFlag, tt.carry)
+			cpu.memory.Write(Address(0x00), tt.value)
 
-		cpu.rol(OperationMethodArgument{dp.addressingMode, 0x00})
+			cpu.rol(OperationMethodArgument{tt.addressingMode, 0x00})
 
-		if dp.addressingMode == Implicit {
-			assert.Equal(t, dp.expectedResult, cpu.registers.A)
-		} else {
-			assert.Equal(t, dp.expectedResult, cpu.memory.Read(0x00))
-		}
-		assert.Equal(t, dp.expectedCarry, cpu.registers.carryFlag())
-		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag(), fmt.Sprintf("Iteration[%d] unexpected ZeroFlag", i))
-		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag(), fmt.Sprintf("Iteration[%d] unexpected Negative", i))
-		assert.Equal(t, dp.expectedCarry, cpu.registers.carryFlag())
+			if tt.addressingMode == Implicit {
+				assert.Equal(t, tt.expectedResult, cpu.registers.A)
+			} else {
+				assert.Equal(t, tt.expectedResult, cpu.memory.Read(0x00))
+			}
+			assert.Equal(t, tt.expectedCarry, cpu.registers.carryFlag())
+			assert.Equal(t, tt.expectedZero, cpu.registers.zeroFlag(), "unexpected ZeroFlag")
+			assert.Equal(t, tt.expectedNegative, cpu.registers.negativeFlag(), "unexpected Negative")
+			assert.Equal(t, tt.expectedCarry, cpu.registers.carryFlag())
+		})
 	}
 }
 
 func TestROR(t *testing.T) {
-	type dataProvider struct {
+	cases := []struct {
 		addressingMode   AddressMode
 		value            byte
 		carry            byte
@@ -959,8 +978,7 @@ func TestROR(t *testing.T) {
 		expectedZero     byte
 		expectedNegative byte
 		expectedCarry    byte
-	}
-	dataProviders := [...]dataProvider{
+	}{
 		{Implicit, 0b00000000, 0, 0, 1, 0, 0},
 		{Implicit, 0b00000001, 0, 0, 1, 0, 1},
 		{Implicit, 0b00000000, 1, 0x80, 0, 1, 0},
@@ -974,24 +992,25 @@ func TestROR(t *testing.T) {
 		{ZeroPage, 0b10000001, 1, 0xC0, 0, 1, 1},
 	}
 
-	for i := 0; i < len(dataProviders); i++ {
-		dp := dataProviders[i]
-		cpu := CreateCPUWithGamePak()
-		cpu.registers.A = dp.value
-		cpu.registers.updateFlag(carryFlag, dp.carry)
-		cpu.memory.Write(Address(0x00), dp.value)
+	for _, tt := range cases {
+		t.Run("", func(t *testing.T) {
+			cpu := CreateCPUWithGamePak()
+			cpu.registers.A = tt.value
+			cpu.registers.updateFlag(carryFlag, tt.carry)
+			cpu.memory.Write(Address(0x00), tt.value)
 
-		cpu.ror(OperationMethodArgument{dp.addressingMode, 0x00})
+			cpu.ror(OperationMethodArgument{tt.addressingMode, 0x00})
 
-		if dp.addressingMode == Implicit {
-			assert.Equal(t, dp.expectedResult, cpu.registers.A)
-		} else {
-			assert.Equal(t, dp.expectedResult, cpu.memory.Read(0x00))
-		}
-		assert.Equal(t, dp.expectedCarry, cpu.registers.carryFlag())
-		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag(), fmt.Sprintf("Iteration[%d] unexpected ZeroFlag", i))
-		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag(), fmt.Sprintf("Iteration[%d] unexpected Negative", i))
-		assert.Equal(t, dp.expectedCarry, cpu.registers.carryFlag())
+			if tt.addressingMode == Implicit {
+				assert.Equal(t, tt.expectedResult, cpu.registers.A)
+			} else {
+				assert.Equal(t, tt.expectedResult, cpu.memory.Read(0x00))
+			}
+			assert.Equal(t, tt.expectedCarry, cpu.registers.carryFlag())
+			assert.Equal(t, tt.expectedZero, cpu.registers.zeroFlag(), "unexpected ZeroFlag")
+			assert.Equal(t, tt.expectedNegative, cpu.registers.negativeFlag(), "unexpected Negative")
+			assert.Equal(t, tt.expectedCarry, cpu.registers.carryFlag())
+		})
 	}
 }
 
@@ -1024,7 +1043,9 @@ func TestRTS(t *testing.T) {
 }
 
 func TestSBC(t *testing.T) {
-	type dataProvider struct {
+	// Fixtures taken from http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html (section SBC)
+	// TODO: Improve these fixtures by adding more (if really needed)
+	cases := []struct {
 		a     byte
 		value byte
 		carry byte
@@ -1034,31 +1055,29 @@ func TestSBC(t *testing.T) {
 		expectedNegative byte
 		expectedCarry    byte
 		expectedOverflow byte
-	}
-	// Fixtures taken from http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html (section SBC)
-	// TODO: Improve these fixtures by adding more (if really needed)
-	dataProviders := [...]dataProvider{
+	}{
 		{0x01, 1, 1, 0, 1, 0, 1, 0},
 		{0x50, 0xF0, 1, 0x60, 0, 0, 0, 0},
 		{0x50, 0xB0, 1, 0xA0, 0, 1, 0, 1},
 		{0x50, 0x70, 1, 0xE0, 0, 1, 0, 0},
 	}
 
-	for i := 0; i < len(dataProviders); i++ {
-		dp := dataProviders[i]
-		cpu := CreateCPUWithGamePak()
-		cpu.registers.A = dp.a
-		cpu.registers.updateFlag(carryFlag, dp.carry)
-		cpu.memory.Write(0x00, dp.value)
+	for _, tt := range cases {
+		t.Run("", func(t *testing.T) {
+			cpu := CreateCPUWithGamePak()
+			cpu.registers.A = tt.a
+			cpu.registers.updateFlag(carryFlag, tt.carry)
+			cpu.memory.Write(0x00, tt.value)
 
-		extraCycle := cpu.sbc(OperationMethodArgument{Immediate, 0x00})
+			extraCycle := cpu.sbc(OperationMethodArgument{Immediate, 0x00})
 
-		assert.Equal(t, dp.expectedResult, cpu.registers.A, "Invalid subtraction result")
-		assert.Equal(t, dp.expectedCarry, cpu.registers.carryFlag(), "Invalid CarryFlag")
-		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag(), "Invalid zeroflag")
-		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag(), "Invalid negative Flag")
-		assert.Equal(t, dp.expectedOverflow, cpu.registers.overflowFlag(), "Invalid Overflow Flag")
-		assert.True(t, extraCycle)
+			assert.Equal(t, tt.expectedResult, cpu.registers.A, "Invalid subtraction result")
+			assert.Equal(t, tt.expectedCarry, cpu.registers.carryFlag(), "Invalid CarryFlag")
+			assert.Equal(t, tt.expectedZero, cpu.registers.zeroFlag(), "Invalid zeroflag")
+			assert.Equal(t, tt.expectedNegative, cpu.registers.negativeFlag(), "Invalid negative Flag")
+			assert.Equal(t, tt.expectedOverflow, cpu.registers.overflowFlag(), "Invalid Overflow Flag")
+			assert.True(t, extraCycle)
+		})
 	}
 }
 
@@ -1114,16 +1133,14 @@ func TestSTY(t *testing.T) {
 }
 
 func TestTAX_TAY(t *testing.T) {
-	type dataProvider struct {
+	cpu := CreateCPUWithGamePak()
+	cases := []struct {
 		name             string
 		op               OperationMethod
 		a                byte
 		expectedNegative byte
 		expectedZero     byte
-	}
-
-	cpu := CreateCPUWithGamePak()
-	dataProviders := [...]dataProvider{
+	}{
 		{"tax", cpu.tax, 0x00, 0, 1},
 		{"tax", cpu.tax, 0x80, 1, 0},
 		{"tax", cpu.tax, 0x20, 0, 0},
@@ -1132,73 +1149,71 @@ func TestTAX_TAY(t *testing.T) {
 		{"tay", cpu.tay, 0x20, 0, 0},
 	}
 
-	for i := 0; i < len(dataProviders); i++ {
-		dp := dataProviders[i]
-		cpu.registers.Reset()
-		cpu.registers.A = dp.a
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			cpu.registers.Reset()
+			cpu.registers.A = tt.a
 
-		dp.op(OperationMethodArgument{Implicit, 0x00})
+			tt.op(OperationMethodArgument{Implicit, 0x00})
 
-		if dp.name == "tax" {
-			assert.Equal(t, cpu.registers.A, cpu.registers.X)
-		} else {
-			assert.Equal(t, cpu.registers.A, cpu.registers.Y)
-		}
-		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag())
-		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag())
+			if tt.name == "tax" {
+				assert.Equal(t, cpu.registers.A, cpu.registers.X, "unexpected X")
+			} else {
+				assert.Equal(t, cpu.registers.A, cpu.registers.Y, "unexpected Y")
+			}
+			assert.Equal(t, tt.expectedNegative, cpu.registers.negativeFlag(), "unexpected Negative flag")
+			assert.Equal(t, tt.expectedZero, cpu.registers.zeroFlag(), "unexpected Zero flag")
+		})
 	}
 }
 
 func TestTSX(t *testing.T) {
-	type dataProvider struct {
+	cases := []struct {
 		sp               byte
 		expectedNegative byte
 		expectedZero     byte
-	}
-
-	dataProviders := [...]dataProvider{
+	}{
 		{0x00, 0, 1},
 		{0x80, 1, 0},
 		{0x20, 0, 0},
 	}
 
-	for i := 0; i < len(dataProviders); i++ {
-		dp := dataProviders[i]
-		cpu := CreateCPUWithGamePak()
-		//cpu.pushStack(dp.sp)
-		cpu.Registers().setStackPointer(dp.sp)
+	for _, tt := range cases {
+		t.Run("", func(t *testing.T) {
+			cpu := CreateCPUWithGamePak()
+			cpu.Registers().setStackPointer(tt.sp)
 
-		cpu.tsx(OperationMethodArgument{Implicit, 0x00})
+			cpu.tsx(OperationMethodArgument{Implicit, 0x00})
 
-		assert.Equal(t, dp.sp, cpu.registers.X)
-		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag(), "Incorrect Zero Flag")
-		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag(), "Incorrect Negative Flag")
+			assert.Equal(t, tt.sp, cpu.registers.X)
+			assert.Equal(t, tt.expectedZero, cpu.registers.zeroFlag(), "Incorrect Zero Flag")
+			assert.Equal(t, tt.expectedNegative, cpu.registers.negativeFlag(), "Incorrect Negative Flag")
+		})
 	}
 }
 
 func TestTXA(t *testing.T) {
-	type dataProvider struct {
+	cases := []struct {
 		x                byte
 		expectedNegative byte
 		expectedZero     byte
-	}
-
-	dataProviders := [...]dataProvider{
+	}{
 		{0x00, 0, 1},
 		{0x80, 1, 0},
 		{0x20, 0, 0},
 	}
 
-	for i := 0; i < len(dataProviders); i++ {
-		dp := dataProviders[i]
-		cpu := CreateCPUWithGamePak()
-		cpu.registers.X = dp.x
+	for _, tt := range cases {
+		t.Run("", func(t *testing.T) {
+			cpu := CreateCPUWithGamePak()
+			cpu.registers.X = tt.x
 
-		cpu.txa(OperationMethodArgument{Implicit, 0x00})
+			cpu.txa(OperationMethodArgument{Implicit, 0x00})
 
-		assert.Equal(t, dp.x, cpu.registers.A)
-		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag())
-		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag())
+			assert.Equal(t, tt.x, cpu.registers.A)
+			assert.Equal(t, tt.expectedZero, cpu.registers.zeroFlag())
+			assert.Equal(t, tt.expectedNegative, cpu.registers.negativeFlag())
+		})
 	}
 }
 
@@ -1212,27 +1227,26 @@ func TestTXS(t *testing.T) {
 }
 
 func TestTYA(t *testing.T) {
-	type dataProvider struct {
+	cases := []struct {
 		y                byte
 		expectedNegative byte
 		expectedZero     byte
-	}
-
-	dataProviders := [...]dataProvider{
+	}{
 		{0x00, 0, 1},
 		{0x80, 1, 0},
 		{0x20, 0, 0},
 	}
 
-	for i := 0; i < len(dataProviders); i++ {
-		dp := dataProviders[i]
-		cpu := CreateCPUWithGamePak()
-		cpu.registers.Y = dp.y
+	for _, tt := range cases {
+		t.Run("", func(t *testing.T) {
+			cpu := CreateCPUWithGamePak()
+			cpu.registers.Y = tt.y
 
-		cpu.tya(OperationMethodArgument{Implicit, 0x00})
+			cpu.tya(OperationMethodArgument{Implicit, 0x00})
 
-		assert.Equal(t, cpu.registers.Y, cpu.registers.A)
-		assert.Equal(t, dp.expectedZero, cpu.registers.zeroFlag())
-		assert.Equal(t, dp.expectedNegative, cpu.registers.negativeFlag())
+			assert.Equal(t, cpu.registers.Y, cpu.registers.A)
+			assert.Equal(t, tt.expectedZero, cpu.registers.zeroFlag())
+			assert.Equal(t, tt.expectedNegative, cpu.registers.negativeFlag())
+		})
 	}
 }
