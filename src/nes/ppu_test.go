@@ -52,6 +52,25 @@ func TestPPU_PPUMASK_write(t *testing.T) {
 	assert.Equal(t, byte(0xFF), ppu.registers.mask)
 }
 
+func TestPPU_PPUSTATUS_read(t *testing.T) {
+	ppu := aPPU()
+	ppu.registers.status = 0b11100000
+
+	status := ppu.ReadRegister(PPUSTATUS)
+
+	assert.Equal(t, byte(0b11100000), status)
+}
+
+func TestPPU_PPUSTATUS_reading_status_clears_bit7_and_the_address_latch(t *testing.T) {
+	ppu := aPPU()
+	ppu.registers.status = 0x80
+
+	ppu.ReadRegister(PPUSTATUS)
+
+	assert.Equal(t, byte(0), ppu.registers.status&0x80, "vblank flag should be cleared after reading PPUSTATUS")
+	assert.Equal(t, byte(0), ppu.registers.addressLatch, "unexpected address latch")
+}
+
 func TestPPU_PPUADDR_write_twice_to_set_address(t *testing.T) {
 	cases := []struct {
 		name     string

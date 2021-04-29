@@ -20,8 +20,9 @@ type Ppu2c02 struct {
 }
 
 type PPURegisters struct {
-	ctrl byte // Controls PPU operation
-	mask byte // Controls the rendering of sprites and backgrounds
+	ctrl   byte // Controls PPU operation
+	mask   byte // Controls the rendering of sprites and backgrounds
+	status byte // Reflects state of various functions inside PPU
 
 	ppuAddr      Address
 	addressLatch byte
@@ -51,6 +52,14 @@ const (
 	emphasizeRed
 	emphasizeGreen
 	emphasizeBlue
+)
+
+type PPUSTATUSFlag int
+
+const (
+	spriteOverflow       = 5
+	sprite0Hit           = 6
+	verticalBlankStarted = 7
 )
 
 const PPUCTRL = 0x2000 // NMI enable (V), PPU master/slave (P), sprite height (H),
@@ -90,6 +99,8 @@ func (ppu *Ppu2c02) ReadRegister(register Address) byte {
 	case PPUMASK:
 		break
 	case PPUSTATUS:
+		value = ppu.registers.status
+		ppu.registers.status &= 0x7F // Clear VBlank flag
 		break
 	case OAMADDR:
 		break
