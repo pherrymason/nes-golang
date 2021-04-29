@@ -12,8 +12,10 @@ type Pixel struct {
 //  Registers mapped to memory locations: $2000 through $2007
 //  mirrored in every 8 bytes from $2008 through $3FFF
 type Ppu2c02 struct {
-	registers PPURegisters
 	Memory
+	registers PPURegisters
+	cycle     uint32
+
 	patternTable []byte // Decoded pattern table
 }
 
@@ -27,8 +29,8 @@ type PPURegisters struct {
 type PPUCtrlFlag int
 
 const (
-	baseNameTableAddress0 PPUCtrlFlag = iota
-	baseNameTableAddress1
+	baseNameTableAddress0 PPUCtrlFlag = iota // Most significant bit of scrolling coordinates (X)
+	baseNameTableAddress1                    // Most significant bit of scrolling coordinates (Y)
 	incrementMode
 	spritePatternTableAddress
 	backgroundPatternTableAddress
@@ -61,7 +63,7 @@ func CreatePPU(memory Memory) *Ppu2c02 {
 }
 
 func (ppu *Ppu2c02) Tick() {
-
+	ppu.cycle++
 }
 
 func (ppu *Ppu2c02) ReadRegister(register Address) byte {
@@ -104,6 +106,9 @@ func (ppu *Ppu2c02) ReadRegister(register Address) byte {
 func (ppu *Ppu2c02) WriteRegister(register Address, value byte) {
 	switch register {
 	case PPUCTRL:
+		if ppu.cycle > 30000 {
+			ppu.registers.ctrl = value
+		}
 		break
 	case PPUMASK:
 		break

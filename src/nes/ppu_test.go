@@ -13,6 +13,21 @@ func CreateDummyGamePak() *GamePak {
 	}
 }
 
+func TestPPU_PPUCTRL_writes_are_ignored_first_30000_cycles(t *testing.T) {
+	gamePak := CreateDummyGamePak()
+	memory := CreatePPUMemory(gamePak)
+	ppu := CreatePPU(memory)
+	for i := 0; i < 30000; i++ {
+		ppu.Tick()
+		ppu.WriteRegister(PPUCTRL, 0x11)
+
+		if 0x11 == ppu.registers.ctrl {
+			t.Error("writes to PPUCTRL should be ignored first 30000 cycles")
+			t.FailNow()
+		}
+	}
+}
+
 func TestPPU_PPUADDR_write_twice_to_set_address(t *testing.T) {
 	cases := []struct {
 		name     string
