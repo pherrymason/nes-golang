@@ -14,40 +14,68 @@ func CreateDummyGamePak() *GamePak {
 }
 
 func TestPPU_PPUADDR_write_twice_to_set_address(t *testing.T) {
-	gamePak := CreateDummyGamePak()
-	memory := CreatePPUMemory(gamePak)
-	ppu := CreatePPU(memory)
+	cases := []struct {
+		name     string
+		hi       byte
+		lo       byte
+		expected Address
+	}{
+		{"writes address", 0x28, 0x10, 0x2810},
+		{"writes address > 0x3FFF is mirrored down", 0x40, 0x20, 0x0020},
+	}
 
-	ppu.WriteRegister(PPUADDR, 0x28)
-	assert.Equal(t, Address(0x2800), ppu.registers.ppuAddr)
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			gamePak := CreateDummyGamePak()
+			memory := CreatePPUMemory(gamePak)
+			ppu := CreatePPU(memory)
 
-	ppu.WriteRegister(PPUADDR, 0x10)
-	assert.Equal(t, Address(0x2810), ppu.registers.ppuAddr)
+			ppu.WriteRegister(PPUADDR, tt.hi)
+			assert.Equal(t, Address(tt.hi)<<8, ppu.registers.ppuAddr)
+
+			ppu.WriteRegister(PPUADDR, tt.lo)
+			assert.Equal(t, tt.expected, ppu.registers.ppuAddr)
+		})
+	}
 }
 
-func TestPPU_is_instructed_to_read_address(t *testing.T) {
+func TestPPU_PPUData_read(t *testing.T) {
 	gamePak := CreateDummyGamePak()
 	memory := CreatePPUMemory(gamePak)
+
+	cases := []struct {
+		name          string
+		addressToRead Address
+		incrementMode byte
+	}{
+		{"buffered read, increment mode going across", 0x2600, 0},
+		{"buffered read, increment mode going down", 0x2600, 1},
+	}
+
 	ppu := CreatePPU(memory)
 	ppu.Write(0x2600, 0x15)
 
-	// CPU wants to access memory cell at 0x0600 PPU memory space
-	// LDA #$06
-	// STA $2006
-	// LDA #$00
-	// STA $2006
-	ppu.WriteRegister(PPUADDR, 0x26)
-	ppu.WriteRegister(PPUADDR, 0x00)
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			ppu.registers.ppuAddr = tt.addressToRead
+			ppu.ppuctrlWriteFlag(incrementMode, tt.incrementMode)
+			expectedIncrement := Address(1)
+			if tt.incrementMode == 1 {
+				expectedIncrement = 32
+			}
 
-	// Dummy Read
-	firstRead := ppu.ReadRegister(PPUDATA)
-	assert.Equal(t, byte(0x00), firstRead)
-	assert.Equal(t, Address(0x2601), ppu.registers.ppuAddr, "ppuAddr(cpu@0x2006) must increment on each read to cpu@0x2007")
+			// Dummy Read
+			firstRead := ppu.ReadRegister(PPUDATA)
+			assert.Equal(t, byte(0x00), firstRead)
+			assert.Equal(t, tt.addressToRead+expectedIncrement, ppu.registers.ppuAddr, "ppuAddr(cpu@0x%X) must increment on each read to cpu@0x%X")
 
-	secondRead := ppu.ReadRegister(PPUDATA)
+			secondRead := ppu.ReadRegister(PPUDATA)
 
-	assert.Equal(t, byte(0x15), secondRead)
-	assert.Equal(t, Address(0x2602), ppu.registers.ppuAddr, "ppuAddr(cpu@0x2006) must increment on each read to cpu@0x2007")
+			assert.Equal(t, byte(0x15), secondRead)
+
+			assert.Equal(t, tt.addressToRead+expectedIncrement*2, ppu.registers.ppuAddr, "unexpected ppuAddr increment")
+		})
+	}
 }
 
 func TestPPU_is_instructed_to_read_address_and_mirrors(t *testing.T) {

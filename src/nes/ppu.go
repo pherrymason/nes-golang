@@ -21,7 +21,20 @@ type PPURegisters struct {
 	ppuAddr      Address
 	addressLatch byte
 	readBuffer   byte
+	ctrl         byte
 }
+
+type PPUCtrlFlag int
+
+const (
+	baseNameTableAddress0 PPUCtrlFlag = iota
+	baseNameTableAddress1
+	incrementMode
+	spritePatternTableAddress
+	backgroundPatternTableAddress
+	spriteSize
+	generateNMIAtVBlank
+)
 
 const PPUCTRL = 0x2000 // NMI enable (V), PPU master/slave (P), sprite height (H),
 // background tile select (B), sprite tile select (S), increment mode (I),
@@ -73,7 +86,13 @@ func (ppu *Ppu2c02) ReadRegister(register Address) byte {
 	case PPUDATA:
 		value = ppu.registers.readBuffer
 		ppu.registers.readBuffer = ppu.Read(ppu.registers.ppuAddr)
-		ppu.registers.ppuAddr = (ppu.registers.ppuAddr + 1) & 0x3FFF
+
+		if ppu.ppuctrlReadFlag(incrementMode) == 0 {
+			ppu.registers.ppuAddr++
+		} else {
+			ppu.registers.ppuAddr += 32
+		}
+		ppu.registers.ppuAddr &= 0x3FFF
 		break
 	case OAMDMA:
 		break
@@ -107,6 +126,10 @@ func (ppu *Ppu2c02) WriteRegister(register Address, value byte) {
 
 		ppu.registers.addressLatch++
 		ppu.registers.addressLatch &= 0b1
+
+		if ppu.registers.addressLatch == 0 {
+			ppu.registers.ppuAddr &= 0x3FFF
+		}
 		break
 	case PPUDATA:
 		break
@@ -190,4 +213,19 @@ func palette(nesColor byte) []byte {
 	}
 
 	return SystemPalette[nesColor]
+}
+
+func (ppu *Ppu2c02) ppuctrlReadFlag(flag PPUCtrlFlag) byte {
+	ctrl := ppu.registers.ctrl
+	mask := byte(1) << flag
+
+	return (ctrl & mask) >> flag
+}
+
+func (ppu *Ppu2c02) ppuctrlWriteFlag(flag PPUCtrlFlag, value byte) {
+	mask := byte(1)
+	if flag == incrementMode {
+		mask = 1 << flag
+	}
+	ppu.registers.ctrl |= (value << flag) & mask
 }
