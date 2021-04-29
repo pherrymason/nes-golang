@@ -71,6 +71,42 @@ func TestPPU_PPUSTATUS_reading_status_clears_bit7_and_the_address_latch(t *testi
 	assert.Equal(t, byte(0), ppu.registers.addressLatch, "unexpected address latch")
 }
 
+// Reading PPUSTATUS within two cycles of the start of vertical blank will return 0 in bit 7 but clear the latch anyway, causing NMI to not occur that frame.
+func TestPPUSTATUS_should_clear_latch_when_reading_within_two_cycles_of_sthe_start_of_vblank(t *testing.T) {
+	t.Skipf("Waiting to implement VBlanks")
+}
+
+func TestOAM_address_write(t *testing.T) {
+	ppu := aPPU()
+
+	ppu.WriteRegister(OAMADDR, 0xFF)
+
+	assert.Equal(t, byte(0xFF), ppu.registers.oamAddr)
+}
+
+func TestOAM_should_be_able_to_read(t *testing.T) {
+	ppu := aPPU()
+	ppu.oamData[0] = 0xFF
+
+	value := ppu.ReadRegister(OAMDATA)
+
+	assert.Equal(t, byte(0xFF), value)
+}
+
+func TestOAM_should_be_able_to_write(t *testing.T) {
+	ppu := aPPU()
+	//ppu.oamData[0] = 0xFF
+
+	ppu.WriteRegister(OAMDATA, 0xFF)
+
+	assert.Equal(t, byte(0xFF), ppu.oamData[0])
+	assert.Equal(t, byte(0x01), ppu.registers.oamAddr)
+}
+
+func TestOAM_should_decay_if_not_refreshed_for_3000_cycles(t *testing.T) {
+	t.Skip("should I really implement this?")
+}
+
 func TestPPU_PPUADDR_write_twice_to_set_address(t *testing.T) {
 	cases := []struct {
 		name     string

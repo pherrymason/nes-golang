@@ -14,7 +14,12 @@ type Pixel struct {
 type Ppu2c02 struct {
 	Memory
 	registers PPURegisters
-	cycle     uint32
+
+	// OAM (Object Attribute Memory) is internal memory inside the PPU.
+	// Contains a display list of up to 64 sprites, where each sprite occupies 4 bytes
+	oamData [256]byte
+
+	cycle uint32
 
 	patternTable []byte // Decoded pattern table
 }
@@ -24,6 +29,7 @@ type PPURegisters struct {
 	mask   byte // Controls the rendering of sprites and backgrounds
 	status byte // Reflects state of various functions inside PPU
 
+	oamAddr      byte
 	ppuAddr      Address
 	addressLatch byte
 	readBuffer   byte
@@ -95,19 +101,27 @@ func (ppu *Ppu2c02) ReadRegister(register Address) byte {
 
 	switch register {
 	case PPUCTRL:
+		panic("trying to read PPUCTRL")
 		break
+
 	case PPUMASK:
 		break
+
 	case PPUSTATUS:
 		value = ppu.registers.status
 		ppu.registers.status &= 0x7F // Clear VBlank flag
 		break
+
 	case OAMADDR:
 		break
+
 	case OAMDATA:
+		value = ppu.oamData[ppu.registers.oamAddr]
 		break
+
 	case PPUSCROLL:
 		break
+
 	case PPUADDR:
 		break
 
@@ -122,6 +136,7 @@ func (ppu *Ppu2c02) ReadRegister(register Address) byte {
 		}
 		ppu.registers.ppuAddr &= 0x3FFF
 		break
+
 	case OAMDMA:
 		break
 	}
@@ -144,11 +159,17 @@ func (ppu *Ppu2c02) WriteRegister(register Address, value byte) {
 		panic("tried to write @PPUSTATUS")
 
 	case OAMADDR:
+		ppu.registers.oamAddr = value
 		break
+
 	case OAMDATA:
+		ppu.oamData[ppu.registers.oamAddr] = value
+		ppu.registers.oamAddr = (ppu.registers.oamAddr + 1) & 0xFF
 		break
+
 	case PPUSCROLL:
 		break
+
 	case PPUADDR:
 		if ppu.registers.addressLatch == 0 {
 			ppu.registers.ppuAddr = Address(value) << 8

@@ -30,9 +30,9 @@ package nes
 // - $3000-3EFF is usually a mirror of the 2kB region from $2000-2EFF. The PPU does not render from this address range, so this space has negligible utility.
 // - $3F00-3FFF is not configurable, always mapped to the internal palette control.
 type PPUMemory struct {
-	gamePak      *GamePak
-	vram         [2048]byte
-	oamData      [256]byte
+	gamePak *GamePak
+	vram    [2048]byte
+
 	paletteTable [32]byte
 }
 
