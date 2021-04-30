@@ -29,6 +29,10 @@ type PPURegisters struct {
 	mask   byte // Controls the rendering of sprites and backgrounds
 	status byte // Reflects state of various functions inside PPU
 
+	scrollX     byte // Changes scroll position
+	scrollY     byte // Changes scroll position
+	scrollLatch byte // Controls which scroll needs to be written
+
 	oamAddr      byte
 	ppuAddr      Address
 	addressLatch byte
@@ -151,9 +155,11 @@ func (ppu *Ppu2c02) WriteRegister(register Address, value byte) {
 			ppu.registers.ctrl = value
 		}
 		break
+
 	case PPUMASK:
 		ppu.registers.mask = value
 		break
+
 	case PPUSTATUS:
 		// READONLY!
 		panic("tried to write @PPUSTATUS")
@@ -168,6 +174,13 @@ func (ppu *Ppu2c02) WriteRegister(register Address, value byte) {
 		break
 
 	case PPUSCROLL:
+		if ppu.registers.scrollLatch == 0 {
+			ppu.registers.scrollX = value
+		} else {
+			ppu.registers.scrollY = value
+		}
+
+		ppu.registers.scrollLatch = (ppu.registers.scrollLatch + 1) & 0x01
 		break
 
 	case PPUADDR:

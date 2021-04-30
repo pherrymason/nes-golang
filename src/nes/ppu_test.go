@@ -76,7 +76,7 @@ func TestPPUSTATUS_should_clear_latch_when_reading_within_two_cycles_of_sthe_sta
 	t.Skipf("Waiting to implement VBlanks")
 }
 
-func TestOAM_address_write(t *testing.T) {
+func TestPPUOAM_address_write(t *testing.T) {
 	ppu := aPPU()
 
 	ppu.WriteRegister(OAMADDR, 0xFF)
@@ -84,7 +84,7 @@ func TestOAM_address_write(t *testing.T) {
 	assert.Equal(t, byte(0xFF), ppu.registers.oamAddr)
 }
 
-func TestOAM_should_be_able_to_read(t *testing.T) {
+func TestPPUOAM_should_be_able_to_read(t *testing.T) {
 	ppu := aPPU()
 	ppu.oamData[0] = 0xFF
 
@@ -93,7 +93,7 @@ func TestOAM_should_be_able_to_read(t *testing.T) {
 	assert.Equal(t, byte(0xFF), value)
 }
 
-func TestOAM_should_be_able_to_write(t *testing.T) {
+func TestPPUOAM_should_be_able_to_write(t *testing.T) {
 	ppu := aPPU()
 	//ppu.oamData[0] = 0xFF
 
@@ -103,8 +103,19 @@ func TestOAM_should_be_able_to_write(t *testing.T) {
 	assert.Equal(t, byte(0x01), ppu.registers.oamAddr)
 }
 
-func TestOAM_should_decay_if_not_refreshed_for_3000_cycles(t *testing.T) {
+func TestPPUOAM_should_decay_if_not_refreshed_for_3000_cycles(t *testing.T) {
 	t.Skip("should I really implement this?")
+}
+
+func TestPPUSCROLL_writes_twice(t *testing.T) {
+	ppu := aPPU()
+	scrollX := byte(0xFF)
+	scrollY := byte(0xFF)
+	ppu.WriteRegister(PPUSCROLL, scrollX)
+	ppu.WriteRegister(PPUSCROLL, scrollY)
+
+	assert.Equal(t, scrollX, ppu.registers.scrollX)
+	assert.Equal(t, scrollY, ppu.registers.scrollY)
 }
 
 func TestPPU_PPUADDR_write_twice_to_set_address(t *testing.T) {
