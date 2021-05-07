@@ -11,25 +11,29 @@ type cpu6502Logger struct {
 }
 
 func createCPULogger(outputPath string) cpu6502Logger {
-	f, err := os.Create(outputPath)
-	if err != nil {
-		panic(fmt.Sprintf("Could not create log file: %s", outputPath))
-	}
-	defer f.Close()
-
 	return cpu6502Logger{outputPath: outputPath}
 }
 
 func (logger *cpu6502Logger) Log(state CpuState) {
 	logger.snapshots = append(logger.snapshots, state)
+}
 
-	f, err := os.OpenFile(logger.outputPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+func (logger *cpu6502Logger) Close() {
+	f, err := os.Create(logger.outputPath)
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintf("Could not create log file: %s", logger.outputPath))
 	}
 	defer f.Close()
-	message := stateToString(state)
-	f.WriteString(message + "\n")
+
+	//f, err := os.OpenFile(logger.outputPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//defer f.Close()
+
+	for _, state := range logger.snapshots {
+		f.WriteString(stateToString(state) + "\n")
+	}
 	f.Sync()
 }
 

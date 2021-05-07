@@ -66,3 +66,9 @@ func (cpu *Cpu6502) logStep() {
 
 	cpu.Logger.Log(state)
 }
+
+func (cpu *Cpu6502) Stop() {
+	if cpu.debug {
+		cpu.Logger.Close()
+	}
+}
