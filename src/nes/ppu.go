@@ -1,12 +1,6 @@
 package nes
 
-import "fmt"
-
-type Pixel struct {
-	X     int
-	Y     int
-	Color []byte
-}
+import "github.com/raulferras/nes-golang/src/graphics"
 
 // Ppu2c02 Processor
 //  Registers mapped to memory locations: $2000 through $2007
@@ -97,6 +91,14 @@ func CreatePPU(memory Memory) *Ppu2c02 {
 }
 
 func (ppu *Ppu2c02) Tick() {
+
+	//bit := ppu.registers.scrollX
+
+	// Load new data into registers
+	if ppu.cycle%8 == 0 {
+
+	}
+
 	ppu.cycle++
 }
 
@@ -106,13 +108,14 @@ func (ppu *Ppu2c02) ReadRegister(register Address) byte {
 	switch register {
 	case PPUCTRL:
 		panic("trying to read PPUCTRL")
-		break
 
 	case PPUMASK:
 		break
 
 	case PPUSTATUS:
 		value = ppu.registers.status
+		// set vblank for test
+		value |= 1 << verticalBlankStarted
 		ppu.registers.status &= 0x7F // Clear VBlank flag
 		break
 
@@ -204,16 +207,13 @@ func (ppu *Ppu2c02) WriteRegister(register Address, value byte) {
 	}
 }
 
-//func (ppu *Ppu2c02) PatternTable(patternTable int) [][]byte {
-func (ppu *Ppu2c02) PatternTable(patternTable int) []Pixel {
-	//chr := make([][]byte, 8*8*16*16)
-	chr := make([]Pixel, 128*128)
+func (ppu *Ppu2c02) PatternTable(patternTable int, palette uint8) []graphics.Pixel {
+	chr := make([]graphics.Pixel, 128*128)
 
 	bankAddress := Address(patternTable * 0x1000)
 	i := 0
 	for tileY := 0; tileY < 16; tileY++ {
 		for tileX := 0; tileX < 16; tileX++ {
-
 			offset := bankAddress + Address(tileY*256+tileX*16)
 
 			for row := 0; row < 8; row++ {
@@ -229,7 +229,11 @@ func (ppu *Ppu2c02) PatternTable(patternTable int) []Pixel {
 					coordY := tileY*8 + row
 					coordX := (7 - col) + tileX*8
 
-					pixel := Pixel{X: coordX, Y: coordY, Color: palette(value)}
+					pixel := graphics.Pixel{
+						X:     coordX,
+						Y:     coordY,
+						Color: ppu.getColorFromPaletteRam(palette, value),
+					}
 					chr[i] = pixel
 					i++
 				}
@@ -240,45 +244,55 @@ func (ppu *Ppu2c02) PatternTable(patternTable int) []Pixel {
 	return chr
 }
 
-func palette(nesColor byte) []byte {
+func (ppu *Ppu2c02) getTile(patternTable int, palette uint8, tileX int, tileY int) []graphics.Pixel {
+	tile := make([]graphics.Pixel, 8*8)
+	bankAddress := Address(patternTable * 0x1000)
 
-	SystemPalette := [][]byte{
-		{0x80, 0x80, 0x80}, {0x00, 0x3D, 0xA6}, {0x00, 0x12, 0xB0}, {0x44, 0x00, 0x96}, {0xA1, 0x00, 0x5E},
-		{0xC7, 0x00, 0x28}, {0xBA, 0x06, 0x00}, {0x8C, 0x17, 0x00}, {0x5C, 0x2F, 0x00}, {0x10, 0x45, 0x00},
-		{0x05, 0x4A, 0x00}, {0x00, 0x47, 0x2E}, {0x00, 0x41, 0x66}, {0x00, 0x00, 0x00}, {0x05, 0x05, 0x05},
-		{0x05, 0x05, 0x05}, {0xC7, 0xC7, 0xC7}, {0x00, 0x77, 0xFF}, {0x21, 0x55, 0xFF}, {0x82, 0x37, 0xFA},
-		{0xEB, 0x2F, 0xB5}, {0xFF, 0x29, 0x50}, {0xFF, 0x22, 0x00}, {0xD6, 0x32, 0x00}, {0xC4, 0x62, 0x00},
-		{0x35, 0x80, 0x00}, {0x05, 0x8F, 0x00}, {0x00, 0x8A, 0x55}, {0x00, 0x99, 0xCC}, {0x21, 0x21, 0x21},
-		{0x09, 0x09, 0x09}, {0x09, 0x09, 0x09}, {0xFF, 0xFF, 0xFF}, {0x0F, 0xD7, 0xFF}, {0x69, 0xA2, 0xFF},
-		{0xD4, 0x80, 0xFF}, {0xFF, 0x45, 0xF3}, {0xFF, 0x61, 0x8B}, {0xFF, 0x88, 0x33}, {0xFF, 0x9C, 0x12},
-		{0xFA, 0xBC, 0x20}, {0x9F, 0xE3, 0x0E}, {0x2B, 0xF0, 0x35}, {0x0C, 0xF0, 0xA4}, {0x05, 0xFB, 0xFF},
-		{0x5E, 0x5E, 0x5E}, {0x0D, 0x0D, 0x0D}, {0x0D, 0x0D, 0x0D}, {0xFF, 0xFF, 0xFF}, {0xA6, 0xFC, 0xFF},
-		{0xB3, 0xEC, 0xFF}, {0xDA, 0xAB, 0xEB}, {0xFF, 0xA8, 0xF9}, {0xFF, 0xAB, 0xB3}, {0xFF, 0xD2, 0xB0},
-		{0xFF, 0xEF, 0xA6}, {0xFF, 0xF7, 0x9C}, {0xD7, 0xE8, 0x95}, {0xA6, 0xED, 0xAF}, {0xA2, 0xF2, 0xDA},
-		{0x99, 0xFF, 0xFC}, {0xDD, 0xDD, 0xDD}, {0x11, 0x11, 0x11}, {0x11, 0x11, 0x11},
+	offset := bankAddress + Address(tileY*256+tileX*16)
 
-		//{84  84  84},  {0  30 116},    {8  16 144},    {48   0 136 }, { 68   0 100   92   0  48   84   4   0   60  24   0   32  42   0    8  58   0    0  64   0    0  60   0    0  50  60    0   0   0
-		//{152 150 152},  {8  76 196},   {48  50 236},   {92  30 228 }, {136  20 176  160  20 100  152  34  32  120  60   0   84  90   0   40 114   0    8 124   0    0 118  40    0 102 120    0   0   0
-		//{236 238 236},  {76 154 236},  {120 124 236},  {176  98 236}, {228  84 236  236  88 180  236 106 100  212 136  32  160 170   0  116 196   0   76 208  32   56 204 108   56 180 204   60  60  60
-		//{236 238 236},  {168 204 236}  {188 188 236},  {212 178 236}, {236 174 236  236 174 212  236 180 176  228 196 144  204 210 120  180 222 120  168 226 144  152 226 180  160 214 228  160 162 160
+	for row := 0; row < 8; row++ {
+		pixelLSB := ppu.Read(offset + Address(row))
+		pixelMSB := ppu.Read(offset + Address(row+8))
+
+		for col := 0; col < 8; col++ {
+			value := (pixelLSB & 0x01) | ((pixelMSB & 0x01) << 1)
+
+			pixelLSB >>= 1
+			pixelMSB >>= 1
+
+			coordY := tileY*8 + row
+			coordX := (7 - col) + tileX*8
+
+			pixel := graphics.Pixel{
+				X:     coordX,
+				Y:     coordY,
+				Color: ppu.getColorFromPaletteRam(palette, value),
+			}
+			tile[row+col*8] = pixel
+		}
 	}
 
-	switch nesColor {
-	case 0:
-		return SystemPalette[0x0D]
-	case 1:
-		return SystemPalette[0x06]
-	case 2:
-		return SystemPalette[0x18]
-	case 3:
-		return SystemPalette[0x08]
-	}
+	return tile
+}
 
-	if int(nesColor) > len(SystemPalette) {
-		panic(fmt.Sprintf("pixel color out of palette: %X", nesColor))
-	}
+// blargg's palette
+var SystemPalette = [...][3]byte{
+	{84, 84, 84}, {0, 30, 116}, {8, 16, 144}, {48, 0, 136}, {68, 0, 100}, {92, 0, 48}, {84, 4, 0}, {60, 24, 0}, {32, 42, 0}, {8, 58, 0}, {0, 64, 0}, {0, 60, 0}, {0, 50, 60}, {0, 0, 0},
+	{152, 150, 152}, {8, 76, 196}, {48, 50, 236}, {92, 30, 228}, {136, 20, 176}, {160, 20, 100}, {152, 34, 32}, {120, 60, 0}, {84, 90, 0}, {40, 114, 0}, {8, 124, 0}, {0, 118, 40}, {0, 102, 120}, {0, 0, 0},
+	{236, 238, 236}, {76, 154, 236}, {120, 124, 236}, {176, 98, 236}, {228, 84, 236}, {236, 88, 180}, {236, 106, 100}, {212, 136, 32}, {160, 170, 0}, {116, 196, 0}, {76, 208, 32}, {56, 204, 108}, {56, 180, 204}, {60, 60, 60},
+	{236, 238, 236}, {168, 204, 236}, {188, 188, 236}, {212, 178, 236}, {236, 174, 236}, {236, 174, 212}, {236, 180, 176}, {228, 196, 144}, {204, 210, 120}, {180, 222, 120}, {168, 226, 144}, {152, 226, 180}, {160, 214, 228}, {160, 162, 160},
+}
 
-	return SystemPalette[nesColor]
+func (ppu Ppu2c02) getColorFromPaletteRam(palette byte, pixelColor byte) graphics.Color {
+	paletteAddress := Address((palette * 4) + pixelColor)
+	/*
+		if int(colorIndex) > len(SystemPalette) {
+			panic(fmt.Sprintf("pixel color out of palette: %X", pixelColor))
+		}*/
+
+	colorIndex := ppu.Read(Address(0x3F00) + paletteAddress)
+
+	return graphics.Color{R: SystemPalette[colorIndex][0], G: SystemPalette[colorIndex][1], B: SystemPalette[colorIndex][2]}
 }
 
 func (ppu *Ppu2c02) ppuctrlReadFlag(flag PPUCtrlFlag) byte {

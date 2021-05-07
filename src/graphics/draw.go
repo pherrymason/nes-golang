@@ -14,3 +14,11 @@ func InitDrawer() {
 func DrawText(text string, x int, y int, color r.Color) {
 	r.DrawTextEx(*font, text, r.Vector2{X: float32(x), Y: float32(y)}, fontSize, fontSpacing, color)
 }
+
+func DrawArrow(x int, y int, width int) {
+	r.DrawRectangle(x, y, width, width, r.White)
+	r.DrawRectangle(x+width, y, width, width, r.White)
+	r.DrawRectangle(x+width*2, y, width, width, r.White)
+
+	r.DrawRectangle(x+width, y+width, width, width, r.White)
+}

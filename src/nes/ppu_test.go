@@ -16,183 +16,46 @@ func CreateDummyGamePak() *GamePak {
 func aPPU() *Ppu2c02 {
 	gamePak := CreateDummyGamePak()
 	memory := CreatePPUMemory(gamePak)
+
+	// 0x3F00
+	memory.paletteTable[0] = 0x21 // light blue
+	// 0x3F01
+	memory.paletteTable[1] = 0x01 // Dark Blue
+	memory.paletteTable[2] = 0x02 // Blue-Purple
+	memory.paletteTable[3] = 0x03 // Dark Purple
+
+	// Mirrored addresses
+	memory.paletteTable[4] = 0x04
+	memory.paletteTable[8] = 0x08
+	memory.paletteTable[0x0C] = 0x0C
+
 	ppu := CreatePPU(memory)
 	return ppu
 }
 
-func TestPPU_PPUCTRL_writes_are_ignored_first_30000_cycles(t *testing.T) {
+func TestPPU_should_get_propper_color_for_a_given_pixel_color_and_palette(t *testing.T) {
 	ppu := aPPU()
-	for i := 0; i < 30000; i++ {
-		ppu.Tick()
-		ppu.WriteRegister(PPUCTRL, 0x11)
-
-		if 0x11 == ppu.registers.ctrl {
-			t.Error("writes to PPUCTRL should be ignored first 30000 cycles")
-			t.FailNow()
-		}
-	}
-}
-
-func TestPPU_PPUCTRL_write(t *testing.T) {
-	ppu := aPPU()
-	for i := 0; i < 30001; i++ {
-		ppu.Tick() // Advance ppu cycles
-	}
-
-	ppu.WriteRegister(PPUCTRL, 0xFF)
-
-	assert.Equal(t, byte(0xFF), ppu.registers.ctrl)
-}
-
-func TestPPU_PPUMASK_write(t *testing.T) {
-	ppu := aPPU()
-
-	ppu.WriteRegister(PPUMASK, 0xFF)
-
-	assert.Equal(t, byte(0xFF), ppu.registers.mask)
-}
-
-func TestPPU_PPUSTATUS_read(t *testing.T) {
-	ppu := aPPU()
-	ppu.registers.status = 0b11100000
-
-	status := ppu.ReadRegister(PPUSTATUS)
-
-	assert.Equal(t, byte(0b11100000), status)
-}
-
-func TestPPU_PPUSTATUS_reading_status_clears_bit7_and_the_address_latch(t *testing.T) {
-	ppu := aPPU()
-	ppu.registers.status = 0x80
-
-	ppu.ReadRegister(PPUSTATUS)
-
-	assert.Equal(t, byte(0), ppu.registers.status&0x80, "vblank flag should be cleared after reading PPUSTATUS")
-	assert.Equal(t, byte(0), ppu.registers.addressLatch, "unexpected address latch")
-}
-
-// Reading PPUSTATUS within two cycles of the start of vertical blank will return 0 in bit 7 but clear the latch anyway, causing NMI to not occur that frame.
-func TestPPUSTATUS_should_clear_latch_when_reading_within_two_cycles_of_sthe_start_of_vblank(t *testing.T) {
-	t.Skipf("Waiting to implement VBlanks")
-}
-
-func TestPPUOAM_address_write(t *testing.T) {
-	ppu := aPPU()
-
-	ppu.WriteRegister(OAMADDR, 0xFF)
-
-	assert.Equal(t, byte(0xFF), ppu.registers.oamAddr)
-}
-
-func TestPPUOAM_should_be_able_to_read(t *testing.T) {
-	ppu := aPPU()
-	ppu.oamData[0] = 0xFF
-
-	value := ppu.ReadRegister(OAMDATA)
-
-	assert.Equal(t, byte(0xFF), value)
-}
-
-func TestPPUOAM_should_be_able_to_write(t *testing.T) {
-	ppu := aPPU()
-	//ppu.oamData[0] = 0xFF
-
-	ppu.WriteRegister(OAMDATA, 0xFF)
-
-	assert.Equal(t, byte(0xFF), ppu.oamData[0])
-	assert.Equal(t, byte(0x01), ppu.registers.oamAddr)
-}
-
-func TestPPUOAM_should_decay_if_not_refreshed_for_3000_cycles(t *testing.T) {
-	t.Skip("should I really implement this?")
-}
-
-func TestPPUSCROLL_writes_twice(t *testing.T) {
-	ppu := aPPU()
-	scrollX := byte(0xFF)
-	scrollY := byte(0xFF)
-	ppu.WriteRegister(PPUSCROLL, scrollX)
-	ppu.WriteRegister(PPUSCROLL, scrollY)
-
-	assert.Equal(t, scrollX, ppu.registers.scrollX)
-	assert.Equal(t, scrollY, ppu.registers.scrollY)
-}
-
-func TestPPU_PPUADDR_write_twice_to_set_address(t *testing.T) {
-	cases := []struct {
-		name     string
-		hi       byte
-		lo       byte
-		expected Address
-	}{
-		{"writes address", 0x28, 0x10, 0x2810},
-		{"writes address > 0x3FFF is mirrored down", 0x40, 0x20, 0x0020},
-	}
-
-	for _, tt := range cases {
-		t.Run(tt.name, func(t *testing.T) {
-			gamePak := CreateDummyGamePak()
-			memory := CreatePPUMemory(gamePak)
-			ppu := CreatePPU(memory)
-
-			ppu.WriteRegister(PPUADDR, tt.hi)
-			assert.Equal(t, Address(tt.hi)<<8, ppu.registers.ppuAddr)
-
-			ppu.WriteRegister(PPUADDR, tt.lo)
-			assert.Equal(t, tt.expected, ppu.registers.ppuAddr)
-		})
-	}
-}
-
-func TestPPU_PPUData_read(t *testing.T) {
-	gamePak := CreateDummyGamePak()
-	memory := CreatePPUMemory(gamePak)
-
+	backgroundColor := [3]byte{236, 88, 180}
 	cases := []struct {
 		name          string
-		addressToRead Address
-		incrementMode byte
+		palette       byte
+		pixelColor    byte
+		expectedColor [3]byte
 	}{
-		{"buffered read, increment mode going across", 0x2600, 0},
-		{"buffered read, increment mode going down", 0x2600, 1},
+		{"", 0, 0, backgroundColor},
+		{"", 0, 1, [3]byte{0, 30, 116}},
+		{"", 0, 2, [3]byte{8, 16, 144}},
+		{"", 0, 3, [3]byte{48, 0, 136}},
+		{"mirroring $0x3F10", 4, 0, backgroundColor},
+		{"mirroring $0x3F14", 5, 0, [3]byte{68, 0, 100}},
+		{"mirroring $0x3F18", 6, 0, [3]byte{32, 42, 0}},
+		{"mirroring $0x3F1C", 7, 0, [3]byte{0, 50, 60}},
 	}
-
-	ppu := CreatePPU(memory)
-	ppu.Write(0x2600, 0x15)
 
 	for _, tt := range cases {
-		t.Run(tt.name, func(t *testing.T) {
-			ppu.registers.ppuAddr = tt.addressToRead
-			ppu.ppuctrlWriteFlag(incrementMode, tt.incrementMode)
-			expectedIncrement := Address(1)
-			if tt.incrementMode == 1 {
-				expectedIncrement = 32
-			}
-
-			// Dummy Read
-			firstRead := ppu.ReadRegister(PPUDATA)
-			assert.Equal(t, byte(0x00), firstRead)
-			assert.Equal(t, tt.addressToRead+expectedIncrement, ppu.registers.ppuAddr, "ppuAddr(cpu@0x%X) must increment on each read to cpu@0x%X")
-
-			secondRead := ppu.ReadRegister(PPUDATA)
-
-			assert.Equal(t, byte(0x15), secondRead)
-
-			assert.Equal(t, tt.addressToRead+expectedIncrement*2, ppu.registers.ppuAddr, "unexpected ppuAddr increment")
+		t.Run("", func(t *testing.T) {
+			color := ppu.getColorFromPaletteRam(tt.palette, tt.pixelColor)
+			assert.Equal(t, tt.expectedColor, color)
 		})
 	}
-}
-
-func TestPPU_is_instructed_to_read_address_and_mirrors(t *testing.T) {
-	t.Skipf("Mirror still not implemented")
-	gamePak := CreateDummyGamePak()
-	memory := CreatePPUMemory(gamePak)
-	ppu := CreatePPU(memory)
-
-	ppu.WriteRegister(PPUADDR, 0x3F)
-	ppu.WriteRegister(PPUADDR, 0xFF)
-
-	// Dummy Read
-	ppu.ReadRegister(PPUDATA)
-	assert.Equal(t, Address(0x0000), ppu.registers.ppuAddr, "ppuAddr(cpu@0x2006) must increment on each read to cpu@0x2007")
 }
