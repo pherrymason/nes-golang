@@ -77,25 +77,25 @@ func (cpu *Cpu6502) Disassemble(start Address, end Address) map[Address]string {
 			addr++
 			hi = cpu.memory.Peek(Address(addr))
 			addr++
-			sInst += "$" + hex(uint32(CreateWord(hi, lo)), 4) + " {ABS}"
+			sInst += "$" + hex(uint32(CreateWord(lo, hi)), 4) + " {ABS}"
 		} else if instruction.AddressMode() == AbsoluteXIndexed {
 			lo = cpu.memory.Peek(Address(addr))
 			addr++
 			hi = cpu.memory.Peek(Address(addr))
 			addr++
-			sInst += "$" + hex(uint32(CreateWord(hi, lo)), 4) + ", X {ABX}"
+			sInst += "$" + hex(uint32(CreateWord(lo, hi)), 4) + ", X {ABX}"
 		} else if instruction.AddressMode() == AbsoluteYIndexed {
 			lo = cpu.memory.Peek(Address(addr))
 			addr++
 			hi = cpu.memory.Peek(Address(addr))
 			addr++
-			sInst += "$" + hex(uint32(CreateWord(hi, lo)), 4) + ", Y {ABY}"
+			sInst += "$" + hex(uint32(CreateWord(lo, hi)), 4) + ", Y {ABY}"
 		} else if instruction.AddressMode() == Indirect {
 			lo = cpu.memory.Peek(Address(addr))
 			addr++
 			hi = cpu.memory.Peek(Address(addr))
 			addr++
-			sInst += "($" + hex(uint32(CreateWord(hi, lo)), 4) + ") {IND}"
+			sInst += "($" + hex(uint32(CreateWord(lo, hi)), 4) + ") {IND}"
 		} else if instruction.AddressMode() == Relative {
 			value = cpu.memory.Peek(Address(addr))
 			addr++
