@@ -5,10 +5,10 @@ type Nes struct {
 	ppu *Ppu2c02
 
 	systemClockCounter byte // Controls how many times to call each processor
-	debug              NesDebugger
+	debug              *NesDebugger
 }
 
-func CreateNes(gamePak *GamePak, debugger NesDebugger) Nes {
+func CreateNes(gamePak *GamePak, debugger *NesDebugger) Nes {
 	ppuBus := CreatePPUMemory(gamePak)
 	ppu := CreatePPU(
 		ppuBus,
@@ -52,8 +52,12 @@ func (nes *Nes) Tick() {
 	nes.systemClockCounter++
 }
 
-func (nes Nes) Debugger() *NesDebugger {
-	return &nes.debug
+func (nes *Nes) Stop() {
+	nes.cpu.Stop()
+}
+
+func (nes *Nes) Debugger() *NesDebugger {
+	return nes.debug
 }
 
 func (nes Nes) SystemClockCounter() byte {
