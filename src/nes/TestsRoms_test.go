@@ -15,7 +15,7 @@ func TestNestest(t *testing.T) {
 
 	nes := CreateNes(
 		&gamePak,
-		NesDebugger{true, nil, nil, outputLogPath, nil},
+		&NesDebugger{true, nil, nil, outputLogPath, nil},
 	)
 
 	nes.StartAt(0xC000)
@@ -67,6 +67,6 @@ func TestCPUDummyReads(t *testing.T) {
 	t.Skip()
 	gamePak := CreateGamePakFromROMFile("./../../tests/roms/cpu_dummy_reads.nes")
 
-	nes := CreateNes(&gamePak, NesDebugger{})
+	nes := CreateNes(&gamePak, &NesDebugger{})
 	nes.Start()
 }

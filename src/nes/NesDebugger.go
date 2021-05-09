@@ -15,7 +15,7 @@ type NesDebugger struct {
 
 func CreateNesDebugger(logPath string) *NesDebugger {
 	return &NesDebugger{
-		false,
+		true,
 		nil,
 		nil,
 		logPath,

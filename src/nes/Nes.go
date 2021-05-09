@@ -37,19 +37,29 @@ func (nes *Nes) StartAt(address Address) {
 	nes.cpu.ResetToAddress(address)
 }
 
+// Rename to PowerOn
 func (nes *Nes) Start() {
 	nes.systemClockCounter = 0
 	nes.debug.disassembled = nes.cpu.Disassemble(0x8000, 0xFFFF)
 	nes.cpu.Reset()
 }
 
-func (nes *Nes) Tick() {
+func (nes *Nes) Tick() byte {
 	//if nes.systemClockCounter%3 == 0 {
-	nes.cpu.Tick()
+	cpuCycles := nes.cpu.Tick()
 	//}
 
 	nes.ppu.Tick()
 	nes.systemClockCounter++
+
+	return cpuCycles
+}
+
+func (nes *Nes) TickForTime(seconds float64) {
+	cycles := int(1789773 * seconds)
+	for cycles > 0 {
+		cycles -= int(nes.Tick())
+	}
 }
 
 func (nes *Nes) Stop() {

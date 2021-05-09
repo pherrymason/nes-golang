@@ -1,6 +1,6 @@
 
 run:
-	go run src/main.go
+	go run src/gui/gui.go
 
 test:
 	go test ./src/...
