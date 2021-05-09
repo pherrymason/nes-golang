@@ -19,3 +19,5 @@
 var/*.log
 tools
 examples
+/roms
+/build

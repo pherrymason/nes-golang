@@ -19,6 +19,10 @@ func (word *Word) HighNibble() byte {
 	return byte((*word & 0xFF00) >> 8)
 }
 
+func (word *Word) ToBytes() []byte {
+	return []byte{word.HighNibble(), word.LowNibble()}
+}
+
 func LowNibble(word Word) byte {
 	return byte(word & 0x00FF)
 }

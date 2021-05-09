@@ -19,13 +19,16 @@ type CpuState struct {
 func CreateState(cpu Cpu6502) CpuState {
 	pc := cpu.Registers().Pc
 
-	var rawOpcode []byte
-	rawOpcode = append(rawOpcode, cpu.memory.Read(pc))
+	var rawOpcode [4]byte
+	//rawOpcode = append(rawOpcode, cpu.memory.Read(pc))
+	//rawOpcode = append(rawOpcode, 0x00)
+	rawOpcode[0] = cpu.memory.Peek(pc)
 	pc++
 	instruction := cpu.instructions[rawOpcode[0]]
 
 	for i := byte(0); i < (instruction.Size() - 1); i++ {
-		rawOpcode = append(rawOpcode, cpu.memory.Read(pc+Address(i)))
+		//rawOpcode = append(rawOpcode, cpu.memory.Read(pc+Address(i)))
+		rawOpcode[1+i] = cpu.memory.Read(pc + Address(i))
 	}
 
 	_, evaluatedAddress, _, _ := cpu.addressEvaluators[instruction.AddressMode()](pc)
@@ -33,7 +36,7 @@ func CreateState(cpu Cpu6502) CpuState {
 	state := CpuState{
 		*cpu.Registers(),
 		instruction,
-		rawOpcode,
+		rawOpcode[:],
 		evaluatedAddress,
 		cpu.cycle,
 	}

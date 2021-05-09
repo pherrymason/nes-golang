@@ -3,7 +3,6 @@ package gui
 import (
 	"fmt"
 	r "github.com/lachee/raylib-goplus/raylib"
-	"github.com/pkg/profile"
 	"github.com/raulferras/nes-golang/src/graphics"
 	"github.com/raulferras/nes-golang/src/nes"
 	"math/rand"
@@ -14,7 +13,6 @@ var font *r.Font
 var cpuAdvance bool
 
 func Run() {
-	defer profile.Start(profile.MemProfile).Stop()
 	rand.Seed(time.Now().UnixNano())
 
 	// Init Window System
