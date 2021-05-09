@@ -35,7 +35,7 @@ func createCPULogger(outputPath string) cpu6502Logger {
 func (logger *cpu6502Logger) Log(state CpuState) {
 	if len(logger.snapshots) == 30000 {
 		for _, state := range logger.snapshots {
-			fmt.Fprintf(logger.fileBuffer, stateToString(state)+"\n")
+			fmt.Fprintf(logger.fileBuffer, stateToString(state))
 		}
 		//logger.file.Sync()
 		logger.snapshots = make([]CpuState, 0, 300024)
@@ -47,9 +47,9 @@ func (logger *cpu6502Logger) Log(state CpuState) {
 func (logger *cpu6502Logger) Close() {
 	defer logger.file.Close()
 
-	for _, state := range logger.snapshots {
-		fmt.Fprintf(logger.fileBuffer, stateToString(state)+"\n")
-	}
+	//for _, state := range logger.snapshots {
+	//	fmt.Fprintf(logger.fileBuffer, stateToString(state)+"\n")
+	//}
 	logger.file.Sync()
 }
 

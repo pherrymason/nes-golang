@@ -13,9 +13,9 @@ type NesDebugger struct {
 	disassembled map[Address]string
 }
 
-func CreateNesDebugger(logPath string) *NesDebugger {
+func CreateNesDebugger(logPath string, debug bool) *NesDebugger {
 	return &NesDebugger{
-		true,
+		debug,
 		nil,
 		nil,
 		logPath,

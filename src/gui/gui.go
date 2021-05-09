@@ -34,7 +34,7 @@ func Run() {
 
 	console := nes.CreateNes(
 		&gamePak,
-		nes.CreateNesDebugger("./var/run.log"),
+		nes.CreateNesDebugger("./var/run.log", false),
 	)
 	//console.InsertGamePak(&gamePak)
 
