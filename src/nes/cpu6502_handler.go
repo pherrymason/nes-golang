@@ -26,9 +26,7 @@ func (cpu *Cpu6502) ResetToAddress(programCounter Address) {
 
 func (cpu *Cpu6502) Tick() byte {
 	if cpu.opCyclesLeft == 0 {
-		if cpu.debug {
-			cpu.logStep()
-		}
+		registersCopy := *cpu.Registers()
 
 		opcode := cpu.memory.Read(cpu.registers.Pc)
 		instruction := cpu.instructions[opcode]
@@ -40,7 +38,6 @@ func (cpu *Cpu6502) Tick() byte {
 		}
 
 		operandAddress, pageCrossed := cpu.evaluateOperandAddress(instruction.AddressMode(), cpu.registers.Pc+1)
-
 		cpu.registers.Pc += Address(instruction.Size())
 
 		step := OperationMethodArgument{
@@ -52,7 +49,11 @@ func (cpu *Cpu6502) Tick() byte {
 		if pageCrossed && opMightNeedExtraCycle {
 			cpu.opCyclesLeft++
 		}
-		//cpu.opCyclesLeft += uint16(cpu.instructionCycle)
+
+		if cpu.debug {
+			cpu.logStep(registersCopy, opcode, instruction, step, cpu.cycle)
+		}
+
 		cpu.cycle += uint32(cpu.opCyclesLeft)
 	}
 
@@ -61,8 +62,9 @@ func (cpu *Cpu6502) Tick() byte {
 	return cpu.opCyclesLeft
 }
 
-func (cpu *Cpu6502) logStep() {
-	state := CreateState(*cpu)
+func (cpu *Cpu6502) logStep(registers Cpu6502Registers, opcode byte, instruction Instruction, step OperationMethodArgument, cpuCycle uint32) {
+	//state := CreateStateFromCPU(*cpu)
+	state := CreateState(registers, opcode, instruction, step, cpuCycle)
 
 	cpu.Logger.Log(state)
 }

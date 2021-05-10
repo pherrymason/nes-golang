@@ -2,12 +2,8 @@ package nes
 
 import (
 	"bufio"
-	"encoding/hex"
 	"fmt"
-	"github.com/raulferras/nes-golang/src/utils"
 	"os"
-	"strconv"
-	"strings"
 )
 
 type cpu6502Logger struct {
@@ -16,6 +12,8 @@ type cpu6502Logger struct {
 	outputPath string
 	snapshots  []CpuState
 }
+
+const CPU_LOG_MAX_SIZE = 120000
 
 func createCPULogger(outputPath string) cpu6502Logger {
 	f, err := os.Create(outputPath)
@@ -28,7 +26,7 @@ func createCPULogger(outputPath string) cpu6502Logger {
 		file:       f,
 		fileBuffer: writer,
 		outputPath: outputPath,
-		snapshots:  make([]CpuState, 0, 30024),
+		snapshots:  make([]CpuState, 0, CPU_LOG_MAX_SIZE),
 	}
 }
 
@@ -37,8 +35,7 @@ func (logger *cpu6502Logger) Log(state CpuState) {
 		for _, state := range logger.snapshots {
 			fmt.Fprintf(logger.fileBuffer, stateToString(state))
 		}
-		//logger.file.Sync()
-		logger.snapshots = make([]CpuState, 0, 300024)
+		logger.snapshots = logger.snapshots[:0]
 	}
 
 	logger.snapshots = append(logger.snapshots, state)
@@ -47,67 +44,12 @@ func (logger *cpu6502Logger) Log(state CpuState) {
 func (logger *cpu6502Logger) Close() {
 	defer logger.file.Close()
 
-	//for _, state := range logger.snapshots {
-	//	fmt.Fprintf(logger.fileBuffer, stateToString(state)+"\n")
-	//}
+	for _, state := range logger.snapshots {
+		fmt.Fprintf(logger.fileBuffer, state.String()+"\n")
+	}
 	logger.file.Sync()
 }
 
 func (logger cpu6502Logger) Snapshots() []CpuState {
 	return logger.snapshots
-}
-
-func stateToString(state CpuState) string {
-	var msg strings.Builder
-	msg.Grow(75)
-
-	// Pointer
-	pcBytes := []byte{state.Registers.Pc.HighNibble(), state.Registers.Pc.LowNibble()}
-	msg.WriteString(hex.EncodeToString(pcBytes) + " ")
-
-	// Raw OPCode + Operand
-	msg.WriteString(hex.EncodeToString(state.RawOpcode))
-	/*for _, value := range state.RawOpcode {
-		msg.WriteString("0x" + hex.EncodeToString()fmt.Sprintf("%02X ", value))
-	}*/
-
-	clampSpace(&msg, 16)
-	msg.WriteString(state.CurrentInstruction.Name() + " ")
-
-	if state.CurrentInstruction.AddressMode() == Immediate {
-		msg.WriteString("#$%02X" + hex.EncodeToString(state.EvaluatedAddress.ToBytes()))
-	} else {
-		msg.WriteString(
-			"$%02X" + hex.EncodeToString(state.EvaluatedAddress.ToBytes()))
-	}
-
-	//msg = clampSpace(msg, 48)
-	msg.WriteByte(' ')
-	msg.WriteString("A:" + utils.ByteToHex(state.Registers.A))
-	msg.WriteString("X:" + utils.ByteToHex(state.Registers.X))
-	msg.WriteString("Y:" + utils.ByteToHex(state.Registers.Y))
-	msg.WriteString("P:" + utils.ByteToHex(state.Registers.Status))
-	msg.WriteString("SP:" + utils.ByteToHex(state.Registers.Sp))
-	msg.WriteString("PPU:___,___")
-	msg.WriteString("CYC:" + strconv.Itoa(int(state.Registers.Sp)))
-
-	/*
-		msg.WriteString(
-			fmt.Sprintf(
-				"A:%02X X:%02X Y:%02X P:%02X SP:%02X PPU:___,___ CYC:%d",
-				state.Registers.A,
-				state.Registers.X,
-				state.Registers.Y,
-				state.Registers.Status,
-				state.Registers.Sp,
-				state.CyclesSinceReset,
-			))
-	*/
-	return msg.String()
-}
-
-func clampSpace(msg *strings.Builder, clamp int) {
-	for i := msg.Len(); i <= clamp; i++ {
-		msg.WriteString(" ")
-	}
 }

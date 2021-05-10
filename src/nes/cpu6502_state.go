@@ -1,6 +1,7 @@
 package nes
 
 import (
+	"encoding/hex"
 	"fmt"
 	"github.com/raulferras/nes-golang/src/utils"
 	"regexp"
@@ -11,34 +12,18 @@ import (
 type CpuState struct {
 	Registers          Cpu6502Registers
 	CurrentInstruction Instruction
-	RawOpcode          []byte
+	RawOpcode          byte
 	EvaluatedAddress   Address
 	CyclesSinceReset   uint32
 }
 
-func CreateState(cpu Cpu6502) CpuState {
-	pc := cpu.Registers().Pc
-
-	var rawOpcode [4]byte
-	//rawOpcode = append(rawOpcode, cpu.memory.Read(pc))
-	//rawOpcode = append(rawOpcode, 0x00)
-	rawOpcode[0] = cpu.memory.Peek(pc)
-	pc++
-	instruction := cpu.instructions[rawOpcode[0]]
-
-	for i := byte(0); i < (instruction.Size() - 1); i++ {
-		//rawOpcode = append(rawOpcode, cpu.memory.Read(pc+Address(i)))
-		rawOpcode[1+i] = cpu.memory.Read(pc + Address(i))
-	}
-
-	_, evaluatedAddress, _, _ := cpu.addressEvaluators[instruction.AddressMode()](pc)
-
+func CreateState(registers Cpu6502Registers, opcode byte, instruction Instruction, step OperationMethodArgument, cpuCycle uint32) CpuState {
 	state := CpuState{
-		*cpu.Registers(),
+		registers,
 		instruction,
-		rawOpcode[:],
-		evaluatedAddress,
-		cpu.cycle,
+		opcode,
+		step.OperandAddress,
+		cpuCycle,
 	}
 
 	return state
@@ -79,12 +64,61 @@ func CreateStateFromNesTestLine(nesTestLine string) CpuState {
 			0,
 			0,
 		),
-		opcode,
+		opcode[0],
 		CreateAddress(0x00, 0x00),
 		uint32(cpuCycles),
 	}
 
 	return state
+}
+
+func (state *CpuState) String() string {
+	var msg strings.Builder
+	msg.Grow(75)
+
+	// Pointer
+	pcBytes := []byte{state.Registers.Pc.HighNibble(), state.Registers.Pc.LowNibble()}
+	msg.WriteString(hex.EncodeToString(pcBytes) + " ")
+
+	// Raw OPCode + Operand
+	msg.WriteString(hex.EncodeToString([]byte{state.RawOpcode}))
+	/*for _, value := range state.RawOpcode {
+		msg.WriteString("0x" + hex.EncodeToString()fmt.Sprintf("%02X ", value))
+	}*/
+
+	clampSpace(&msg, 16)
+	msg.WriteString(state.CurrentInstruction.Name() + " ")
+
+	if state.CurrentInstruction.AddressMode() == Immediate {
+		msg.WriteString("#$%02X" + hex.EncodeToString(state.EvaluatedAddress.ToBytes()))
+	} else {
+		msg.WriteString(
+			"$%02X" + hex.EncodeToString(state.EvaluatedAddress.ToBytes()))
+	}
+
+	//msg = clampSpace(msg, 48)
+	msg.WriteByte(' ')
+	msg.WriteString("A:" + utils.ByteToHex(state.Registers.A))
+	msg.WriteString("X:" + utils.ByteToHex(state.Registers.X))
+	msg.WriteString("Y:" + utils.ByteToHex(state.Registers.Y))
+	msg.WriteString("P:" + utils.ByteToHex(state.Registers.Status))
+	msg.WriteString("SP:" + utils.ByteToHex(state.Registers.Sp))
+	msg.WriteString("PPU:___,___")
+	msg.WriteString("CYC:" + strconv.Itoa(int(state.Registers.Sp)))
+
+	/*
+		msg.WriteString(
+			fmt.Sprintf(
+				"A:%02X X:%02X Y:%02X P:%02X SP:%02X PPU:___,___ CYC:%d",
+				state.Registers.A,
+				state.Registers.X,
+				state.Registers.Y,
+				state.Registers.Status,
+				state.Registers.Sp,
+				state.CyclesSinceReset,
+			))
+	*/
+	return msg.String()
 }
 
 func (state CpuState) Equals(b CpuState) bool {
@@ -117,4 +151,10 @@ func (state CpuState) ToString() string {
 	msg += fmt.Sprintf("PPU:%d,%d CYC:%d", 0, 0, state.CyclesSinceReset)
 
 	return msg
+}
+
+func clampSpace(msg *strings.Builder, clamp int) {
+	for i := msg.Len(); i <= clamp; i++ {
+		msg.WriteString(" ")
+	}
 }
