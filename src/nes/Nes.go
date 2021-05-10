@@ -1,5 +1,7 @@
 package nes
 
+import "github.com/FMNSSun/hexit"
+
 type Nes struct {
 	cpu *Cpu6502
 	ppu *Ppu2c02
@@ -9,6 +11,7 @@ type Nes struct {
 }
 
 func CreateNes(gamePak *GamePak, debugger *NesDebugger) Nes {
+	hexit.BuildTable()
 	ppuBus := CreatePPUMemory(gamePak)
 	ppu := CreatePPU(
 		ppuBus,

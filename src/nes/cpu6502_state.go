@@ -1,8 +1,8 @@
 package nes
 
 import (
-	"encoding/hex"
 	"fmt"
+	"github.com/FMNSSun/hexit"
 	"github.com/raulferras/nes-golang/src/utils"
 	"regexp"
 	"strconv"
@@ -74,37 +74,42 @@ func CreateStateFromNesTestLine(nesTestLine string) CpuState {
 
 func (state *CpuState) String() string {
 	var msg strings.Builder
-	msg.Grow(75)
+	msg.Grow(150)
 
 	// Pointer
-	pcBytes := []byte{state.Registers.Pc.HighNibble(), state.Registers.Pc.LowNibble()}
-	msg.WriteString(hex.EncodeToString(pcBytes) + " ")
+	msg.Write(hexit.HexUint16(uint16(state.Registers.Pc)))
+	msg.WriteString(" ")
 
 	// Raw OPCode + Operand
-	msg.WriteString(hex.EncodeToString([]byte{state.RawOpcode}))
-	/*for _, value := range state.RawOpcode {
-		msg.WriteString("0x" + hex.EncodeToString()fmt.Sprintf("%02X ", value))
-	}*/
+	msg.Write(hexit.HexUint8(state.RawOpcode))
 
-	clampSpace(&msg, 16)
-	msg.WriteString(state.CurrentInstruction.Name() + " ")
+	//clampSpace(&msg, 16)
+	msg.WriteString(state.CurrentInstruction.Name())
+	msg.WriteString(" ")
 
 	if state.CurrentInstruction.AddressMode() == Immediate {
-		msg.WriteString("#$%02X" + hex.EncodeToString(state.EvaluatedAddress.ToBytes()))
+		msg.WriteString("#$%02X")
 	} else {
-		msg.WriteString(
-			"$%02X" + hex.EncodeToString(state.EvaluatedAddress.ToBytes()))
+		msg.WriteString("$%02X")
 	}
+	msg.Write(hexit.HexUint16(uint16(state.EvaluatedAddress)))
 
 	//msg = clampSpace(msg, 48)
 	msg.WriteByte(' ')
-	msg.WriteString("A:" + utils.ByteToHex(state.Registers.A))
-	msg.WriteString("X:" + utils.ByteToHex(state.Registers.X))
-	msg.WriteString("Y:" + utils.ByteToHex(state.Registers.Y))
-	msg.WriteString("P:" + utils.ByteToHex(state.Registers.Status))
-	msg.WriteString("SP:" + utils.ByteToHex(state.Registers.Sp))
+	msg.WriteString("A:")
+	msg.WriteString(hexit.HexUint8Str(state.Registers.A))
+	msg.WriteString("X:")
+	msg.WriteString(hexit.HexUint8Str(state.Registers.X))
+	msg.WriteString("Y:")
+	msg.WriteString(hexit.HexUint8Str(state.Registers.Y))
+	msg.WriteString("P:")
+	msg.WriteString(hexit.HexUint8Str(state.Registers.Status))
+	msg.WriteString("SP:")
+	msg.WriteString(hexit.HexUint8Str(state.Registers.Sp))
 	msg.WriteString("PPU:___,___")
-	msg.WriteString("CYC:" + strconv.Itoa(int(state.Registers.Sp)))
+	msg.WriteString("CYC:")
+	msg.WriteString(strconv.Itoa(int(state.Registers.Sp)))
+	msg.WriteString("\n")
 
 	/*
 		msg.WriteString(

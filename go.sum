@@ -1,3 +1,5 @@
+github.com/FMNSSun/hexit v0.0.0-20180713092704-89e1f9f0820e h1:gp+nQeppbEt4Z1R2Gj1bqXk++rAgzt3GTMMM9fy0HmM=
+github.com/FMNSSun/hexit v0.0.0-20180713092704-89e1f9f0820e/go.mod h1:DbrWTO7k70lzel/9bE/H9Y5h3r3Q0dqe9ceML42Ye68=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/lachee/raylib-goplus v0.0.0-20200605081007-7ca39b8afc71 h1:H4fcwldyU7pQvzyR3fuNLe0Gs3f7yLg/lH7NorUTc7I=
