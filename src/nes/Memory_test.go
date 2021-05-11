@@ -16,7 +16,7 @@ func (f *fakePPU) WriteRegister(register Address, value byte) {
 }
 
 func (f *fakePPU) ReadRegister(register Address) byte {
-	panic("implement me")
+	return f.value
 }
 
 type fakeMapper struct{}
@@ -37,17 +37,75 @@ func (f fakeMapper) Write(address Address, value byte) {
 	panic("implement me")
 }
 
+type fields struct {
+	ram     [0xFFFF + 1]byte
+	gamePak *GamePak
+	mapper  Mapper
+	ppu     *fakePPU
+}
+
+type args struct {
+	address Address
+	value   byte
+}
+
+func TestCPUMemory_Read_into_cpu_ram(t *testing.T) {
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+	}{
+		{"cpu reading into ram (low edge)", fields{}, args{0x0000, 0x01}},
+		{"cpu reading into ram (high edge)", fields{}, args{RAM_HIGHER_ADDRESS, 0x01}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cm := &CPUMemory{
+				ram:     tt.fields.ram,
+				gamePak: tt.fields.gamePak,
+				mapper:  tt.fields.mapper,
+				ppu:     tt.fields.ppu,
+			}
+			cm.ram[tt.args.address&RAM_LAST_REAL_ADDRESS] = tt.args.value
+
+			actualValue := cm.Read(tt.args.address)
+
+			assert.Equal(t, tt.args.value, actualValue)
+		})
+	}
+}
+
+func TestCPUMemory_Read_into_ppu(t *testing.T) {
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+	}{
+		{"cpu reading into ppu (low edge)", fields{ppu: &fakePPU{}}, args{0x2000, 0x01}},
+		{"cpu reading into ppu (high edge)", fields{ppu: &fakePPU{}}, args{0x3FFF, 0x01}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ppu := tt.fields.ppu
+			cm := &CPUMemory{
+				ram:     tt.fields.ram,
+				gamePak: tt.fields.gamePak,
+				mapper:  tt.fields.mapper,
+				ppu:     ppu,
+			}
+			ppu.register = tt.args.address & 0x2007
+			ppu.value = tt.args.value
+
+			actualValue := cm.Read(tt.args.address)
+
+			assert.Equal(t, actualValue, tt.args.value)
+		})
+	}
+}
+
 func TestCPUMemory_Write_into_cpu_ram(t *testing.T) {
-	type fields struct {
-		ram     [0xFFFF + 1]byte
-		gamePak *GamePak
-		mapper  Mapper
-		ppu     PPU
-	}
-	type args struct {
-		address Address
-		value   byte
-	}
 	tests := []struct {
 		name   string
 		fields fields
@@ -74,23 +132,13 @@ func TestCPUMemory_Write_into_cpu_ram(t *testing.T) {
 }
 
 func TestCPUMemory_Write_into_ppu(t *testing.T) {
-	type fields struct {
-		ram     [0xFFFF + 1]byte
-		gamePak *GamePak
-		mapper  Mapper
-		ppu     fakePPU
-	}
-	type args struct {
-		address Address
-		value   byte
-	}
 	tests := []struct {
 		name   string
 		fields fields
 		args   args
 	}{
-		{"cpu writing into ppu (low edge)", fields{}, args{0x2000, 0x01}},
-		{"cpu writing into ppu (high edge)", fields{}, args{0x3FFF, 0x01}},
+		{"cpu writing into ppu (low edge)", fields{ppu: &fakePPU{}}, args{0x2000, 0x01}},
+		{"cpu writing into ppu (high edge)", fields{ppu: &fakePPU{}}, args{0x3FFF, 0x01}},
 	}
 
 	for _, tt := range tests {
@@ -100,7 +148,7 @@ func TestCPUMemory_Write_into_ppu(t *testing.T) {
 				ram:     tt.fields.ram,
 				gamePak: tt.fields.gamePak,
 				mapper:  tt.fields.mapper,
-				ppu:     &ppu,
+				ppu:     ppu,
 			}
 
 			cm.Write(tt.args.address, tt.args.value)
