@@ -2,6 +2,11 @@ package nes
 
 import "github.com/raulferras/nes-golang/src/graphics"
 
+type PPU interface {
+	WriteRegister(register Address, value byte)
+	ReadRegister(register Address) byte
+}
+
 // Ppu2c02 Processor
 //  Registers mapped to memory locations: $2000 through $2007
 //  mirrored in every 8 bytes from $2008 through $3FFF

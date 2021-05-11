@@ -47,10 +47,10 @@ type CPUMemory struct {
 	ram     [0xFFFF + 1]byte
 	gamePak *GamePak
 	mapper  Mapper
-	ppu     *Ppu2c02
+	ppu     PPU
 }
 
-func CreateCPUMemory(ppu *Ppu2c02, gamePak *GamePak) *CPUMemory {
+func CreateCPUMemory(ppu PPU, gamePak *GamePak) *CPUMemory {
 	mapper := CreateMapper(gamePak)
 
 	return &CPUMemory{gamePak: gamePak, mapper: mapper, ppu: ppu}
@@ -81,8 +81,7 @@ func (cm *CPUMemory) Write(address Address, value byte) {
 	if address <= RAM_HIGHER_ADDRESS {
 		cm.ram[address&RAM_LAST_REAL_ADDRESS] = value
 	} else if address <= 0x3FFF {
-		register := address&0x2007 - 0x2000
-		cm.ppu.WriteRegister(register, value)
+		cm.ppu.WriteRegister(address&0x2007, value)
 	} else if address >= GAMEPAK_ROM_LOWER_BANK_START {
 		cm.mapper.Write(address, value)
 	}
