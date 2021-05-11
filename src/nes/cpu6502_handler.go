@@ -37,8 +37,8 @@ func (cpu *Cpu6502) Tick() byte {
 			panic(msg)
 		}
 
-		operandAddress, pageCrossed := cpu.evaluateOperandAddress(instruction.AddressMode(), cpu.registers.Pc+1)
-		cpu.registers.Pc += Address(instruction.Size())
+	operandAddress, operand, pageCrossed := cpu.evaluateOperandAddress(instruction.AddressMode(), cpu.registers.Pc+1)
+	cpu.registers.Pc += Address(instruction.Size())
 
 		step := OperationMethodArgument{
 			instruction.AddressMode(),
