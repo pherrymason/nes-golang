@@ -17,14 +17,14 @@ const CPU_LOG_MAX_SIZE = 120000
 
 func createCPULogger(outputPath string) cpu6502Logger {
 	f, err := os.Create(outputPath)
-	writer := bufio.NewWriter(f)
+
 	if err != nil {
 		panic(fmt.Sprintf("Could not create log file: %s", outputPath))
 	}
 
 	return cpu6502Logger{
 		file:       f,
-		fileBuffer: writer,
+		fileBuffer: bufio.NewWriterSize(f, CPU_LOG_MAX_SIZE*10),
 		outputPath: outputPath,
 		snapshots:  make([]CpuState, 0, CPU_LOG_MAX_SIZE),
 	}
@@ -32,9 +32,7 @@ func createCPULogger(outputPath string) cpu6502Logger {
 
 func (logger *cpu6502Logger) Log(state CpuState) {
 	if len(logger.snapshots) == CPU_LOG_MAX_SIZE {
-		for _, state := range logger.snapshots {
-			fmt.Fprintf(logger.fileBuffer, state.String())
-		}
+		logger.logToFile()
 		logger.snapshots = logger.snapshots[:0]
 	}
 
@@ -43,11 +41,16 @@ func (logger *cpu6502Logger) Log(state CpuState) {
 
 func (logger *cpu6502Logger) Close() {
 	defer logger.file.Close()
-
-	for _, state := range logger.snapshots {
-		fmt.Fprintf(logger.fileBuffer, state.String())
-	}
+	logger.logToFile()
 	logger.file.Sync()
+}
+
+func (logger *cpu6502Logger) logToFile() {
+	for _, state := range logger.snapshots {
+		logger.fileBuffer.WriteString(state.String())
+	}
+	//logger.fileBuffer.Flush()
+	//logger.file.Sync()
 }
 
 func (logger cpu6502Logger) Snapshots() []CpuState {

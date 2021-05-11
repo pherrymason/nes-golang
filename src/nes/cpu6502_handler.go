@@ -25,46 +25,53 @@ func (cpu *Cpu6502) ResetToAddress(programCounter Address) {
 }
 
 func (cpu *Cpu6502) Tick() byte {
-	if cpu.opCyclesLeft == 0 {
-		registersCopy := *cpu.Registers()
+	if cpu.opCyclesLeft > 0 {
+		cpu.opCyclesLeft--
+		return cpu.opCyclesLeft
+	}
 
-		opcode := cpu.memory.Read(cpu.registers.Pc)
-		instruction := cpu.instructions[opcode]
-		cpu.opCyclesLeft = instruction.Cycles()
+	registersCopy := *cpu.Registers()
 
-		if instruction.Method() == nil {
-			msg := fmt.Errorf("opcode 0x%X not implemented", opcode)
-			panic(msg)
-		}
+	opcode := cpu.memory.Read(cpu.registers.Pc)
+	instruction := cpu.instructions[opcode]
+	cpu.opCyclesLeft = instruction.Cycles()
+
+	if instruction.Method() == nil {
+		msg := fmt.Errorf("opcode 0x%X not implemented", opcode)
+		panic(msg)
+	}
 
 	operandAddress, operand, pageCrossed := cpu.evaluateOperandAddress(instruction.AddressMode(), cpu.registers.Pc+1)
 	cpu.registers.Pc += Address(instruction.Size())
 
-		step := OperationMethodArgument{
-			instruction.AddressMode(),
-			operandAddress,
-		}
-		opMightNeedExtraCycle := instruction.Method()(step)
+	step := OperationMethodArgument{
+		instruction.AddressMode(),
+		operandAddress,
+	}
+	opMightNeedExtraCycle := instruction.Method()(step)
 
-		if pageCrossed && opMightNeedExtraCycle {
-			cpu.opCyclesLeft++
-		}
-
-		if cpu.debug {
-			cpu.logStep(registersCopy, opcode, instruction, step, cpu.cycle)
-		}
-
-		cpu.cycle += uint32(cpu.opCyclesLeft)
+	if pageCrossed && opMightNeedExtraCycle {
+		cpu.opCyclesLeft++
 	}
 
-	cpu.opCyclesLeft--
+	cpu.cycle += uint32(cpu.opCyclesLeft)
+
+	if cpu.debug {
+		cpu.logStep(registersCopy, opcode, operand, instruction, step, cpu.cycle)
+	}
 
 	return cpu.opCyclesLeft
 }
 
-func (cpu *Cpu6502) logStep(registers Cpu6502Registers, opcode byte, instruction Instruction, step OperationMethodArgument, cpuCycle uint32) {
+func (cpu *Cpu6502) logStep(registers Cpu6502Registers, opcode byte, operand [3]byte, instruction Instruction, step OperationMethodArgument, cpuCycle uint32) {
 	//state := CreateStateFromCPU(*cpu)
-	state := CreateState(registers, opcode, instruction, step, cpuCycle)
+	state := CreateState(
+		registers,
+		[3]byte{opcode, operand[0], operand[1]},
+		instruction,
+		step,
+		cpuCycle,
+	)
 
 	cpu.Logger.Log(state)
 }

@@ -12,12 +12,12 @@ import (
 type CpuState struct {
 	Registers          Cpu6502Registers
 	CurrentInstruction Instruction
-	RawOpcode          byte
+	RawOpcode          [3]byte
 	EvaluatedAddress   Address
 	CyclesSinceReset   uint32
 }
 
-func CreateState(registers Cpu6502Registers, opcode byte, instruction Instruction, step OperationMethodArgument, cpuCycle uint32) CpuState {
+func CreateState(registers Cpu6502Registers, opcode [3]byte, instruction Instruction, step OperationMethodArgument, cpuCycle uint32) CpuState {
 	state := CpuState{
 		registers,
 		instruction,
@@ -39,7 +39,7 @@ func CreateStateFromNesTestLine(nesTestLine string) CpuState {
 	pc := CreateAddress(result[1], result[0])
 
 	fields = strings.Fields(blocks[1])
-	opcode := utils.HexStringToByteArray(fields[0])
+	opcode := [3]byte{utils.HexStringToByteArray(fields[0])[0]}
 
 	flagFields := strings.Fields(blocks[3])
 
@@ -64,7 +64,7 @@ func CreateStateFromNesTestLine(nesTestLine string) CpuState {
 			0,
 			0,
 		),
-		opcode[0],
+		opcode,
 		CreateAddress(0x00, 0x00),
 		uint32(cpuCycles),
 	}
@@ -81,34 +81,39 @@ func (state *CpuState) String() string {
 	msg.WriteString(" ")
 
 	// Raw OPCode + Operand
-	msg.Write(hexit.HexUint8(state.RawOpcode))
+	msg.Write(hexit.HexUint8(state.RawOpcode[0]))
+	msg.WriteString(" ")
+	msg.Write(hexit.HexUint8(state.RawOpcode[1]))
+	msg.WriteString(" ")
+	msg.Write(hexit.HexUint8(state.RawOpcode[2]))
+	msg.WriteString(" ")
 
 	//clampSpace(&msg, 16)
 	msg.WriteString(state.CurrentInstruction.Name())
 	msg.WriteString(" ")
 
 	if state.CurrentInstruction.AddressMode() == Immediate {
-		msg.WriteString("#$%02X")
+		msg.WriteString("#$")
 	} else {
-		msg.WriteString("$%02X")
+		msg.WriteString("$")
 	}
 	msg.Write(hexit.HexUint16(uint16(state.EvaluatedAddress)))
 
 	//msg = clampSpace(msg, 48)
-	msg.WriteByte(' ')
+	msg.WriteString("        ")
 	msg.WriteString("A:")
 	msg.WriteString(hexit.HexUint8Str(state.Registers.A))
-	msg.WriteString("X:")
+	msg.WriteString(" X:")
 	msg.WriteString(hexit.HexUint8Str(state.Registers.X))
-	msg.WriteString("Y:")
+	msg.WriteString(" Y:")
 	msg.WriteString(hexit.HexUint8Str(state.Registers.Y))
-	msg.WriteString("P:")
+	msg.WriteString(" P:")
 	msg.WriteString(hexit.HexUint8Str(state.Registers.Status))
-	msg.WriteString("SP:")
+	msg.WriteString(" SP:")
 	msg.WriteString(hexit.HexUint8Str(state.Registers.Sp))
-	msg.WriteString("PPU:___,___")
-	msg.WriteString("CYC:")
-	msg.WriteString(strconv.Itoa(int(state.Registers.Sp)))
+	msg.WriteString(" PPU:___,___")
+	msg.WriteString(" CYC:")
+	msg.WriteString(strconv.FormatUint(uint64(state.CyclesSinceReset), 10))
 	msg.WriteString("\n")
 
 	/*
