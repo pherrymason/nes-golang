@@ -7,6 +7,6 @@ test:
 
 build:
 	go build -o ./build/nes src/main.go
-	cp -r roms ./build/roms
+	cp -r assets/roms ./build/roms
 
 .PHONY: build

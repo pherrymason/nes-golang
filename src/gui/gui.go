@@ -24,10 +24,11 @@ func Run() {
 	graphics.InitDrawer()
 
 	fmt.Printf("Nes Emulator\n")
-	path := "./roms/nestest/nestest.nes"
-	//path :="./roms/Donkey Kong (World) (Rev A).nes"
-	//path := "./roms/Super Mario Bros. (World).nes"
-	//path = "./roms/Mega Man 2 (Europe).nes"
+	path := "./assets/roms/nestest/nestest.nes"
+	//path := "./assets/roms/full_palette/full_palette.nes"
+	//path :="./assets/roms/Donkey Kong (World) (Rev A).nes"
+	//path := "./assets/roms/Super Mario Bros. (World).nes"
+	//path = "./assets/roms/Mega Man 2 (Europe).nes"
 	gamePak := nes.CreateGamePakFromROMFile(path)
 
 	printRomInfo(&gamePak)

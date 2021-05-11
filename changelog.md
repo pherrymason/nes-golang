@@ -1,3 +1,7 @@
+2021-05-11:
+Basics of reading and writing from CPU to the PPU implemented. 
+This allows some roms to load palette information correctly.
+
 2021-04-25: 
 Started implementing the PPU.
 CHR ROM is being rendered, although palette is for now hardcoded.

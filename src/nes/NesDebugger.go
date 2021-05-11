@@ -114,9 +114,9 @@ func (debugger *NesDebugger) PatternTable(patternTable int) []graphics.Pixel {
 func (debugger *NesDebugger) GetPaletteFromRam(paletteIndex uint8) [3]graphics.Color {
 	var colors [3]graphics.Color
 
-	colors[0] = debugger.ppu.getColorFromPaletteRam(byte(paletteIndex), 0)
-	colors[1] = debugger.ppu.getColorFromPaletteRam(byte(paletteIndex), 1)
-	colors[2] = debugger.ppu.getColorFromPaletteRam(byte(paletteIndex), 2)
+	colors[0] = debugger.ppu.getColorFromPaletteRam(paletteIndex, 0)
+	colors[1] = debugger.ppu.getColorFromPaletteRam(paletteIndex, 1)
+	colors[2] = debugger.ppu.getColorFromPaletteRam(paletteIndex, 2)
 
 	return colors
 }

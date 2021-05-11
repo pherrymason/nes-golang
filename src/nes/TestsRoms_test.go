@@ -39,7 +39,7 @@ func TestNestest(t *testing.T) {
 func compareLogs(t *testing.T, snapshots []CpuState) {
 	fmt.Println("Comparing state")
 
-	file, err := os.Open("./../../roms/nestest/nestest.log")
+	file, err := os.Open("./../../assets/roms/nestest/nestest.log")
 	if err != nil {
 		fmt.Println(fmt.Errorf("could not find file nestest.log"))
 		panic(err)

@@ -59,7 +59,7 @@ func (ppu *PPUMemory) read(address Address, readOnly bool) byte {
 	} else if address >= 0x2000 && address <= 0x2FFF {
 		// Nametable 0, 1, 2, 3
 		// mirror at 0x2EFF
-		result = ppu.vram[address-0x2000]
+		result = ppu.vram[(address-0x2000)&0x27FF]
 	} else if address >= 0x3F00 && address <= 0x3FFF {
 		// palette ram indexes
 		address &= 0x1F
@@ -81,7 +81,7 @@ func (ppu *PPUMemory) read(address Address, readOnly bool) byte {
 
 func (ppu *PPUMemory) Write(address Address, value byte) {
 	if address >= 0x2000 && address <= 0x2FFF {
-		ppu.vram[address-0x2000] = value
+		ppu.vram[(address-0x2000)&0x27FF] = value
 	} else if address == 0x4010 {
 		// OAM DMA: Transfers 256 bytes of data from CPU page $XX00-$XXFF to internal PPU OAM
 		// DMA will begin at current OAM write address.
