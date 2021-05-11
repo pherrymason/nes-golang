@@ -6,7 +6,7 @@ import (
 
 // AddressMode is an enum of the available Addressing Modes in this cpu
 type AddressMode int
-type AddressModeMethod func(programCounter Address) (pc Address, address Address, cycles int, pageCrossed bool)
+type AddressModeMethod func(programCounter Address) (finalAddress Address, operand [3]byte, cycles int, pageCrossed bool)
 
 const (
 	Implicit AddressMode = iota
@@ -424,9 +424,9 @@ func (cpu *Cpu6502) initAddressModeEvaluators() {
 	}
 }
 
-func (cpu Cpu6502) evaluateOperandAddress(addressMode AddressMode, pc Address) (operandAddress Address, pageCrossed bool) {
+func (cpu Cpu6502) evaluateOperandAddress(addressMode AddressMode, pc Address) (finalAddress Address, operand [3]byte, pageCrossed bool) {
 	if addressMode == Implicit {
-		operandAddress = 0
+		finalAddress = 0
 		return
 	}
 
@@ -435,9 +435,7 @@ func (cpu Cpu6502) evaluateOperandAddress(addressMode AddressMode, pc Address) (
 		panic(msg)
 	}
 
-	_, evaluatedAddress, _, pageCrossed := cpu.addressEvaluators[addressMode](pc)
-
-	operandAddress = evaluatedAddress
+	finalAddress, operand, _, pageCrossed = cpu.addressEvaluators[addressMode](pc)
 
 	return
 }
