@@ -45,9 +45,8 @@ func (instruction Instruction) Cycles() byte {
 	return instruction.cycles
 }
 
-func (cpu *Cpu6502) evalImplicit(programCounter Address) (pc Address, address Address, cycles int, pageCrossed bool) {
-	pc = programCounter
-	address = 0
+func (cpu *Cpu6502) evalImplicit(programCounter Address) (finalAddress Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
+	finalAddress = 0
 	cycles = 0
 	return
 }
@@ -56,86 +55,79 @@ func (cpu *Cpu6502) evalImplicit(programCounter Address) (pc Address, address Ad
  * Immediate addressing allows the programmer to directly specify an 8 bit constant within the instruction.
  * It is indicated by a '#' symbol followed by an numeric expression.
  */
-func (cpu *Cpu6502) evalImmediate(programCounter Address) (pc Address, address Address, cycles int, pageCrossed bool) {
-	pc = programCounter
+func (cpu *Cpu6502) evalImmediate(programCounter Address) (address Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
 	address = programCounter
-	pc++
 	cycles = 0
+	opcodeOperand = [3]byte{byte(programCounter)}
 	pageCrossed = false
 	return
 }
 
-func (cpu *Cpu6502) evalZeroPage(programCounter Address) (pc Address, address Address, cycles int, pageCrossed bool) {
+func (cpu *Cpu6502) evalZeroPage(programCounter Address) (address Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
 	// 2 bytes
 	var low = cpu.memory.Read(programCounter)
 
 	address = Address(low)
-	pc = programCounter + 1
+	opcodeOperand = [3]byte{low}
 
 	return
 }
 
-func (cpu *Cpu6502) evalZeroPageX(programCounter Address) (pc Address, address Address, cycles int, pageCrossed bool) {
+func (cpu *Cpu6502) evalZeroPageX(programCounter Address) (address Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
 	registers := cpu.registers
 	var low = cpu.memory.Read(programCounter) + registers.X
 
 	address = Address(low) & 0xFF
-	pc = programCounter + 1
+	opcodeOperand = [3]byte{low}
 
 	return
 }
 
-func (cpu *Cpu6502) evalZeroPageY(programCounter Address) (pc Address, address Address, cycles int, pageCrossed bool) {
+func (cpu *Cpu6502) evalZeroPageY(programCounter Address) (address Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
 	registers := cpu.registers
 	var low = cpu.memory.Read(programCounter) + registers.Y
 
 	address = Address(low) & 0xFF
-	pc = programCounter + 1
+	opcodeOperand = [3]byte{low}
 	return
 }
 
-func (cpu *Cpu6502) evalAbsolute(programCounter Address) (pc Address, address Address, cycles int, pageCrossed bool) {
-	pc = programCounter
-	low := cpu.memory.Read(pc)
-	pc += 1
+func (cpu *Cpu6502) evalAbsolute(programCounter Address) (address Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
+	low := cpu.memory.Read(programCounter)
+	programCounter += 1
 
 	// Bug: Missing incrementing programCounter
-	high := cpu.memory.Read(pc)
-	pc += 1
+	high := cpu.memory.Read(programCounter)
 
 	address = CreateAddress(low, high)
+	opcodeOperand = [3]byte{low, high}
 
 	return
 }
 
-func (cpu *Cpu6502) evalAbsoluteXIndexed(programCounter Address) (pc Address, address Address, cycles int, pageCrossed bool) {
-	pc = programCounter
-	low := cpu.memory.Read(pc)
-	pc++
+func (cpu *Cpu6502) evalAbsoluteXIndexed(programCounter Address) (address Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
+	low := cpu.memory.Read(programCounter)
 
-	high := cpu.memory.Read(pc)
-	pc++
+	high := cpu.memory.Read(programCounter + 1)
 
 	address = CreateAddress(low, high)
 	address += Address(cpu.registers.X)
 
+	opcodeOperand = [3]byte{low, high}
 	pageCrossed = memoryPageDiffer(address-Address(cpu.registers.X), address)
 
 	return
 }
 
-func (cpu *Cpu6502) evalAbsoluteYIndexed(programCounter Address) (pc Address, address Address, cycles int, pageCrossed bool) {
-	pc = programCounter
-	low := cpu.memory.Read(pc)
-	pc++
-
-	high := cpu.memory.Read(pc)
-	pc++
+func (cpu *Cpu6502) evalAbsoluteYIndexed(programCounter Address) (address Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
+	low := cpu.memory.Read(programCounter)
+	high := cpu.memory.Read(programCounter + 1)
 
 	address = CreateAddress(low, high)
 	address += Address(cpu.registers.Y)
 
 	pageCrossed = memoryPageDiffer(address-Address(cpu.registers.Y), address)
+	opcodeOperand = [3]byte{low, high}
 
 	return
 }
@@ -154,26 +146,22 @@ func (cpu *Cpu6502) evalAbsoluteYIndexed(programCounter Address) (pc Address, ad
 // then the LSB will be read from 0x01FF and the MSB will be read from 0x0100.
 // This is an actual hardware bug in early revisions of the 6502 which happen to be present
 // in the 2A03 used by the NES.
-func (cpu *Cpu6502) evalIndirect(programCounter Address) (pc Address, address Address, cycles int, pageCrossed bool) {
-	pc = programCounter
-
+func (cpu *Cpu6502) evalIndirect(programCounter Address) (address Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
 	// Get Pointer Address
-	ptrLow := cpu.memory.Read(pc)
-	pc++
-
-	ptrHigh := cpu.memory.Read(pc)
-	pc++
+	ptrLow := cpu.memory.Read(programCounter)
+	ptrHigh := cpu.memory.Read(programCounter + 1)
 
 	ptrAddress := CreateAddress(ptrLow, ptrHigh)
 	address = cpu.read16Bugged(ptrAddress)
+	opcodeOperand = [3]byte{ptrLow, ptrHigh}
 
 	return
 }
 
-func (cpu *Cpu6502) evalIndirectX(programCounter Address) (pc Address, address Address, cycles int, pageCrossed bool) {
-	pc = programCounter
+func (cpu *Cpu6502) evalIndirectX(programCounter Address) (address Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
+	operand := cpu.memory.Read(programCounter)
+	opcodeOperand = [3]byte{operand}
 
-	operand := cpu.memory.Read(pc)
 	operand += cpu.registers.X
 	operand &= 0xFF
 
@@ -185,11 +173,8 @@ func (cpu *Cpu6502) evalIndirectX(programCounter Address) (pc Address, address A
 	return
 }
 
-func (cpu *Cpu6502) evalIndirectY(programCounter Address) (pc Address, address Address, cycles int, pageCrossed bool) {
-	pc = programCounter
-
-	operand := cpu.memory.Read(pc)
-	pc++
+func (cpu *Cpu6502) evalIndirectY(programCounter Address) (address Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
+	operand := cpu.memory.Read(programCounter)
 
 	lo := cpu.memory.Read(Address(operand))
 	hi := cpu.memory.Read(Address(operand + 1)) // automatic warp around
@@ -198,21 +183,21 @@ func (cpu *Cpu6502) evalIndirectY(programCounter Address) (pc Address, address A
 	address += Word(cpu.registers.Y)
 
 	pageCrossed = address&0xFF00 != Address(hi)<<8
+	opcodeOperand = [3]byte{lo, hi}
 	return
 }
 
-func (cpu *Cpu6502) evalRelative(programCounter Address) (pc Address, address Address, cycles int, pageCrossed bool) {
-	pc = programCounter
+func (cpu *Cpu6502) evalRelative(programCounter Address) (address Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
+	operand := cpu.memory.Read(programCounter)
 
-	opcodeOperand := cpu.memory.Read(pc)
-	pc++
-
-	address = pc
-	if opcodeOperand < 0x80 {
-		address += Address(opcodeOperand)
+	address = programCounter + 1
+	if operand < 0x80 {
+		address += Address(operand)
 	} else {
-		address += Address(opcodeOperand) - 0x100
+		address += Address(operand) - 0x100
 	}
+
+	opcodeOperand = [3]byte{operand}
 
 	return
 }
