@@ -85,5 +85,18 @@ func (ppu *PPUMemory) Write(address Address, value byte) {
 	} else if address == 0x4010 {
 		// OAM DMA: Transfers 256 bytes of data from CPU page $XX00-$XXFF to internal PPU OAM
 		// DMA will begin at current OAM write address.
+	} else if address >= 0x3F00 && address <= 0x3FFF {
+		address &= 0x1F
+		// Mirrors
+		if address == 0x10 {
+			address = 0x00
+		} else if address == 0x14 {
+			address = 0x04
+		} else if address == 0x18 {
+			address = 0x08
+		} else if address == 0x1C {
+			address = 0x0C
+		}
+		ppu.paletteTable[address] = value
 	}
 }

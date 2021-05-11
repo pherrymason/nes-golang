@@ -5,6 +5,28 @@ import (
 	"testing"
 )
 
+// Helper methods
+func Test_ppuctrlWriteFlag(t *testing.T) {
+	ppu := aPPU()
+	cases := []struct {
+		name     string
+		initial  byte
+		write    byte
+		expected byte
+	}{
+		{"writes on blank", 0x00, 1, 0b00000100},
+		{"writes clear bits", 0xFF, 0, 0b11111011},
+	}
+
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			ppu.registers.ctrl = tt.initial
+			ppu.ppuctrlWriteFlag(incrementMode, tt.write)
+			assert.Equal(t, tt.expected, ppu.registers.ctrl)
+		})
+	}
+}
+
 func TestPPU_PPUCTRL_writes_are_ignored_first_30000_cycles(t *testing.T) {
 	ppu := aPPU()
 	for i := 0; i < 30000; i++ {
@@ -20,6 +42,7 @@ func TestPPU_PPUCTRL_writes_are_ignored_first_30000_cycles(t *testing.T) {
 
 func TestPPU_PPUCTRL_write(t *testing.T) {
 	ppu := aPPU()
+
 	for i := 0; i < 30001; i++ {
 		ppu.Tick() // Advance ppu cycles
 	}
@@ -32,9 +55,22 @@ func TestPPU_PPUCTRL_write(t *testing.T) {
 func TestPPU_PPUMASK_write(t *testing.T) {
 	ppu := aPPU()
 
-	ppu.WriteRegister(PPUMASK, 0xFF)
+	cases := []struct {
+		name     string
+		initial  byte
+		write    byte
+		expected byte
+	}{
+		{"writes on blank", 0x00, 0x10, 0x10},
+		{"writes reset bits", 0xFF, 0x01, 0x01},
+	}
 
-	assert.Equal(t, byte(0xFF), ppu.registers.mask)
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			ppu.WriteRegister(PPUMASK, 0xFF)
+			assert.Equal(t, byte(0xFF), ppu.registers.mask)
+		})
+	}
 }
 
 func TestPPU_PPUSTATUS_read(t *testing.T) {
@@ -133,17 +169,26 @@ func TestPPU_PPUData_read(t *testing.T) {
 	gamePak := CreateDummyGamePak()
 	memory := CreatePPUMemory(gamePak)
 
+	const PALETTE_VALUE = byte(0x20)
+	const EXPECTED_VALUE = byte(0x15)
+
 	cases := []struct {
 		name          string
 		addressToRead Address
 		incrementMode byte
+		firstRead     byte
+		secondRead    byte
 	}{
-		{"buffered read, increment mode going across", 0x2600, 0},
-		{"buffered read, increment mode going down", 0x2600, 1},
+		{"buffered read, increment mode going across", 0x2600, 0, 0, EXPECTED_VALUE},
+		{"buffered read, increment mode going down", 0x2600, 1, 0, EXPECTED_VALUE},
+		{"reading from palette addresses does not buffer", 0x3F00, 0, PALETTE_VALUE, 0},
+		{"reading from palette addresses does not buffer", 0x3FFF, 0, PALETTE_VALUE, PALETTE_VALUE},
 	}
 
 	ppu := CreatePPU(memory)
-	ppu.Write(0x2600, 0x15)
+	ppu.Write(0x2600, EXPECTED_VALUE)
+	ppu.Write(0x3F00, PALETTE_VALUE)
+	ppu.Write(0x3FFF, PALETTE_VALUE)
 
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
@@ -156,14 +201,14 @@ func TestPPU_PPUData_read(t *testing.T) {
 
 			// Dummy Read
 			firstRead := ppu.ReadRegister(PPUDATA)
-			assert.Equal(t, byte(0x00), firstRead)
-			assert.Equal(t, tt.addressToRead+expectedIncrement, ppu.registers.ppuAddr, "ppuAddr(cpu@0x%X) must increment on each read to cpu@0x%X")
+			assert.Equal(t, tt.firstRead, firstRead, "unexpected first read value")
+			assert.Equal(t, (tt.addressToRead+expectedIncrement)&0x3FFF, ppu.registers.ppuAddr, "unexpected first read ppuAddr increment")
 
 			secondRead := ppu.ReadRegister(PPUDATA)
 
-			assert.Equal(t, byte(0x15), secondRead)
+			assert.Equal(t, tt.secondRead, secondRead, "unexpected second read value")
 
-			assert.Equal(t, tt.addressToRead+expectedIncrement*2, ppu.registers.ppuAddr, "unexpected ppuAddr increment")
+			assert.Equal(t, (tt.addressToRead+expectedIncrement*2)&0x3FFF, ppu.registers.ppuAddr, "unexpected second read ppuAddr increment")
 		})
 	}
 }
@@ -180,6 +225,45 @@ func TestPPUDATA_is_instructed_to_read_address_and_mirrors(t *testing.T) {
 	// Dummy Read
 	ppu.ReadRegister(PPUDATA)
 	assert.Equal(t, Address(0x0000), ppu.registers.ppuAddr, "ppuAddr(cpu@0x2006) must increment on each read to cpu@0x2007")
+}
+
+func TestPPU_PPUData_write(t *testing.T) {
+	gamePak := CreateDummyGamePak()
+	memory := CreatePPUMemory(gamePak)
+
+	const PALETTE_VALUE = byte(0x20)
+	const EXPECTED_VALUE = byte(0x15)
+
+	cases := []struct {
+		name           string
+		addressToWrite Address
+		incrementMode  byte
+		valueToWrite   byte
+	}{
+		{"write, increment mode going across", 0x2600, 0, EXPECTED_VALUE},
+		{"write, increment mode going down", 0x2600, 1, EXPECTED_VALUE},
+		{"write into palette, low edge", 0x3F00, 0, PALETTE_VALUE},
+		{"write into palette, high edge", 0x3FFF, 0, PALETTE_VALUE},
+	}
+
+	ppu := CreatePPU(memory)
+
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			ppu.registers.ppuAddr = tt.addressToWrite
+			ppu.ppuctrlWriteFlag(incrementMode, tt.incrementMode)
+			expectedIncrement := Address(1)
+			if tt.incrementMode == 1 {
+				expectedIncrement = 32
+			}
+
+			ppu.WriteRegister(PPUDATA, tt.valueToWrite)
+
+			writtenValue := ppu.Read(tt.addressToWrite)
+			assert.Equal(t, tt.valueToWrite, writtenValue, "unexpected value written")
+			assert.Equal(t, (tt.addressToWrite+expectedIncrement)&0x3FFF, ppu.registers.ppuAddr, "unexpected first read ppuAddr increment")
+		})
+	}
 }
 
 func TestOAMDMA(t *testing.T) {

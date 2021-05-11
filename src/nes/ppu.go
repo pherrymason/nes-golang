@@ -140,6 +140,9 @@ func (ppu *Ppu2c02) ReadRegister(register Address) byte {
 	case PPUDATA:
 		value = ppu.registers.readBuffer
 		ppu.registers.readBuffer = ppu.Read(ppu.registers.ppuAddr)
+		if ppu.registers.ppuAddr >= 0x3F00 && ppu.registers.ppuAddr <= 0x3FFF {
+			value = ppu.registers.readBuffer
+		}
 
 		if ppu.ppuctrlReadFlag(incrementMode) == 0 {
 			ppu.registers.ppuAddr++
@@ -206,6 +209,14 @@ func (ppu *Ppu2c02) WriteRegister(register Address, value byte) {
 		}
 		break
 	case PPUDATA:
+		ppu.Write(ppu.registers.ppuAddr, value)
+
+		if ppu.ppuctrlReadFlag(incrementMode) == 0 {
+			ppu.registers.ppuAddr++
+		} else {
+			ppu.registers.ppuAddr += 32
+		}
+		ppu.registers.ppuAddr &= 0x3FFF
 		break
 	case OAMDMA:
 		break
@@ -363,9 +374,14 @@ func (ppu Ppu2c02) getColorFromPaletteRam(palette byte, pixelColor byte) graphic
 
 	colorIndex := ppu.Read(Address(0x3F00) + paletteAddress)
 
-	return graphics.Color{R: SystemPalette[colorIndex][0], G: SystemPalette[colorIndex][1], B: SystemPalette[colorIndex][2]}
+	return graphics.Color{
+		R: SystemPalette[colorIndex][0],
+		G: SystemPalette[colorIndex][1],
+		B: SystemPalette[colorIndex][2],
+	}
 }
 
+// Helper method, only used in tests
 func (ppu *Ppu2c02) ppuctrlReadFlag(flag PPUCtrlFlag) byte {
 	ctrl := ppu.registers.ctrl
 	mask := byte(1) << flag
@@ -373,10 +389,11 @@ func (ppu *Ppu2c02) ppuctrlReadFlag(flag PPUCtrlFlag) byte {
 	return (ctrl & mask) >> flag
 }
 
+// Helper method, only used in tests
 func (ppu *Ppu2c02) ppuctrlWriteFlag(flag PPUCtrlFlag, value byte) {
-	mask := byte(1)
-	if flag == incrementMode {
-		mask = 1 << flag
+	if value == 1 {
+		ppu.registers.ctrl |= 1 << flag
+	} else {
+		ppu.registers.ctrl &= ^(1 << flag)
 	}
-	ppu.registers.ctrl |= (value << flag) & mask
 }
