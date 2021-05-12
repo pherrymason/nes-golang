@@ -74,6 +74,8 @@ const PPU_SCREEN_SPACE_CYCLES_BY_SCANLINE = 256
 const PPU_CYCLES_BY_SCANLINE = 341
 const PPU_SCREEN_SPACE_SCANLINES = 240
 const PPU_SCANLINES = 261
+const PPU_VBLANK_START_CYCLE = (PPU_SCREEN_SPACE_SCANLINES + 1) * PPU_CYCLES_BY_SCANLINE
+const PPU_VBLANK_END_CYCLE = PPU_SCANLINES * PPU_CYCLES_BY_SCANLINE
 
 // Ppu2c02 Processor
 //  Registers mapped to memory locations: $2000 through $2007
@@ -86,9 +88,10 @@ type Ppu2c02 struct {
 	// Contains a display list of up to 64 sprites, where each sprite occupies 4 bytes
 	oamData [256]byte
 
-	cycle uint32
-
 	patternTable []byte // Decoded pattern table
+
+	cycle uint32
+	nmi   bool // NMI Interrupt thrown
 }
 
 func CreatePPU(memory Memory) *Ppu2c02 {
@@ -108,9 +111,12 @@ func (ppu *Ppu2c02) Tick() {
 
 	}
 
-	if ppu.cycle == PPU_SCREEN_SPACE_SCANLINES*PPU_CYCLES_BY_SCANLINE {
+	if ppu.cycle == PPU_VBLANK_START_CYCLE {
 		ppu.registers.status |= 1 << verticalBlankStarted
-	} else if ppu.cycle == PPU_SCANLINES*PPU_CYCLES_BY_SCANLINE {
+		if (ppu.registers.ctrl & (1 << generateNMIAtVBlank)) > 0 {
+			ppu.nmi = true
+		}
+	} else if ppu.cycle == PPU_VBLANK_END_CYCLE {
 		ppu.registers.status &= ^byte(1 << verticalBlankStarted)
 	}
 	ppu.cycle++

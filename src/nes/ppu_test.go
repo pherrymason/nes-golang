@@ -34,17 +34,35 @@ func aPPU() *Ppu2c02 {
 }
 
 func TestPPU_tick_should_start_vblank_on_scanline_240(t *testing.T) {
-	ppu := aPPU()
-	ppu.cycle = PPU_SCREEN_SPACE_SCANLINES * PPU_CYCLES_BY_SCANLINE
+	cases := []struct {
+		name     string
+		allowNMI bool
+	}{
+		{"vblank + nmi allowed", true},
+		{"vblank + nmi disallowed", false},
+	}
 
-	ppu.Tick()
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			ppu := aPPU()
+			if tt.allowNMI {
+				ppu.ppuctrlWriteFlag(generateNMIAtVBlank, 1)
+			} else {
+				ppu.ppuctrlWriteFlag(generateNMIAtVBlank, 0)
+			}
+			ppu.cycle = PPU_VBLANK_START_CYCLE
 
-	assert.Equal(t, byte(1), (ppu.registers.status>>verticalBlankStarted)&0x01)
+			ppu.Tick()
+
+			assert.Equal(t, byte(1), (ppu.registers.status>>verticalBlankStarted)&0x01)
+			assert.Equal(t, tt.allowNMI, ppu.nmi, "should have enabled NMI on vblank")
+		})
+	}
 }
 
 func TestPPU_tick_should_end_vblank_on_end_of_scanline_261(t *testing.T) {
 	ppu := aPPU()
-	ppu.cycle = PPU_SCANLINES * PPU_CYCLES_BY_SCANLINE
+	ppu.cycle = PPU_VBLANK_END_CYCLE
 	ppu.registers.status |= 1 << verticalBlankStarted
 
 	ppu.Tick()
