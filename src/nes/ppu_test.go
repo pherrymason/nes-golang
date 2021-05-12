@@ -33,6 +33,25 @@ func aPPU() *Ppu2c02 {
 	return ppu
 }
 
+func TestPPU_tick_should_start_vblank_on_scanline_240(t *testing.T) {
+	ppu := aPPU()
+	ppu.cycle = PPU_SCREEN_SPACE_SCANLINES * PPU_CYCLES_BY_SCANLINE
+
+	ppu.Tick()
+
+	assert.Equal(t, byte(1), (ppu.registers.status>>verticalBlankStarted)&0x01)
+}
+
+func TestPPU_tick_should_end_vblank_on_end_of_scanline_261(t *testing.T) {
+	ppu := aPPU()
+	ppu.cycle = PPU_SCANLINES * PPU_CYCLES_BY_SCANLINE
+	ppu.registers.status |= 1 << verticalBlankStarted
+
+	ppu.Tick()
+
+	assert.Equal(t, byte(0), (ppu.registers.status>>verticalBlankStarted)&0x01)
+}
+
 func TestPPU_should_get_propper_color_for_a_given_pixel_color_and_palette(t *testing.T) {
 	ppu := aPPU()
 	backgroundColor := [3]byte{236, 88, 180}

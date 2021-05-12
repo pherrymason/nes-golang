@@ -2,27 +2,6 @@ package nes
 
 import "github.com/raulferras/nes-golang/src/graphics"
 
-type PPU interface {
-	WriteRegister(register Address, value byte)
-	ReadRegister(register Address) byte
-}
-
-// Ppu2c02 Processor
-//  Registers mapped to memory locations: $2000 through $2007
-//  mirrored in every 8 bytes from $2008 through $3FFF
-type Ppu2c02 struct {
-	Memory
-	registers PPURegisters
-
-	// OAM (Object Attribute Memory) is internal memory inside the PPU.
-	// Contains a display list of up to 64 sprites, where each sprite occupies 4 bytes
-	oamData [256]byte
-
-	cycle uint32
-
-	patternTable []byte // Decoded pattern table
-}
-
 type PPURegisters struct {
 	ctrl   byte // Controls PPU operation
 	mask   byte // Controls the rendering of sprites and backgrounds
@@ -86,6 +65,32 @@ const OAMDMA = 0x4014
 
 const NES_PALETTE_COLORS = 64
 
+type PPU interface {
+	WriteRegister(register Address, value byte)
+	ReadRegister(register Address) byte
+}
+
+const PPU_SCREEN_SPACE_CYCLES_BY_SCANLINE = 256
+const PPU_CYCLES_BY_SCANLINE = 341
+const PPU_SCREEN_SPACE_SCANLINES = 240
+const PPU_SCANLINES = 261
+
+// Ppu2c02 Processor
+//  Registers mapped to memory locations: $2000 through $2007
+//  mirrored in every 8 bytes from $2008 through $3FFF
+type Ppu2c02 struct {
+	Memory
+	registers PPURegisters
+
+	// OAM (Object Attribute Memory) is internal memory inside the PPU.
+	// Contains a display list of up to 64 sprites, where each sprite occupies 4 bytes
+	oamData [256]byte
+
+	cycle uint32
+
+	patternTable []byte // Decoded pattern table
+}
+
 func CreatePPU(memory Memory) *Ppu2c02 {
 	ppu := &Ppu2c02{
 		Memory:       memory,
@@ -96,7 +101,6 @@ func CreatePPU(memory Memory) *Ppu2c02 {
 }
 
 func (ppu *Ppu2c02) Tick() {
-
 	//bit := ppu.registers.scrollX
 
 	// Load new data into registers
@@ -104,9 +108,19 @@ func (ppu *Ppu2c02) Tick() {
 
 	}
 
+	if ppu.cycle == PPU_SCREEN_SPACE_SCANLINES*PPU_CYCLES_BY_SCANLINE {
+		ppu.registers.status |= 1 << verticalBlankStarted
+	} else if ppu.cycle == PPU_SCANLINES*PPU_CYCLES_BY_SCANLINE {
+		ppu.registers.status &= ^byte(1 << verticalBlankStarted)
+	}
 	ppu.cycle++
+
+	if ppu.cycle == PPU_SCANLINES*PPU_CYCLES_BY_SCANLINE {
+		ppu.cycle = 0
+	}
 }
 
+// Read made by CPU
 func (ppu *Ppu2c02) ReadRegister(register Address) byte {
 	value := byte(0x00)
 
@@ -119,8 +133,6 @@ func (ppu *Ppu2c02) ReadRegister(register Address) byte {
 
 	case PPUSTATUS:
 		value = ppu.registers.status
-		// set vblank for test
-		value |= 1 << verticalBlankStarted
 		ppu.registers.status &= 0x7F // Clear VBlank flag
 		break
 
@@ -159,6 +171,7 @@ func (ppu *Ppu2c02) ReadRegister(register Address) byte {
 	return value
 }
 
+// Write made by CPU
 func (ppu *Ppu2c02) WriteRegister(register Address, value byte) {
 	switch register {
 	case PPUCTRL:
@@ -292,7 +305,7 @@ func (ppu *Ppu2c02) getTile(patternTable int, palette uint8, tileX int, tileY in
 }
 
 // blargg's palette
-var SystemPalette = [...][3]byte{
+var SystemPalette = [NES_PALETTE_COLORS][3]byte{
 	{84, 84, 84},
 	{0, 30, 116},
 	{8, 16, 144},
