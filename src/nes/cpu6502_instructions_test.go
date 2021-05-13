@@ -42,7 +42,65 @@ func CreateCPUWithGamePak() *Cpu6502 {
 	return cpu
 }
 
-// Decode Operation Address Mode
+func TestCpuNmi(t *testing.T) {
+	tests := []struct {
+		name            string
+		pc              Address
+		status          byte
+		addressAtVector Address
+	}{
+		{"nmi", Address(0x2000), 0xAA, Address(0x1000)},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			cpu := CreateCPUWithGamePak()
+			cpu.registers.Pc = test.pc
+			cpu.registers.Status = test.status
+			cpu.memory.Write(0xFFFA, byte(test.addressAtVector))
+			cpu.memory.Write(0xFFFB, byte(test.addressAtVector>>8))
+
+			cpu.nmi()
+
+			assert.Equal(t, test.addressAtVector, cpu.registers.Pc)
+
+			assert.Equal(t, test.status, cpu.popStack(), "unexpected status on stack")
+
+			assert.Equal(t, byte(test.pc&0xFF), cpu.popStack(), "unexpected pc (lo) on stack")
+			assert.Equal(t, byte(test.pc>>8), cpu.popStack(), "unexpected pc (hi) on stack")
+		})
+	}
+}
+
+func TestCpuIRQ(t *testing.T) {
+	tests := []struct {
+		name            string
+		pc              Address
+		status          byte
+		addressAtVector Address
+	}{
+		{"nmi", Address(0x2000), 0xAA, Address(0x1000)},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			cpu := CreateCPUWithGamePak()
+			cpu.registers.Pc = test.pc
+			cpu.registers.Status = test.status
+			cpu.memory.Write(0xFFFE, byte(test.addressAtVector))
+			cpu.memory.Write(0xFFFF, byte(test.addressAtVector>>8))
+
+			cpu.irq()
+
+			assert.Equal(t, test.addressAtVector, cpu.registers.Pc)
+
+			assert.Equal(t, test.status, cpu.popStack(), "unexpected status on stack")
+
+			assert.Equal(t, byte(test.pc&0xFF), cpu.popStack(), "unexpected pc (lo) on stack")
+			assert.Equal(t, byte(test.pc>>8), cpu.popStack(), "unexpected pc (hi) on stack")
+		})
+	}
+}
 
 func TestAND(t *testing.T) {
 	cases := []struct {

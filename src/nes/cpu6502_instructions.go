@@ -45,6 +45,24 @@ func (instruction Instruction) Cycles() byte {
 	return instruction.cycles
 }
 
+func (cpu *Cpu6502) nmi() {
+
+	cpu.pushStack(byte(cpu.registers.Pc >> 8))
+	cpu.pushStack(byte(cpu.registers.Pc))
+	cpu.pushStack(cpu.registers.Status)
+
+	cpu.registers.Pc = cpu.read16(0xFFFA)
+}
+
+func (cpu *Cpu6502) irq() {
+
+	cpu.pushStack(byte(cpu.registers.Pc >> 8))
+	cpu.pushStack(byte(cpu.registers.Pc))
+	cpu.pushStack(cpu.registers.Status)
+
+	cpu.registers.Pc = cpu.read16(0xFFFE)
+}
+
 func (cpu *Cpu6502) evalImplicit(programCounter Address) (finalAddress Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
 	finalAddress = 0
 	cycles = 0
