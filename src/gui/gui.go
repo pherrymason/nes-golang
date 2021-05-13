@@ -5,6 +5,7 @@ import (
 	r "github.com/lachee/raylib-goplus/raylib"
 	"github.com/raulferras/nes-golang/src/graphics"
 	"github.com/raulferras/nes-golang/src/nes"
+	"github.com/raulferras/nes-golang/src/nes/gamePak"
 	"math/rand"
 	"time"
 )
@@ -74,13 +75,19 @@ func Run() {
 	console.Stop()
 }
 
-func printRomInfo(gamePak *nes.GamePak) {
-	inesHeader := gamePak.Header()
+func printRomInfo(cartridge *nes.GamePak) {
+	inesHeader := cartridge.Header()
 
 	if inesHeader.HasTrainer() {
 		fmt.Println("Rom has trainer")
 	} else {
 		fmt.Println("Rom has no trainer")
+	}
+
+	if inesHeader.Mirroring() == gamePak.VerticalMirroring {
+		fmt.Println("Vertical Mirroring")
+	} else {
+		fmt.Println("Horizontal Mirroring")
 	}
 
 	fmt.Println("PRG:", inesHeader.ProgramSize(), "x 16KB Banks")

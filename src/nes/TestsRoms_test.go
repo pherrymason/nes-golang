@@ -8,7 +8,7 @@ import (
 )
 
 func TestNestest(t *testing.T) {
-	gamePak := CreateGamePakFromROMFile("./../../roms/nestest/nestest.nes")
+	gamePak := CreateGamePakFromROMFile("./../../assets/roms/nestest/nestest.nes")
 	outputLogPath := "./../../var/nestest.log"
 
 	var limitCycles uint32 = 5004

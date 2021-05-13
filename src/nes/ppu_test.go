@@ -1,21 +1,23 @@
 package nes
 
 import (
+	"github.com/raulferras/nes-golang/src/graphics"
+	"github.com/raulferras/nes-golang/src/nes/gamePak"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func CreateDummyGamePak() *GamePak {
 	return &GamePak{
-		Header{1, 1, 0, 0, 0, 0, 0},
+		gamePak.CreateINes1Header(1, 1, 0, 0, 0, 0, 0),
 		make([]byte, 100),
 		make([]byte, 0x01FFF),
 	}
 }
 
 func aPPU() *Ppu2c02 {
-	gamePak := CreateDummyGamePak()
-	memory := CreatePPUMemory(gamePak)
+	cartridge := CreateDummyGamePak()
+	memory := CreatePPUMemory(cartridge)
 
 	// 0x3F00
 	memory.paletteTable[0] = 0x21 // light blue
@@ -72,21 +74,21 @@ func TestPPU_tick_should_end_vblank_on_end_of_scanline_261(t *testing.T) {
 
 func TestPPU_should_get_propper_color_for_a_given_pixel_color_and_palette(t *testing.T) {
 	ppu := aPPU()
-	backgroundColor := [3]byte{236, 88, 180}
+	backgroundColor := graphics.Color{236, 88, 180}
 	cases := []struct {
 		name          string
 		palette       byte
 		pixelColor    byte
-		expectedColor [3]byte
+		expectedColor graphics.Color
 	}{
 		{"", 0, 0, backgroundColor},
-		{"", 0, 1, [3]byte{0, 30, 116}},
-		{"", 0, 2, [3]byte{8, 16, 144}},
-		{"", 0, 3, [3]byte{48, 0, 136}},
+		{"", 0, 1, graphics.Color{0, 30, 116}},
+		{"", 0, 2, graphics.Color{8, 16, 144}},
+		{"", 0, 3, graphics.Color{48, 0, 136}},
 		{"mirroring $0x3F10", 4, 0, backgroundColor},
-		{"mirroring $0x3F14", 5, 0, [3]byte{68, 0, 100}},
-		{"mirroring $0x3F18", 6, 0, [3]byte{32, 42, 0}},
-		{"mirroring $0x3F1C", 7, 0, [3]byte{0, 50, 60}},
+		{"mirroring $0x3F14", 5, 0, graphics.Color{68, 0, 100}},
+		{"mirroring $0x3F18", 6, 0, graphics.Color{32, 42, 0}},
+		{"mirroring $0x3F1C", 7, 0, graphics.Color{0, 50, 60}},
 	}
 
 	for _, tt := range cases {

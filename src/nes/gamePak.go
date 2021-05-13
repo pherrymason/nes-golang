@@ -29,7 +29,15 @@ func CreateGamePakFromROMFile(romFilePath string) GamePak {
 	}
 
 	// Read INesHeader
-	inesHeader := gamePak.CreateINes1Header(data[0:16])
+	inesHeader := gamePak.CreateINes1Header(
+		data[4],
+		data[5],
+		data[6],
+		data[7],
+		data[8],
+		data[9],
+		data[10],
+	)
 
 	prgLength := int(inesHeader.ProgramSize())*0x4000 + 16
 	prgROM := data[16:prgLength]

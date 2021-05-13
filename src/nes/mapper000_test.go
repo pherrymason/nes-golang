@@ -1,6 +1,7 @@
 package nes
 
 import (
+	gamePak2 "github.com/raulferras/nes-golang/src/nes/gamePak"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -9,7 +10,7 @@ func CreateMapper000ForTest(prgROMSize byte) Mapper {
 	rom := prgROM()
 
 	gamePak := CreateGamePak(
-		Header{prgROMSize, 1, 0, 0, 0, 0, 0},
+		gamePak2.CreateINes1Header(prgROMSize, 1, 0, 0, 0, 0, 0),
 		rom,
 		make([]byte, 100),
 	)

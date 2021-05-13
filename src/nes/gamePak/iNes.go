@@ -69,14 +69,14 @@ func (ines INesHeader) TvSystem() byte {
 	return ines.flags9 & 0x01
 }
 
-func CreateINes1Header(header []byte) INesHeader {
+func CreateINes1Header(prgRomSize byte, chrRomSize byte, flag6 byte, flag7 byte, flag8 byte, flag9 byte, flag10 byte) INesHeader {
 	return INesHeader{
-		prgROMSize: header[4],
-		chrROMSize: header[5],
-		flags6:     header[6],
-		flags7:     header[7],
-		flags8:     header[8],
-		flags9:     header[9],
-		flags10:    header[10],
+		prgROMSize: prgRomSize,
+		chrROMSize: chrRomSize,
+		flags6:     flag6,
+		flags7:     flag7,
+		flags8:     flag8,
+		flags9:     flag9,
+		flags10:    flag10,
 	}
 }
