@@ -18,8 +18,8 @@ func CreateMapper000(gamePak *GamePak) Mapper000 {
 	header := gamePak.Header()
 	return Mapper000{
 		gamePak:     gamePak,
-		prgROMBanks: header.prgROMSize,
-		chrROMBanks: header.chrROMSize,
+		prgROMBanks: header.ProgramSize(),
+		chrROMBanks: header.CHRSize(),
 	}
 }
 

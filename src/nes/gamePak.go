@@ -2,6 +2,7 @@ package nes
 
 import (
 	"fmt"
+	"github.com/raulferras/nes-golang/src/nes/gamePak"
 	"io/ioutil"
 )
 
@@ -12,12 +13,12 @@ const GAMEPAK_HIGH_RANGE = 0xFFFF
 const GAMEPAK_ROM_LOWER_BANK_START = 0x8000
 
 type GamePak struct {
-	header Header
+	header gamePak.Header
 	prgROM []byte
 	chrROM []byte
 }
 
-func CreateGamePak(header Header, prgROM []byte, chrROM []byte) GamePak {
+func CreateGamePak(header gamePak.Header, prgROM []byte, chrROM []byte) GamePak {
 	return GamePak{header, prgROM, chrROM}
 }
 
@@ -27,13 +28,13 @@ func CreateGamePakFromROMFile(romFilePath string) GamePak {
 		fmt.Println("File reading error", err)
 	}
 
-	// Read Header
-	inesHeader := CreateINes1Header(data[0:16])
+	// Read INesHeader
+	inesHeader := gamePak.CreateINes1Header(data[0:16])
 
-	prgLength := int(inesHeader.prgROMSize)*0x4000 + 16
+	prgLength := int(inesHeader.ProgramSize())*0x4000 + 16
 	prgROM := data[16:prgLength]
 
-	chrLength := int(inesHeader.chrROMSize) * 0x2000
+	chrLength := int(inesHeader.CHRSize()) * 0x2000
 	chrROM := data[prgLength : chrLength+prgLength]
 	return CreateGamePak(
 		inesHeader,
@@ -42,6 +43,6 @@ func CreateGamePakFromROMFile(romFilePath string) GamePak {
 	)
 }
 
-func (gamePak GamePak) Header() Header {
+func (gamePak GamePak) Header() gamePak.Header {
 	return gamePak.header
 }

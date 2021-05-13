@@ -1,19 +1,6 @@
-package nes
+package gamePak
 
-type iNes interface {
-	ProgramSize() byte
-	CHRSize() byte
-	Mirroring() byte
-	HasPersistentMemory() bool
-	HasTrainer() bool
-	IgnoreMirroringControl() bool
-
-	MapperNumber() byte
-	PRGRAM() byte
-	TvSystem() byte
-}
-
-type Header struct {
+type INesHeader struct {
 	prgROMSize byte
 	chrROMSize byte
 	flags6     byte
@@ -34,14 +21,23 @@ Flags6
 ||||+---- 1: Ignore mirroring control or above mirroring bit; instead provide four-screen VRAM
 ++++----- Lower nybble of mapper number
 */
-func (ines *Header) ProgramSize() byte {
+func (ines INesHeader) ProgramSize() byte {
 	return ines.prgROMSize
 }
 
-func (ines *Header) CHRSize() byte {
+func (ines INesHeader) CHRSize() byte {
 	return ines.chrROMSize
 }
-func (ines *Header) HasTrainer() bool {
+
+func (ines INesHeader) Mirroring() byte {
+	if ines.flags6&0x01 == 1 {
+		return VerticalMirroring
+	}
+
+	return HorizontalMirroring
+}
+
+func (ines INesHeader) HasTrainer() bool {
 	if ines.flags6&0x06 == 0x06 {
 		return true
 	}
@@ -49,17 +45,32 @@ func (ines *Header) HasTrainer() bool {
 	return false
 }
 
-func (ines *Header) MapperNumber() byte {
+func (ines INesHeader) HasPersistentMemory() bool {
+	if ines.flags6&0x04 == 0x04 {
+		return true
+	}
+
+	return false
+}
+
+func (ines INesHeader) IgnoreMirroringControl() bool {
+	panic("implement me")
+}
+
+func (ines INesHeader) PRGRAM() byte {
+	panic("implement me")
+}
+
+func (ines INesHeader) MapperNumber() byte {
 	return (ines.flags6 >> 4) | (ines.flags7 & 0xF0)
-
 }
 
-func (ines *Header) TvSystem() byte {
-	return (ines.flags9 & 0x01)
+func (ines INesHeader) TvSystem() byte {
+	return ines.flags9 & 0x01
 }
 
-func CreateINes1Header(header []byte) Header {
-	return Header{
+func CreateINes1Header(header []byte) INesHeader {
+	return INesHeader{
 		prgROMSize: header[4],
 		chrROMSize: header[5],
 		flags6:     header[6],
