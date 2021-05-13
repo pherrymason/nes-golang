@@ -48,11 +48,18 @@ func (nes *Nes) Start() {
 }
 
 func (nes *Nes) Tick() byte {
-	//if nes.systemClockCounter%3 == 0 {
-	cpuCycles := nes.cpu.Tick()
-	//}
-
 	nes.ppu.Tick()
+
+	cpuCycles := byte(0)
+	if nes.systemClockCounter%3 == 0 {
+		cpuCycles = nes.cpu.Tick()
+	}
+
+	if nes.ppu.nmi {
+		nes.cpu.nmi()
+		nes.ppu.nmi = false
+	}
+
 	nes.systemClockCounter++
 
 	return cpuCycles
