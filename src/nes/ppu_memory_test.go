@@ -1,6 +1,7 @@
 package nes
 
 import (
+	"fmt"
 	"github.com/raulferras/nes-golang/src/nes/gamePak"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -56,10 +57,16 @@ func TestPPUMemory_read_nametables(t *testing.T) {
 		mirrorB    mirrored
 	}{
 		{
-			"vertical mirroring",
+			"vertical mirroring: NameTable 2 mirrors NameTable 0",
 			gamePak.VerticalMirroring,
 			mirrored{0x2000, 0x2800, 0},
+			mirrored{0x23FF, 0x2BFF, 0x3FF},
+		},
+		{
+			"vertical mirroring NameTable 3 mirrors NameTable 1",
+			gamePak.VerticalMirroring,
 			mirrored{0x2400, 0x2C00, 0x400},
+			mirrored{0x27FF, 0x2FFF, 0x7FF},
 		},
 		{
 			"horizontal mirroring",
@@ -85,11 +92,11 @@ func TestPPUMemory_read_nametables(t *testing.T) {
 
 			ppu.vram[tt.mirrorA.realVRAM] = 0xFF
 			assert.Equal(t, byte(0xFF), ppu.Read(tt.mirrorA.address))
-			assert.Equal(t, byte(0xFF), ppu.Read(tt.mirrorA.addressMirrored))
+			assert.Equal(t, byte(0xFF), ppu.Read(tt.mirrorA.addressMirrored), fmt.Sprintf("failed %x mirrors %x", tt.mirrorA.addressMirrored, tt.mirrorA.address))
 
 			ppu.vram[tt.mirrorB.realVRAM] = 0xF1
 			assert.Equal(t, byte(0xF1), ppu.Read(tt.mirrorB.address))
-			assert.Equal(t, byte(0xF1), ppu.Read(tt.mirrorB.addressMirrored))
+			assert.Equal(t, byte(0xF1), ppu.Read(tt.mirrorB.addressMirrored), fmt.Sprintf("failed %x mirrors %x", tt.mirrorB.addressMirrored, tt.mirrorB.address))
 		})
 	}
 }

@@ -63,7 +63,7 @@ func (ppu *PPUMemory) read(address Address, readOnly bool) byte {
 		mirroring := ppu.gamePak.header.Mirroring()
 		realAddress := Address(0)
 		if mirroring == gamePak2.VerticalMirroring {
-			if address == 0x2000 && address <= 0x23FF {
+			if address >= 0x2000 && address <= 0x23FF {
 				// Nametable 0
 				realAddress = address - 0x2000
 			} else if address >= 0x2400 && address < 0x27FF {
