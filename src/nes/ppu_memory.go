@@ -106,7 +106,9 @@ func (ppu *PPUMemory) read(address Address, readOnly bool) byte {
 
 func (ppu *PPUMemory) Write(address Address, value byte) {
 	if address >= 0x2000 && address <= 0x2FFF {
-		ppu.vram[(address-0x2000)&0x27FF] = value
+		if ppu.gamePak.Header().Mirroring() == gamePak2.VerticalMirroring {
+			ppu.vram[(address-0x2000)&0x27FF] = value
+		}
 	} else if address == 0x4010 {
 		// OAM DMA: Transfers 256 bytes of data from CPU page $XX00-$XXFF to internal PPU OAM
 		// DMA will begin at current OAM write address.
