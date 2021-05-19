@@ -1,5 +1,7 @@
 package nes
 
+import gamePak2 "github.com/raulferras/nes-golang/src/nes/gamePak"
+
 // PPUMemory map
 // -------------
 // PPU Memory addresses a 16kB space: From $0000-$3FFFF.
@@ -58,8 +60,31 @@ func (ppu *PPUMemory) read(address Address, readOnly bool) byte {
 		result = ppu.gamePak.chrROM[address]
 	} else if address >= 0x2000 && address <= 0x2FFF {
 		// Nametable 0, 1, 2, 3
-		// mirror at 0x2EFF
-		result = ppu.vram[(address-0x2000)&0x27FF]
+		mirroring := ppu.gamePak.header.Mirroring()
+		realAddress := Address(0)
+		if mirroring == gamePak2.VerticalMirroring {
+			if address == 0x2000 && address <= 0x23FF {
+				// Nametable 0
+				realAddress = address - 0x2000
+			} else if address >= 0x2400 && address < 0x27FF {
+				// Nametable 2
+				realAddress = address - 0x2000
+			} else if address >= 0x2800 && address <= 0x2BFF {
+				// Nametable 1
+				realAddress = address - 0x2800
+			} else {
+				// Nametable 3
+				realAddress = address - 0x2800
+			}
+
+			result = ppu.vram[realAddress]
+		} else {
+			if address < 0x2800 {
+				result = ppu.vram[address-0x2400]
+			} else {
+				result = ppu.vram[address-0x2400]
+			}
+		}
 	} else if address >= 0x3F00 && address <= 0x3FFF {
 		// palette ram indexes
 		address &= 0x1F

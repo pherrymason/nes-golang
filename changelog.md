@@ -1,3 +1,6 @@
+2021-05-13:
+Implement PPU triggering NMI.
+
 2021-05-11:
 Basics of reading and writing from CPU to the PPU implemented. 
 This allows some roms to load palette information correctly.
