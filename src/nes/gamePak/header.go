@@ -13,5 +13,7 @@ type Header interface {
 	TvSystem() byte
 }
 
-const HorizontalMirroring = byte(1)
-const VerticalMirroring = byte(2)
+const HorizontalMirroring = byte(0)
+const VerticalMirroring = byte(1)
+const OneScreenMirroring = byte(2)
+const FourScreenMirroring = byte(3)

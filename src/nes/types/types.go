@@ -1,4 +1,4 @@
-package nes
+package types
 
 // Address is an address representation
 type Address = Word

@@ -1,6 +1,9 @@
 package nes
 
-import "github.com/FMNSSun/hexit"
+import (
+	"github.com/FMNSSun/hexit"
+	"github.com/raulferras/nes-golang/src/nes/types"
+)
 
 type Nes struct {
 	cpu *Cpu6502
@@ -34,7 +37,7 @@ func CreateNes(gamePak *GamePak, debugger *NesDebugger) Nes {
 	return nes
 }
 
-func (nes *Nes) StartAt(address Address) {
+func (nes *Nes) StartAt(address types.Address) {
 	nes.systemClockCounter = 0
 	nes.debug.disassembled = nes.cpu.Disassemble(0x8000, 0xFFFF)
 	nes.cpu.ResetToAddress(address)

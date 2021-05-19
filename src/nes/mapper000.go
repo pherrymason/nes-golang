@@ -1,5 +1,7 @@
 package nes
 
+import "github.com/raulferras/nes-golang/src/nes/types"
+
 // if PRGROM is 16KB
 //     CPU Address Bus          PRG ROM
 //     0x8000 -> 0xBFFF: Map    0x0000 -> 0x3FFF
@@ -31,7 +33,7 @@ func (mapper Mapper000) chrBanks() byte {
 	return mapper.chrROMBanks
 }
 
-func (mapper Mapper000) Read(address Address) byte {
+func (mapper Mapper000) Read(address types.Address) byte {
 	if !satisfiableAddress(address) {
 		return 0
 	}
@@ -45,7 +47,7 @@ func (mapper Mapper000) Read(address Address) byte {
 	return mapper.gamePak.prgROM[address]
 }
 
-func (mapper Mapper000) Write(address Address, value byte) {
+func (mapper Mapper000) Write(address types.Address, value byte) {
 	if !satisfiableAddress(address) {
 		return
 	}
@@ -53,7 +55,7 @@ func (mapper Mapper000) Write(address Address, value byte) {
 	mapper.gamePak.prgROM[address] = value
 }
 
-func satisfiableAddress(address Address) bool {
+func satisfiableAddress(address types.Address) bool {
 	if address >= 0x8000 && address <= 0xFFFF {
 		return true
 	}

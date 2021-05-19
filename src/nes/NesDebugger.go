@@ -1,6 +1,9 @@
 package nes
 
-import "github.com/raulferras/nes-golang/src/graphics"
+import (
+	"github.com/raulferras/nes-golang/src/graphics"
+	"github.com/raulferras/nes-golang/src/nes/types"
+)
 
 // NesDebugger offers an api to interact externally with
 // stuff from Nes
@@ -10,7 +13,7 @@ type NesDebugger struct {
 	ppu           *Ppu2c02
 	outputLogPath string
 
-	disassembled map[Address]string
+	disassembled map[types.Address]string
 }
 
 func CreateNesDebugger(logPath string, debug bool) *NesDebugger {
@@ -23,16 +26,16 @@ func CreateNesDebugger(logPath string, debug bool) *NesDebugger {
 	}
 }
 
-func (debugger *NesDebugger) Disassembled() map[Address]string {
+func (debugger *NesDebugger) Disassembled() map[types.Address]string {
 	return debugger.disassembled
 }
 
-func (debugger *NesDebugger) ProgramCounter() Address {
+func (debugger *NesDebugger) ProgramCounter() types.Address {
 	return debugger.cpu.ProgramCounter()
 }
 
 func (debugger *NesDebugger) N() bool {
-	bit := debugger.cpu.Registers().negativeFlag()
+	bit := debugger.cpu.Registers().NegativeFlag()
 	if bit == 1 {
 		return true
 	}
@@ -41,7 +44,7 @@ func (debugger *NesDebugger) N() bool {
 }
 
 func (debugger *NesDebugger) O() bool {
-	bit := debugger.cpu.Registers().overflowFlag()
+	bit := debugger.cpu.Registers().OverflowFlag()
 	if bit == 1 {
 		return true
 	}
@@ -50,7 +53,7 @@ func (debugger *NesDebugger) O() bool {
 }
 
 func (debugger *NesDebugger) B() bool {
-	bit := debugger.cpu.Registers().breakFlag()
+	bit := debugger.cpu.Registers().BreakFlag()
 	if bit == 1 {
 		return true
 	}
@@ -59,7 +62,7 @@ func (debugger *NesDebugger) B() bool {
 }
 
 func (debugger *NesDebugger) D() bool {
-	bit := debugger.cpu.Registers().decimalFlag()
+	bit := debugger.cpu.Registers().DecimalFlag()
 	if bit == 1 {
 		return true
 	}
@@ -68,7 +71,7 @@ func (debugger *NesDebugger) D() bool {
 }
 
 func (debugger *NesDebugger) I() bool {
-	bit := debugger.cpu.Registers().interruptFlag()
+	bit := debugger.cpu.Registers().InterruptFlag()
 	if bit == 1 {
 		return true
 	}
@@ -77,7 +80,7 @@ func (debugger *NesDebugger) I() bool {
 }
 
 func (debugger *NesDebugger) Z() bool {
-	bit := debugger.cpu.Registers().zeroFlag()
+	bit := debugger.cpu.Registers().ZeroFlag()
 	if bit == 1 {
 		return true
 	}
@@ -86,7 +89,7 @@ func (debugger *NesDebugger) Z() bool {
 }
 
 func (debugger *NesDebugger) C() bool {
-	bit := debugger.cpu.Registers().carryFlag()
+	bit := debugger.cpu.Registers().CarryFlag()
 	if bit == 1 {
 		return true
 	}

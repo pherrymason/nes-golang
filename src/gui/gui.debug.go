@@ -5,6 +5,7 @@ import (
 	"github.com/lachee/raylib-goplus/raylib"
 	"github.com/raulferras/nes-golang/src/graphics"
 	"github.com/raulferras/nes-golang/src/nes"
+	"github.com/raulferras/nes-golang/src/nes/types"
 )
 
 const DEBUG_X_OFFSET = 380
@@ -68,7 +69,7 @@ func drawASM(console nes.Nes) {
 	disassembled := console.Debugger().Disassembled()
 
 	for i := 0; i < 20; i++ {
-		currentAddress := console.Debugger().ProgramCounter() - 10 + nes.Address(i)
+		currentAddress := console.Debugger().ProgramCounter() - 10 + types.Address(i)
 		if currentAddress == console.Debugger().ProgramCounter() {
 			textColor = raylib.GopherBlue
 		} else {

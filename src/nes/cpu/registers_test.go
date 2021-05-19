@@ -1,4 +1,4 @@
-package nes
+package cpu
 
 import (
 	"testing"
@@ -14,28 +14,28 @@ func TestSetAFlag(t *testing.T) {
 
 func TestNegativeFlagIsSet(t *testing.T) {
 	registers := CreateRegisters()
-	registers.updateNegativeFlag(0x80)
+	registers.UpdateNegativeFlag(0x80)
 
-	assert.Equal(t, byte(1), registers.negativeFlag())
+	assert.Equal(t, byte(1), registers.NegativeFlag())
 }
 
 func TestNegativeFlagIsUnset(t *testing.T) {
 	registers := CreateRegisters()
-	registers.updateNegativeFlag(0x7F)
+	registers.UpdateNegativeFlag(0x7F)
 
-	assert.Equal(t, byte(0), registers.negativeFlag())
+	assert.Equal(t, byte(0), registers.NegativeFlag())
 }
 
 func TestZeroFlagIsSet(t *testing.T) {
 	registers := CreateRegisters()
-	registers.updateZeroFlag(0x00)
+	registers.UpdateZeroFlag(0x00)
 
-	assert.Equal(t, byte(1), registers.zeroFlag())
+	assert.Equal(t, byte(1), registers.ZeroFlag())
 }
 
 func TestZeroFlagIsUnset(t *testing.T) {
 	registers := CreateRegisters()
-	registers.updateZeroFlag(0x01)
+	registers.UpdateZeroFlag(0x01)
 
-	assert.Equal(t, byte(0), registers.zeroFlag())
+	assert.Equal(t, byte(0), registers.ZeroFlag())
 }

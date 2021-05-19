@@ -2,11 +2,13 @@ package nes
 
 import (
 	"fmt"
+	"github.com/raulferras/nes-golang/src/nes/cpu"
+	"github.com/raulferras/nes-golang/src/nes/types"
 )
 
 // AddressMode is an enum of the available Addressing Modes in this cpu
 type AddressMode int
-type AddressModeMethod func(programCounter Address) (finalAddress Address, operand [3]byte, cycles int, pageCrossed bool)
+type AddressModeMethod func(programCounter types.Address) (finalAddress types.Address, operand [3]byte, cycles int, pageCrossed bool)
 
 const (
 	Implicit AddressMode = iota
@@ -25,7 +27,7 @@ const (
 
 // Cpu6502 Represents a CPU 6502
 type Cpu6502 struct {
-	registers Cpu6502Registers
+	registers cpu.Registers
 	memory    Memory
 
 	instructions [256]Instruction
@@ -48,7 +50,7 @@ type Cpu6502DebugOptions struct {
 func CreateCPU(memory Memory, debug Cpu6502DebugOptions) *Cpu6502 {
 	cpu := Cpu6502{
 		memory:    memory,
-		registers: CreateRegisters(),
+		registers: cpu.CreateRegisters(),
 		debug:     debug.enabled,
 	}
 
@@ -62,27 +64,27 @@ func CreateCPU(memory Memory, debug Cpu6502DebugOptions) *Cpu6502 {
 	return &cpu
 }
 
-func (cpu Cpu6502) ProgramCounter() Address {
+func (cpu Cpu6502) ProgramCounter() types.Address {
 	return cpu.Registers().Pc
 }
 
-func (cpu *Cpu6502) Registers() *Cpu6502Registers {
+func (cpu *Cpu6502) Registers() *cpu.Registers {
 	return &cpu.registers
 }
 
 func (cpu *Cpu6502) pushStack(value byte) {
-	address := cpu.registers.stackPointerAddress()
+	address := cpu.registers.StackPointerAddress()
 	cpu.memory.Write(
 		address,
 		value,
 	)
 
-	cpu.registers.stackPointerPushed()
+	cpu.registers.StackPointerPushed()
 }
 
 func (cpu *Cpu6502) popStack() byte {
-	cpu.registers.stackPointerPopped()
-	address := cpu.registers.stackPointerAddress()
+	cpu.registers.StackPointerPopped()
+	address := cpu.registers.StackPointerAddress()
 	return cpu.memory.Read(address)
 }
 
@@ -99,21 +101,21 @@ func (cpu *Cpu6502) Read(address defs.Address) byte {
 	return cpu.memory.Read(address)
 }
 */
-func (cpu *Cpu6502) read16(address Address) Word {
+func (cpu *Cpu6502) read16(address types.Address) types.Word {
 	low := cpu.memory.Read(address)
 	high := cpu.memory.Read(address + 1)
 
-	return CreateWord(low, high)
+	return types.CreateWord(low, high)
 }
 
-func (cpu *Cpu6502) read16Bugged(address Address) Word {
+func (cpu *Cpu6502) read16Bugged(address types.Address) types.Word {
 	lsb := address
-	msb := (lsb & 0xFF00) | Address(byte(lsb)+1)
+	msb := (lsb & 0xFF00) | types.Address(byte(lsb)+1)
 
 	low := cpu.memory.Read(lsb)
 	high := cpu.memory.Read(msb)
 
-	return CreateWord(low, high)
+	return types.CreateWord(low, high)
 }
 
 func (cpu *Cpu6502) initInstructionsTable() {
@@ -424,7 +426,7 @@ func (cpu *Cpu6502) initAddressModeEvaluators() {
 	}
 }
 
-func (cpu Cpu6502) evaluateOperandAddress(addressMode AddressMode, pc Address) (finalAddress Address, operand [3]byte, pageCrossed bool) {
+func (cpu Cpu6502) evaluateOperandAddress(addressMode AddressMode, pc types.Address) (finalAddress types.Address, operand [3]byte, pageCrossed bool) {
 	if addressMode == Implicit {
 		finalAddress = 0
 		return
@@ -440,6 +442,6 @@ func (cpu Cpu6502) evaluateOperandAddress(addressMode AddressMode, pc Address) (
 	return
 }
 
-func memoryPageDiffer(address Address, finalAddress Address) bool {
+func memoryPageDiffer(address types.Address, finalAddress types.Address) bool {
 	return address&0xFF00 != finalAddress&0xFF00
 }

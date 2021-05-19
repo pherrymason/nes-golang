@@ -1,6 +1,9 @@
 package nes
 
-import "github.com/raulferras/nes-golang/src/graphics"
+import (
+	"github.com/raulferras/nes-golang/src/graphics"
+	"github.com/raulferras/nes-golang/src/nes/types"
+)
 
 type PPURegisters struct {
 	ctrl   byte // Controls PPU operation
@@ -12,7 +15,7 @@ type PPURegisters struct {
 	scrollLatch byte // Controls which scroll needs to be written
 
 	oamAddr      byte
-	ppuAddr      Address
+	ppuAddr      types.Address
 	addressLatch byte
 	readBuffer   byte
 }
@@ -66,8 +69,8 @@ const OAMDMA = 0x4014
 const NES_PALETTE_COLORS = 64
 
 type PPU interface {
-	WriteRegister(register Address, value byte)
-	ReadRegister(register Address) byte
+	WriteRegister(register types.Address, value byte)
+	ReadRegister(register types.Address) byte
 }
 
 const PPU_SCREEN_SPACE_CYCLES_BY_SCANLINE = 256
@@ -127,7 +130,7 @@ func (ppu *Ppu2c02) Tick() {
 }
 
 // Read made by CPU
-func (ppu *Ppu2c02) ReadRegister(register Address) byte {
+func (ppu *Ppu2c02) ReadRegister(register types.Address) byte {
 	value := byte(0x00)
 
 	switch register {
@@ -178,7 +181,7 @@ func (ppu *Ppu2c02) ReadRegister(register Address) byte {
 }
 
 // Write made by CPU
-func (ppu *Ppu2c02) WriteRegister(register Address, value byte) {
+func (ppu *Ppu2c02) WriteRegister(register types.Address, value byte) {
 	switch register {
 	case PPUCTRL:
 		if ppu.cycle > 30000 {
@@ -215,9 +218,9 @@ func (ppu *Ppu2c02) WriteRegister(register Address, value byte) {
 
 	case PPUADDR:
 		if ppu.registers.addressLatch == 0 {
-			ppu.registers.ppuAddr = Address(value) << 8
+			ppu.registers.ppuAddr = types.Address(value) << 8
 		} else {
-			ppu.registers.ppuAddr |= Address(value)
+			ppu.registers.ppuAddr |= types.Address(value)
 		}
 
 		ppu.registers.addressLatch++
@@ -245,15 +248,15 @@ func (ppu *Ppu2c02) WriteRegister(register Address, value byte) {
 func (ppu *Ppu2c02) PatternTable(patternTable int, palette uint8) []graphics.Pixel {
 	chr := make([]graphics.Pixel, 128*128)
 
-	bankAddress := Address(patternTable * 0x1000)
+	bankAddress := types.Address(patternTable * 0x1000)
 	i := 0
 	for tileY := 0; tileY < 16; tileY++ {
 		for tileX := 0; tileX < 16; tileX++ {
-			offset := bankAddress + Address(tileY*256+tileX*16)
+			offset := bankAddress + types.Address(tileY*256+tileX*16)
 
 			for row := 0; row < 8; row++ {
-				pixelLSB := ppu.Read(offset + Address(row))
-				pixelMSB := ppu.Read(offset + Address(row+8))
+				pixelLSB := ppu.Read(offset + types.Address(row))
+				pixelMSB := ppu.Read(offset + types.Address(row+8))
 
 				for col := 0; col < 8; col++ {
 					value := (pixelLSB & 0x01) | ((pixelMSB & 0x01) << 1)
@@ -281,13 +284,13 @@ func (ppu *Ppu2c02) PatternTable(patternTable int, palette uint8) []graphics.Pix
 
 func (ppu *Ppu2c02) getTile(patternTable int, palette uint8, tileX int, tileY int) []graphics.Pixel {
 	tile := make([]graphics.Pixel, 8*8)
-	bankAddress := Address(patternTable * 0x1000)
+	bankAddress := types.Address(patternTable * 0x1000)
 
-	offset := bankAddress + Address(tileY*256+tileX*16)
+	offset := bankAddress + types.Address(tileY*256+tileX*16)
 
 	for row := 0; row < 8; row++ {
-		pixelLSB := ppu.Read(offset + Address(row))
-		pixelMSB := ppu.Read(offset + Address(row+8))
+		pixelLSB := ppu.Read(offset + types.Address(row))
+		pixelMSB := ppu.Read(offset + types.Address(row+8))
 
 		for col := 0; col < 8; col++ {
 			value := (pixelLSB & 0x01) | ((pixelMSB & 0x01) << 1)
@@ -385,13 +388,13 @@ var SystemPalette = [NES_PALETTE_COLORS][3]byte{
 }
 
 func (ppu Ppu2c02) getColorFromPaletteRam(palette byte, pixelColor byte) graphics.Color {
-	paletteAddress := Address((palette * 4) + pixelColor)
+	paletteAddress := types.Address((palette * 4) + pixelColor)
 	/*
 		if int(colorIndex) > len(SystemPalette) {
 			panic(fmt.Sprintf("pixel color out of palette: %X", pixelColor))
 		}*/
 
-	colorIndex := ppu.Read(Address(0x3F00) + paletteAddress)
+	colorIndex := ppu.Read(types.Address(0x3F00) + paletteAddress)
 
 	return graphics.Color{
 		R: SystemPalette[colorIndex][0],

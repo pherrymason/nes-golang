@@ -2,6 +2,8 @@ package nes
 
 import (
 	"fmt"
+	"github.com/raulferras/nes-golang/src/nes/cpu"
+	"github.com/raulferras/nes-golang/src/nes/types"
 )
 
 func (cpu *Cpu6502) Init() {
@@ -14,11 +16,11 @@ func (cpu *Cpu6502) Reset() {
 
 	// Read Reset Vector
 	address := cpu.read16(0xFFFC)
-	cpu.registers.Pc = Address(address)
+	cpu.registers.Pc = types.Address(address)
 	cpu.cycle = 7
 }
 
-func (cpu *Cpu6502) ResetToAddress(programCounter Address) {
+func (cpu *Cpu6502) ResetToAddress(programCounter types.Address) {
 	cpu.registers.Reset()
 	cpu.registers.Pc = programCounter
 	cpu.cycle = 7
@@ -41,8 +43,11 @@ func (cpu *Cpu6502) Tick() byte {
 		panic(msg)
 	}
 
-	operandAddress, operand, pageCrossed := cpu.evaluateOperandAddress(instruction.AddressMode(), cpu.registers.Pc+1)
-	cpu.registers.Pc += Address(instruction.Size())
+	operandAddress, operand, pageCrossed := cpu.evaluateOperandAddress(
+		instruction.AddressMode(),
+		cpu.registers.Pc+1,
+	)
+	cpu.registers.Pc += types.Address(instruction.Size())
 
 	step := OperationMethodArgument{
 		instruction.AddressMode(),
@@ -63,7 +68,7 @@ func (cpu *Cpu6502) Tick() byte {
 	return cpu.opCyclesLeft
 }
 
-func (cpu *Cpu6502) logStep(registers Cpu6502Registers, opcode byte, operand [3]byte, instruction Instruction, step OperationMethodArgument, cpuCycle uint32) {
+func (cpu *Cpu6502) logStep(registers cpu.Registers, opcode byte, operand [3]byte, instruction Instruction, step OperationMethodArgument, cpuCycle uint32) {
 	//state := CreateStateFromCPU(*cpu)
 	state := CreateState(
 		registers,

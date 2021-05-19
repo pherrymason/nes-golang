@@ -3,6 +3,8 @@ package nes
 import (
 	"fmt"
 	"github.com/FMNSSun/hexit"
+	"github.com/raulferras/nes-golang/src/nes/cpu"
+	"github.com/raulferras/nes-golang/src/nes/types"
 	"github.com/raulferras/nes-golang/src/utils"
 	"regexp"
 	"strconv"
@@ -10,14 +12,14 @@ import (
 )
 
 type CpuState struct {
-	Registers          Cpu6502Registers
+	Registers          cpu.Registers
 	CurrentInstruction Instruction
 	RawOpcode          [3]byte
-	EvaluatedAddress   Address
+	EvaluatedAddress   types.Address
 	CyclesSinceReset   uint32
 }
 
-func CreateState(registers Cpu6502Registers, opcode [3]byte, instruction Instruction, step OperationMethodArgument, cpuCycle uint32) CpuState {
+func CreateState(registers cpu.Registers, opcode [3]byte, instruction Instruction, step OperationMethodArgument, cpuCycle uint32) CpuState {
 	state := CpuState{
 		registers,
 		instruction,
@@ -36,7 +38,7 @@ func CreateStateFromNesTestLine(nesTestLine string) CpuState {
 	blocks := utils.StringSplitByRegex(nesTestLine)
 
 	result := utils.HexStringToByteArray(blocks[0])
-	pc := CreateAddress(result[1], result[0])
+	pc := types.CreateAddress(result[1], result[0])
 
 	fields = strings.Fields(blocks[1])
 	opcode := [3]byte{utils.HexStringToByteArray(fields[0])[0]}
@@ -49,7 +51,7 @@ func CreateStateFromNesTestLine(nesTestLine string) CpuState {
 	cpuCycles, _ := strconv.ParseUint(cpuCyclesString[1], 10, 16)
 
 	state := CpuState{
-		Cpu6502Registers{
+		cpu.Registers{
 			utils.NestestDecodeRegisterFlag(flagFields[0]),
 			utils.NestestDecodeRegisterFlag(flagFields[1]),
 			utils.NestestDecodeRegisterFlag(flagFields[2]),
@@ -65,7 +67,7 @@ func CreateStateFromNesTestLine(nesTestLine string) CpuState {
 			0,
 		),
 		opcode,
-		CreateAddress(0x00, 0x00),
+		types.CreateAddress(0x00, 0x00),
 		uint32(cpuCycles),
 	}
 
@@ -137,7 +139,7 @@ func (state CpuState) Equals(b CpuState) bool {
 		state.Registers.X != b.Registers.X ||
 		state.Registers.Y != b.Registers.Y ||
 		state.Registers.Sp != b.Registers.Sp ||
-		state.Registers.statusRegister() != b.Registers.statusRegister() ||
+		state.Registers.StatusRegister() != b.Registers.StatusRegister() ||
 		state.CyclesSinceReset != b.CyclesSinceReset {
 		return false
 	}
@@ -154,17 +156,11 @@ func (state CpuState) ToString() string {
 		state.Registers.A,
 		state.Registers.X,
 		state.Registers.Y,
-		state.Registers.statusRegister(),
+		state.Registers.StatusRegister(),
 		state.Registers.Sp,
 	)
 	// Cycles
 	msg += fmt.Sprintf("PPU:%d,%d CYC:%d", 0, 0, state.CyclesSinceReset)
 
 	return msg
-}
-
-func clampSpace(msg *strings.Builder, clamp int) {
-	for i := msg.Len(); i <= clamp; i++ {
-		msg.WriteString(" ")
-	}
 }

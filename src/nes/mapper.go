@@ -1,13 +1,16 @@
 package nes
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/raulferras/nes-golang/src/nes/types"
+)
 
 type Mapper interface {
 	prgBanks() byte
 	chrBanks() byte
 
-	Read(address Address) byte
-	Write(address Address, value byte)
+	Read(address types.Address) byte
+	Write(address types.Address, value byte)
 }
 
 func CreateMapper(gamePak *GamePak) Mapper {

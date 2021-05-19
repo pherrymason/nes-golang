@@ -69,20 +69,40 @@ func TestPPUMemory_read_nametables(t *testing.T) {
 			mirrored{0x27FF, 0x2FFF, 0x7FF},
 		},
 		{
-			"horizontal mirroring",
+			"horizontal mirroring NameTable 2 mirrors NameTable 0",
 			gamePak.HorizontalMirroring,
 			mirrored{0x2000, 0x2400, 0},
+			mirrored{0x23FF, 0x27FF, 0x3FF},
+		},
+		{
+			"horizontal mirroring NameTable 3 mirrors NameTable 1",
+			gamePak.HorizontalMirroring,
 			mirrored{0x2800, 0x2C00, 0x400},
+			mirrored{0x2BFF, 0x2FFF, 0x7FF},
+		},
+		{
+			"one screen mirroring",
+			gamePak.OneScreenMirroring,
+			mirrored{0x2000, 0x2400, 0x000},
+			mirrored{0x23FF, 0x27FF, 0x3FF},
+		},
+		{
+			"one screen mirroring > 0x2800",
+			gamePak.OneScreenMirroring,
+			mirrored{0x2000, 0x2800, 0x000},
+			mirrored{0x23FF, 0x2BFF, 0x3FF},
+		},
+		{
+			"one screen mirroring > 0x2C00",
+			gamePak.OneScreenMirroring,
+			mirrored{0x2000, 0x2C00, 0x000},
+			mirrored{0x23FF, 0x2FFF, 0x3FF},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mirrorMode := byte(0)
-			if tt.mirrorMode == gamePak.VerticalMirroring {
-				mirrorMode = 1
-			}
-			header := gamePak.CreateINes1Header(10, 10, mirrorMode, 0, 0, 0, 0)
+			header := gamePak.CreateINes1Header(10, 10, tt.mirrorMode, 0, 0, 0, 0)
 			pak := CreateGamePak(header, []byte{0}, []byte{0})
 			ppu := &PPUMemory{
 				gamePak:      &pak,
@@ -126,10 +146,16 @@ func TestPPUMemory_write_nametables(t *testing.T) {
 			mirrored{0x27FF, 0x2FFF, 0x7FF},
 		},
 		{
-			"horizontal mirroring",
+			"horizontal mirroring NameTable 2 mirrors NameTable 0",
 			gamePak.HorizontalMirroring,
 			mirrored{0x2000, 0x2400, 0},
+			mirrored{0x23FF, 0x27FF, 0x3FF},
+		},
+		{
+			"horizontal mirroring NameTable 3 mirrors NameTable 1",
+			gamePak.HorizontalMirroring,
 			mirrored{0x2800, 0x2C00, 0x400},
+			mirrored{0x2BFF, 0x2FFF, 0x7FF},
 		},
 	}
 

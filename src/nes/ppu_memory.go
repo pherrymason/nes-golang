@@ -1,6 +1,9 @@
 package nes
 
-import gamePak2 "github.com/raulferras/nes-golang/src/nes/gamePak"
+import (
+	gamePak2 "github.com/raulferras/nes-golang/src/nes/gamePak"
+	"github.com/raulferras/nes-golang/src/nes/types"
+)
 
 // PPUMemory map
 // -------------
@@ -44,25 +47,19 @@ func CreatePPUMemory(gamePak *GamePak) *PPUMemory {
 	}
 }
 
-func (ppu *PPUMemory) Peek(address Address) byte {
+func (ppu *PPUMemory) Peek(address types.Address) byte {
 	return ppu.read(address, false)
 }
 
-func (ppu *PPUMemory) Read(address Address) byte {
+func (ppu *PPUMemory) Read(address types.Address) byte {
 	return ppu.read(address, true)
 }
 
-func (ppu *PPUMemory) read(address Address, readOnly bool) byte {
-	result := byte(0x00)
-
-	// CHR ROM address
-	if address < 0x01FFF {
-		result = ppu.gamePak.chrROM[address]
-	} else if address >= 0x2000 && address <= 0x2FFF {
-		// Nametable 0, 1, 2, 3
-		mirroring := ppu.gamePak.header.Mirroring()
-		realAddress := Address(0)
-		if mirroring == gamePak2.VerticalMirroring {
+func nameTableMirrorAddress(mirrorMode byte, address types.Address) types.Address {
+	realAddress := address
+	if mirrorMode == gamePak2.VerticalMirroring {
+		realAddress = (address - 0x2000) & 0x27FF
+		/*
 			if address >= 0x2000 && address <= 0x23FF {
 				// Nametable 0
 				realAddress = address - 0x2000
@@ -75,16 +72,33 @@ func (ppu *PPUMemory) read(address Address, readOnly bool) byte {
 			} else {
 				// Nametable 3
 				realAddress = address - 0x2800
-			}
-
-			result = ppu.vram[realAddress]
-		} else {
-			if address < 0x2800 {
-				result = ppu.vram[address-0x2400]
-			} else {
-				result = ppu.vram[address-0x2400]
-			}
+			}*/
+	} else if mirrorMode == gamePak2.HorizontalMirroring {
+		if address >= 0x2000 && address < 0x2400 {
+			realAddress = address - 0x2000
+		} else if address >= 0x2400 && address <= 0x27FF {
+			realAddress = address - 0x2400
+		} else if address >= 0x2800 && address <= 0x2BFF {
+			realAddress = address - 0x2400
+		} else if address >= 0x2C00 && address <= 0x2FFF {
+			realAddress = address - 0x2800
 		}
+	}
+
+	return realAddress
+}
+
+func (ppu *PPUMemory) read(address types.Address, readOnly bool) byte {
+	result := byte(0x00)
+
+	// CHR ROM address
+	if address < 0x01FFF {
+		result = ppu.gamePak.chrROM[address]
+	} else if address >= 0x2000 && address <= 0x2FFF {
+		// Nametable 0, 1, 2, 3
+		mirroring := ppu.gamePak.header.Mirroring()
+		realAddress := nameTableMirrorAddress(mirroring, address)
+		result = ppu.vram[realAddress]
 	} else if address >= 0x3F00 && address <= 0x3FFF {
 		// palette ram indexes
 		address &= 0x1F
@@ -104,11 +118,10 @@ func (ppu *PPUMemory) read(address Address, readOnly bool) byte {
 	return result
 }
 
-func (ppu *PPUMemory) Write(address Address, value byte) {
+func (ppu *PPUMemory) Write(address types.Address, value byte) {
 	if address >= 0x2000 && address <= 0x2FFF {
-		if ppu.gamePak.Header().Mirroring() == gamePak2.VerticalMirroring {
-			ppu.vram[(address-0x2000)&0x27FF] = value
-		}
+		realAddress := nameTableMirrorAddress(ppu.gamePak.Header().Mirroring(), address)
+		ppu.vram[realAddress] = value
 	} else if address == 0x4010 {
 		// OAM DMA: Transfers 256 bytes of data from CPU page $XX00-$XXFF to internal PPU OAM
 		// DMA will begin at current OAM write address.

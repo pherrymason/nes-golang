@@ -1,8 +1,10 @@
 package nes
 
+import "github.com/raulferras/nes-golang/src/nes/types"
+
 type OperationMethodArgument struct {
 	AddressMode    AddressMode
-	OperandAddress Address
+	OperandAddress types.Address
 }
 
 type OperationMethod func(info OperationMethodArgument) bool
@@ -63,7 +65,7 @@ func (cpu *Cpu6502) irq() {
 	cpu.registers.Pc = cpu.read16(0xFFFE)
 }
 
-func (cpu *Cpu6502) evalImplicit(programCounter Address) (finalAddress Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
+func (cpu *Cpu6502) evalImplicit(programCounter types.Address) (finalAddress types.Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
 	finalAddress = 0
 	cycles = 0
 	return
@@ -73,7 +75,7 @@ func (cpu *Cpu6502) evalImplicit(programCounter Address) (finalAddress Address, 
  * Immediate addressing allows the programmer to directly specify an 8 bit constant within the instruction.
  * It is indicated by a '#' symbol followed by an numeric expression.
  */
-func (cpu *Cpu6502) evalImmediate(programCounter Address) (address Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
+func (cpu *Cpu6502) evalImmediate(programCounter types.Address) (address types.Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
 	address = programCounter
 	cycles = 0
 	opcodeOperand = [3]byte{byte(programCounter)}
@@ -81,70 +83,70 @@ func (cpu *Cpu6502) evalImmediate(programCounter Address) (address Address, opco
 	return
 }
 
-func (cpu *Cpu6502) evalZeroPage(programCounter Address) (address Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
+func (cpu *Cpu6502) evalZeroPage(programCounter types.Address) (address types.Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
 	// 2 bytes
 	var low = cpu.memory.Read(programCounter)
 
-	address = Address(low)
+	address = types.Address(low)
 	opcodeOperand = [3]byte{low}
 
 	return
 }
 
-func (cpu *Cpu6502) evalZeroPageX(programCounter Address) (address Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
+func (cpu *Cpu6502) evalZeroPageX(programCounter types.Address) (address types.Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
 	registers := cpu.registers
 	var low = cpu.memory.Read(programCounter) + registers.X
 
-	address = Address(low) & 0xFF
+	address = types.Address(low) & 0xFF
 	opcodeOperand = [3]byte{low}
 
 	return
 }
 
-func (cpu *Cpu6502) evalZeroPageY(programCounter Address) (address Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
+func (cpu *Cpu6502) evalZeroPageY(programCounter types.Address) (address types.Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
 	registers := cpu.registers
 	var low = cpu.memory.Read(programCounter) + registers.Y
 
-	address = Address(low) & 0xFF
+	address = types.Address(low) & 0xFF
 	opcodeOperand = [3]byte{low}
 	return
 }
 
-func (cpu *Cpu6502) evalAbsolute(programCounter Address) (address Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
+func (cpu *Cpu6502) evalAbsolute(programCounter types.Address) (address types.Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
 	low := cpu.memory.Read(programCounter)
 	programCounter += 1
 
 	// Bug: Missing incrementing programCounter
 	high := cpu.memory.Read(programCounter)
 
-	address = CreateAddress(low, high)
+	address = types.CreateAddress(low, high)
 	opcodeOperand = [3]byte{low, high}
 
 	return
 }
 
-func (cpu *Cpu6502) evalAbsoluteXIndexed(programCounter Address) (address Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
+func (cpu *Cpu6502) evalAbsoluteXIndexed(programCounter types.Address) (address types.Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
 	low := cpu.memory.Read(programCounter)
 
 	high := cpu.memory.Read(programCounter + 1)
 
-	address = CreateAddress(low, high)
-	address += Address(cpu.registers.X)
+	address = types.CreateAddress(low, high)
+	address += types.Address(cpu.registers.X)
 
 	opcodeOperand = [3]byte{low, high}
-	pageCrossed = memoryPageDiffer(address-Address(cpu.registers.X), address)
+	pageCrossed = memoryPageDiffer(address-types.Address(cpu.registers.X), address)
 
 	return
 }
 
-func (cpu *Cpu6502) evalAbsoluteYIndexed(programCounter Address) (address Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
+func (cpu *Cpu6502) evalAbsoluteYIndexed(programCounter types.Address) (address types.Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
 	low := cpu.memory.Read(programCounter)
 	high := cpu.memory.Read(programCounter + 1)
 
-	address = CreateAddress(low, high)
-	address += Address(cpu.registers.Y)
+	address = types.CreateAddress(low, high)
+	address += types.Address(cpu.registers.Y)
 
-	pageCrossed = memoryPageDiffer(address-Address(cpu.registers.Y), address)
+	pageCrossed = memoryPageDiffer(address-types.Address(cpu.registers.Y), address)
 	opcodeOperand = [3]byte{low, high}
 
 	return
@@ -164,55 +166,55 @@ func (cpu *Cpu6502) evalAbsoluteYIndexed(programCounter Address) (address Addres
 // then the LSB will be read from 0x01FF and the MSB will be read from 0x0100.
 // This is an actual hardware bug in early revisions of the 6502 which happen to be present
 // in the 2A03 used by the NES.
-func (cpu *Cpu6502) evalIndirect(programCounter Address) (address Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
-	// Get Pointer Address
+func (cpu *Cpu6502) evalIndirect(programCounter types.Address) (address types.Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
+	// Get Pointer types.Address
 	ptrLow := cpu.memory.Read(programCounter)
 	ptrHigh := cpu.memory.Read(programCounter + 1)
 
-	ptrAddress := CreateAddress(ptrLow, ptrHigh)
+	ptrAddress := types.CreateAddress(ptrLow, ptrHigh)
 	address = cpu.read16Bugged(ptrAddress)
 	opcodeOperand = [3]byte{ptrLow, ptrHigh}
 
 	return
 }
 
-func (cpu *Cpu6502) evalIndirectX(programCounter Address) (address Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
+func (cpu *Cpu6502) evalIndirectX(programCounter types.Address) (address types.Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
 	operand := cpu.memory.Read(programCounter)
 	opcodeOperand = [3]byte{operand}
 
 	operand += cpu.registers.X
 	operand &= 0xFF
 
-	effectiveLow := cpu.memory.Read(Address(operand))
-	effectiveHigh := cpu.memory.Read(Address(operand + 1)) // automatic warp around
+	effectiveLow := cpu.memory.Read(types.Address(operand))
+	effectiveHigh := cpu.memory.Read(types.Address(operand + 1)) // automatic warp around
 
-	address = CreateAddress(effectiveLow, effectiveHigh)
+	address = types.CreateAddress(effectiveLow, effectiveHigh)
 
 	return
 }
 
-func (cpu *Cpu6502) evalIndirectY(programCounter Address) (address Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
+func (cpu *Cpu6502) evalIndirectY(programCounter types.Address) (address types.Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
 	operand := cpu.memory.Read(programCounter)
 
-	lo := cpu.memory.Read(Address(operand))
-	hi := cpu.memory.Read(Address(operand + 1)) // automatic warp around
+	lo := cpu.memory.Read(types.Address(operand))
+	hi := cpu.memory.Read(types.Address(operand + 1)) // automatic warp around
 
-	address = CreateAddress(lo, hi)
-	address += Word(cpu.registers.Y)
+	address = types.CreateAddress(lo, hi)
+	address += types.Word(cpu.registers.Y)
 
-	pageCrossed = address&0xFF00 != Address(hi)<<8
+	pageCrossed = address&0xFF00 != types.Address(hi)<<8
 	opcodeOperand = [3]byte{lo, hi}
 	return
 }
 
-func (cpu *Cpu6502) evalRelative(programCounter Address) (address Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
+func (cpu *Cpu6502) evalRelative(programCounter types.Address) (address types.Address, opcodeOperand [3]byte, cycles int, pageCrossed bool) {
 	operand := cpu.memory.Read(programCounter)
 
 	address = programCounter + 1
 	if operand < 0x80 {
-		address += Address(operand)
+		address += types.Address(operand)
 	} else {
-		address += Address(operand) - 0x100
+		address += types.Address(operand) - 0x100
 	}
 
 	opcodeOperand = [3]byte{operand}
@@ -240,28 +242,23 @@ func (cpu *Cpu6502) evalRelative(programCounter Address) (address Address, opcod
 	https://forums.nesdev.com/viewtopic.php?t=6331
 */
 func (cpu *Cpu6502) adc(info OperationMethodArgument) bool {
-	carryIn := cpu.registers.carryFlag()
+	carryIn := cpu.registers.CarryFlag()
 	a := cpu.registers.A
 	value := cpu.memory.Read(info.OperandAddress)
 	adc := uint16(a) + uint16(value) + uint16(carryIn)
-	adc8 := cpu.registers.A + value + cpu.registers.carryFlag()
+	adc8 := cpu.registers.A + value + cpu.registers.CarryFlag()
 
 	cpu.registers.A = adc8
-	cpu.registers.updateNegativeFlag(cpu.registers.A)
-	cpu.registers.updateZeroFlag(cpu.registers.A)
-
-	if (adc) > 0xFF {
-		cpu.registers.setFlag(carryFlag)
-	} else {
-		cpu.registers.unsetFlag(carryFlag)
-	}
+	cpu.registers.UpdateNegativeFlag(cpu.registers.A)
+	cpu.registers.UpdateZeroFlag(cpu.registers.A)
+	cpu.registers.SetCarryFlag(adc > 0xFF)
 
 	// The exclusive-or bitwise operator is a neat little tool to check if the sign of two numbers is the same
 	// If the sign of the sum matches either the sign of A or the sign of v, then you don't overflow
 	if ((uint16(a) ^ adc) & (uint16(value) ^ adc) & 0x80) > 0 {
-		cpu.registers.setFlag(overflowFlag)
+		cpu.registers.SetOverflowFlag(true)
 	} else {
-		cpu.registers.unsetFlag(overflowFlag)
+		cpu.registers.SetOverflowFlag(false)
 	}
 
 	return true
@@ -281,8 +278,8 @@ func (cpu *Cpu6502) adc(info OperationMethodArgument) bool {
 //	* Add 1 if page boundary is crossed.
 func (cpu *Cpu6502) and(info OperationMethodArgument) bool {
 	cpu.registers.A &= cpu.memory.Read(info.OperandAddress)
-	cpu.registers.updateNegativeFlag(cpu.registers.A)
-	cpu.registers.updateZeroFlag(cpu.registers.A)
+	cpu.registers.UpdateNegativeFlag(cpu.registers.A)
+	cpu.registers.UpdateZeroFlag(cpu.registers.A)
 
 	return true
 }
@@ -302,17 +299,17 @@ func (cpu *Cpu6502) and(info OperationMethodArgument) bool {
 */
 func (cpu *Cpu6502) asl(info OperationMethodArgument) bool {
 	if info.AddressMode == Implicit {
-		cpu.registers.updateFlag(carryFlag, cpu.registers.A>>7&0x01)
+		cpu.registers.SetCarryFlag(cpu.registers.A>>7&0x01 == 1)
 		cpu.registers.A = cpu.registers.A << 1
-		cpu.registers.updateNegativeFlag(cpu.registers.A)
-		cpu.registers.updateZeroFlag(cpu.registers.A)
+		cpu.registers.UpdateNegativeFlag(cpu.registers.A)
+		cpu.registers.UpdateZeroFlag(cpu.registers.A)
 	} else {
 		value := cpu.memory.Read(info.OperandAddress)
-		cpu.registers.updateFlag(carryFlag, value>>7&0x01)
+		cpu.registers.SetCarryFlag(value>>7&0x01 == 1)
 		value = value << 1
 		cpu.memory.Write(info.OperandAddress, value)
-		cpu.registers.updateNegativeFlag(value)
-		cpu.registers.updateZeroFlag(value)
+		cpu.registers.UpdateNegativeFlag(value)
+		cpu.registers.UpdateZeroFlag(value)
 	}
 
 	return false
@@ -338,7 +335,7 @@ func (cpu *Cpu6502) addBranchCycles(info OperationMethodArgument) bool {
 	Relative      BCC oper      90    2     2**
 */
 func (cpu *Cpu6502) bcc(info OperationMethodArgument) bool {
-	if cpu.registers.carryFlag() == 0 {
+	if cpu.registers.CarryFlag() == 0 {
 		cpu.addBranchCycles(info)
 		cpu.registers.Pc = info.OperandAddress
 	}
@@ -357,7 +354,7 @@ func (cpu *Cpu6502) bcc(info OperationMethodArgument) bool {
 	Relative      BCS oper      B0    2     2**
 */
 func (cpu *Cpu6502) bcs(info OperationMethodArgument) bool {
-	if cpu.registers.carryFlag() == 1 {
+	if cpu.registers.CarryFlag() == 1 {
 		cpu.addBranchCycles(info)
 		cpu.registers.Pc = info.OperandAddress
 	}
@@ -376,7 +373,7 @@ func (cpu *Cpu6502) bcs(info OperationMethodArgument) bool {
 	Relative      BEQ oper      F0    2     2**
 */
 func (cpu *Cpu6502) beq(info OperationMethodArgument) bool {
-	if cpu.registers.zeroFlag() == 1 {
+	if cpu.registers.ZeroFlag() == 1 {
 		cpu.addBranchCycles(info)
 		cpu.registers.Pc = info.OperandAddress
 	}
@@ -401,9 +398,9 @@ func (cpu *Cpu6502) beq(info OperationMethodArgument) bool {
 */
 func (cpu *Cpu6502) bit(info OperationMethodArgument) bool {
 	value := cpu.memory.Read(info.OperandAddress)
-	cpu.registers.updateNegativeFlag(value)
-	cpu.registers.updateFlag(overflowFlag, (value>>6)&0x01)
-	cpu.registers.updateZeroFlag(value & cpu.registers.A)
+	cpu.registers.UpdateNegativeFlag(value)
+	cpu.registers.SetOverflowFlag((value>>6)&0x01 == 1)
+	cpu.registers.UpdateZeroFlag(value & cpu.registers.A)
 
 	return false
 }
@@ -419,7 +416,7 @@ func (cpu *Cpu6502) bit(info OperationMethodArgument) bool {
 	Relative      BMI oper      30    2     2**
 */
 func (cpu *Cpu6502) bmi(info OperationMethodArgument) bool {
-	if cpu.registers.negativeFlag() == 1 {
+	if cpu.registers.NegativeFlag() == 1 {
 		cpu.addBranchCycles(info)
 		cpu.registers.Pc = info.OperandAddress
 	}
@@ -438,7 +435,7 @@ func (cpu *Cpu6502) bmi(info OperationMethodArgument) bool {
 	Relative      BNE oper      D0    2     2**
 */
 func (cpu *Cpu6502) bne(info OperationMethodArgument) bool {
-	if cpu.registers.zeroFlag() == 0 {
+	if cpu.registers.ZeroFlag() == 0 {
 		cpu.addBranchCycles(info)
 		cpu.registers.Pc = info.OperandAddress
 	}
@@ -458,7 +455,7 @@ func (cpu *Cpu6502) bne(info OperationMethodArgument) bool {
 */
 func (cpu *Cpu6502) bpl(info OperationMethodArgument) bool {
 	//if !cpu.Registers.NegativeFlag {
-	if cpu.registers.negativeFlag() == 0 {
+	if cpu.registers.NegativeFlag() == 0 {
 		cpu.addBranchCycles(info)
 		cpu.registers.Pc = info.OperandAddress
 	}
@@ -483,13 +480,13 @@ func (cpu *Cpu6502) bpl(info OperationMethodArgument) bool {
 func (cpu *Cpu6502) brk(info OperationMethodArgument) bool {
 	// Store PC in stack
 	pc := cpu.registers.Pc
-	cpu.pushStack(HighNibble(pc))
-	cpu.pushStack(LowNibble(pc))
+	cpu.pushStack(types.HighNibble(pc))
+	cpu.pushStack(types.LowNibble(pc))
 
 	// Push status with Break flag set
 	cpu.pushStack(cpu.registers.Status | 0b00010000)
 
-	cpu.registers.updateFlag(interruptFlag, 1)
+	cpu.registers.SetInterruptFlag(true)
 
 	cpu.registers.Pc = cpu.read16(0xFFFE)
 
@@ -506,7 +503,7 @@ func (cpu *Cpu6502) brk(info OperationMethodArgument) bool {
 	Relative      BVC oper      50    2     2**
 */
 func (cpu *Cpu6502) bvc(info OperationMethodArgument) bool {
-	if cpu.registers.overflowFlag() == 0 {
+	if cpu.registers.OverflowFlag() == 0 {
 		cpu.addBranchCycles(info)
 		cpu.registers.Pc = info.OperandAddress
 	}
@@ -524,7 +521,7 @@ func (cpu *Cpu6502) bvc(info OperationMethodArgument) bool {
 	Relative      BVC oper      70    2     2**
 */
 func (cpu *Cpu6502) bvs(info OperationMethodArgument) bool {
-	if cpu.registers.overflowFlag() == 1 {
+	if cpu.registers.OverflowFlag() == 1 {
 		cpu.addBranchCycles(info)
 		cpu.registers.Pc = info.OperandAddress
 	}
@@ -542,7 +539,7 @@ func (cpu *Cpu6502) bvs(info OperationMethodArgument) bool {
 	implied       CLC           18    1     2
 */
 func (cpu *Cpu6502) clc(info OperationMethodArgument) bool {
-	cpu.registers.updateFlag(carryFlag, 0)
+	cpu.registers.SetCarryFlag(false)
 
 	return false
 }
@@ -557,7 +554,7 @@ func (cpu *Cpu6502) clc(info OperationMethodArgument) bool {
 	implied       CLD           D8    1     2
 */
 func (cpu *Cpu6502) cld(info OperationMethodArgument) bool {
-	cpu.registers.updateFlag(decimalFlag, 0)
+	cpu.registers.SetDecimalFlag(false)
 
 	return false
 }
@@ -572,7 +569,7 @@ func (cpu *Cpu6502) cld(info OperationMethodArgument) bool {
 	implied       CLI           58    1     2
 */
 func (cpu *Cpu6502) cli(info OperationMethodArgument) bool {
-	cpu.registers.updateFlag(interruptFlag, 0)
+	cpu.registers.SetInterruptFlag(false)
 
 	return false
 }
@@ -587,7 +584,7 @@ func (cpu *Cpu6502) cli(info OperationMethodArgument) bool {
 	implied       CLV           B8    1     2
 */
 func (cpu *Cpu6502) clv(info OperationMethodArgument) bool {
-	cpu.registers.updateFlag(overflowFlag, 0)
+	cpu.registers.SetOverflowFlag(false)
 
 	return false
 }
@@ -658,19 +655,19 @@ func (cpu *Cpu6502) cpy(info OperationMethodArgument) bool {
 func (cpu *Cpu6502) compare(register byte, operand byte) {
 	substraction := register - operand
 
-	cpu.registers.updateFlag(zeroFlag, 0)
-	cpu.registers.updateFlag(carryFlag, 0)
-	cpu.registers.updateFlag(negativeFlag, 0)
+	cpu.registers.SetZeroFlag(false)
+	cpu.registers.SetCarryFlag(false)
+	cpu.registers.SetNegativeFlag(false)
 
 	if register >= operand {
-		cpu.registers.updateFlag(carryFlag, 1)
+		cpu.registers.SetCarryFlag(true)
 	}
 
 	if register == operand {
-		cpu.registers.updateFlag(zeroFlag, 1)
+		cpu.registers.SetZeroFlag(true)
 	}
 
-	cpu.registers.updateNegativeFlag(substraction)
+	cpu.registers.UpdateNegativeFlag(substraction)
 }
 
 func (cpu *Cpu6502) dec(info OperationMethodArgument) bool {
@@ -680,17 +677,17 @@ func (cpu *Cpu6502) dec(info OperationMethodArgument) bool {
 	operand--
 	cpu.memory.Write(address, operand)
 
-	cpu.registers.updateZeroFlag(operand)
+	cpu.registers.UpdateZeroFlag(operand)
 	//if operand == 0 {
 	//	cpu.Registers.ZeroFlag = true
 	//} else {
 	//	cpu.Registers.ZeroFlag = false
 	//}
-	cpu.registers.updateNegativeFlag(operand)
+	cpu.registers.UpdateNegativeFlag(operand)
 	//if operand == 0xFF {
 	//	cpu.Registers.updateFlag(negativeFlag, 1)
 	//} else {
-	//	cpu.Registers.updateFlag(negativeFlag, 0)
+	//	cpu.Registers.SetNegativeFlag(false)
 	//}
 
 	return false
@@ -700,13 +697,13 @@ func (cpu *Cpu6502) dex(info OperationMethodArgument) bool {
 	cpu.registers.X--
 	operand := cpu.registers.X
 
-	cpu.registers.updateZeroFlag(operand)
+	cpu.registers.UpdateZeroFlag(operand)
 	//if operand == 0 {
 	//	cpu.Registers.ZeroFlag = true
 	//} else {
 	//	cpu.Registers.ZeroFlag = false
 	//}
-	cpu.registers.updateNegativeFlag(operand)
+	cpu.registers.UpdateNegativeFlag(operand)
 	//if operand == 0xFF {
 	//	cpu.Registers.updateFlag(negativeFlag, 1)
 	//} else {
@@ -721,8 +718,8 @@ func (cpu *Cpu6502) dey(info OperationMethodArgument) bool {
 	operand--
 	cpu.registers.Y = operand
 
-	cpu.registers.updateZeroFlag(operand)
-	cpu.registers.updateNegativeFlag(operand)
+	cpu.registers.UpdateZeroFlag(operand)
+	cpu.registers.UpdateNegativeFlag(operand)
 	//if operand == 0 {
 	//	cpu.Registers.ZeroFlag = true
 	//} else {
@@ -759,8 +756,8 @@ func (cpu *Cpu6502) eor(info OperationMethodArgument) bool {
 	value := cpu.memory.Read(info.OperandAddress)
 
 	cpu.registers.A = cpu.registers.A ^ value
-	cpu.registers.updateZeroFlag(cpu.registers.A)
-	cpu.registers.updateNegativeFlag(cpu.registers.A)
+	cpu.registers.UpdateZeroFlag(cpu.registers.A)
+	cpu.registers.UpdateNegativeFlag(cpu.registers.A)
 
 	return true
 }
@@ -782,8 +779,8 @@ func (cpu *Cpu6502) inc(info OperationMethodArgument) bool {
 	value += 1
 
 	cpu.memory.Write(info.OperandAddress, value)
-	cpu.registers.updateZeroFlag(value)
-	cpu.registers.updateNegativeFlag(value)
+	cpu.registers.UpdateZeroFlag(value)
+	cpu.registers.UpdateNegativeFlag(value)
 
 	return false
 }
@@ -799,8 +796,8 @@ func (cpu *Cpu6502) inc(info OperationMethodArgument) bool {
 */
 func (cpu *Cpu6502) inx(info OperationMethodArgument) bool {
 	cpu.registers.X += 1
-	cpu.registers.updateZeroFlag(cpu.registers.X)
-	cpu.registers.updateNegativeFlag(cpu.registers.X)
+	cpu.registers.UpdateZeroFlag(cpu.registers.X)
+	cpu.registers.UpdateNegativeFlag(cpu.registers.X)
 
 	return false
 }
@@ -816,8 +813,8 @@ func (cpu *Cpu6502) inx(info OperationMethodArgument) bool {
 */
 func (cpu *Cpu6502) iny(info OperationMethodArgument) bool {
 	cpu.registers.Y += 1
-	cpu.registers.updateZeroFlag(cpu.registers.Y)
-	cpu.registers.updateNegativeFlag(cpu.registers.Y)
+	cpu.registers.UpdateZeroFlag(cpu.registers.Y)
+	cpu.registers.UpdateNegativeFlag(cpu.registers.Y)
 
 	return false
 }
@@ -839,7 +836,7 @@ func (cpu *Cpu6502) jmp(info OperationMethodArgument) bool {
 }
 
 /*
-	JSR  Jump to New Location Saving Return Address
+	JSR  Jump to New Location Saving Return types.Address
 	push (PC+2),                     N Z C I D V
 	(PC+1) -> PCL                    - - - - - -
 	(PC+2) -> PCH
@@ -876,8 +873,8 @@ func (cpu *Cpu6502) jsr(info OperationMethodArgument) bool {
 */
 func (cpu *Cpu6502) lda(info OperationMethodArgument) bool {
 	cpu.registers.A = cpu.memory.Read(info.OperandAddress)
-	cpu.registers.updateZeroFlag(cpu.registers.A)
-	cpu.registers.updateNegativeFlag(cpu.registers.A)
+	cpu.registers.UpdateZeroFlag(cpu.registers.A)
+	cpu.registers.UpdateNegativeFlag(cpu.registers.A)
 
 	return true
 }
@@ -897,8 +894,8 @@ func (cpu *Cpu6502) lda(info OperationMethodArgument) bool {
 */
 func (cpu *Cpu6502) ldx(info OperationMethodArgument) bool {
 	cpu.registers.X = cpu.memory.Read(info.OperandAddress)
-	cpu.registers.updateZeroFlag(cpu.registers.X)
-	cpu.registers.updateNegativeFlag(cpu.registers.X)
+	cpu.registers.UpdateZeroFlag(cpu.registers.X)
+	cpu.registers.UpdateNegativeFlag(cpu.registers.X)
 
 	return true
 }
@@ -918,8 +915,8 @@ func (cpu *Cpu6502) ldx(info OperationMethodArgument) bool {
 */
 func (cpu *Cpu6502) ldy(info OperationMethodArgument) bool {
 	cpu.registers.Y = cpu.memory.Read(info.OperandAddress)
-	cpu.registers.updateZeroFlag(cpu.registers.Y)
-	cpu.registers.updateNegativeFlag(cpu.registers.Y)
+	cpu.registers.UpdateZeroFlag(cpu.registers.Y)
+	cpu.registers.UpdateNegativeFlag(cpu.registers.Y)
 
 	return true
 }
@@ -946,11 +943,11 @@ func (cpu *Cpu6502) lsr(info OperationMethodArgument) bool {
 	}
 
 	//cpu.Registers.CarryFlag = value & 0x01
-	cpu.registers.updateFlag(carryFlag, value&0x01)
+	cpu.registers.SetCarryFlag(value&0x01 == 1)
 
 	value >>= 1
-	cpu.registers.updateZeroFlag(value)
-	cpu.registers.updateNegativeFlag(0)
+	cpu.registers.UpdateZeroFlag(value)
+	cpu.registers.UpdateNegativeFlag(0)
 
 	if info.AddressMode == Implicit {
 		cpu.registers.A = value
@@ -993,8 +990,8 @@ func (cpu *Cpu6502) nop(info OperationMethodArgument) bool {
 func (cpu *Cpu6502) ora(info OperationMethodArgument) bool {
 	value := cpu.memory.Read(info.OperandAddress)
 	cpu.registers.A |= value
-	cpu.registers.updateZeroFlag(cpu.registers.A)
-	cpu.registers.updateNegativeFlag(cpu.registers.A)
+	cpu.registers.UpdateZeroFlag(cpu.registers.A)
+	cpu.registers.UpdateNegativeFlag(cpu.registers.A)
 
 	return true
 }
@@ -1024,7 +1021,7 @@ func (cpu *Cpu6502) pha(info OperationMethodArgument) bool {
 	implied       PHP           08    1     3
 */
 func (cpu *Cpu6502) php(info OperationMethodArgument) bool {
-	value := cpu.registers.statusRegister()
+	value := cpu.registers.StatusRegister()
 	value |= 0b00110000
 	cpu.pushStack(value)
 
@@ -1042,8 +1039,8 @@ func (cpu *Cpu6502) php(info OperationMethodArgument) bool {
 */
 func (cpu *Cpu6502) pla(info OperationMethodArgument) bool {
 	cpu.registers.A = cpu.popStack()
-	cpu.registers.updateNegativeFlag(cpu.registers.A)
-	cpu.registers.updateZeroFlag(cpu.registers.A)
+	cpu.registers.UpdateNegativeFlag(cpu.registers.A)
+	cpu.registers.UpdateZeroFlag(cpu.registers.A)
 
 	return false
 }
@@ -1065,7 +1062,7 @@ func (cpu *Cpu6502) plp(info OperationMethodArgument) bool {
 	// From https://wiki.nesdev.com/w/index.php/Status_flags
 	// ...two instructions (PLP and RTI) pull a byte from the stack and set all the flags.
 	// They ignore bits 5 and 4.
-	cpu.registers.loadStatusRegister(value)
+	cpu.registers.LoadStatusRegister(value)
 
 	return false
 }
@@ -1089,19 +1086,19 @@ func (cpu *Cpu6502) rol(info OperationMethodArgument) bool {
 	if info.AddressMode == Implicit {
 		newCarry = cpu.registers.A & 0x80 >> 7
 		cpu.registers.A <<= 1
-		cpu.registers.A |= cpu.registers.carryFlag()
+		cpu.registers.A |= cpu.registers.CarryFlag()
 		value = cpu.registers.A
 	} else {
 		value = cpu.memory.Read(info.OperandAddress)
 		newCarry = value & 0x80 >> 7
 		value <<= 1
-		value |= cpu.registers.carryFlag()
+		value |= cpu.registers.CarryFlag()
 		cpu.memory.Write(info.OperandAddress, value)
 	}
 
-	cpu.registers.updateNegativeFlag(value)
-	cpu.registers.updateZeroFlag(value)
-	cpu.registers.updateFlag(carryFlag, newCarry)
+	cpu.registers.UpdateNegativeFlag(value)
+	cpu.registers.UpdateZeroFlag(value)
+	cpu.registers.SetCarryFlag(newCarry == 1)
 
 	return false
 }
@@ -1125,19 +1122,19 @@ func (cpu *Cpu6502) ror(info OperationMethodArgument) bool {
 	if info.AddressMode == Implicit {
 		newCarry = cpu.registers.A & 0x01
 		cpu.registers.A >>= 1
-		cpu.registers.A |= cpu.registers.carryFlag() << 7
+		cpu.registers.A |= cpu.registers.CarryFlag() << 7
 		value = cpu.registers.A
 	} else {
 		value = cpu.memory.Read(info.OperandAddress)
 		newCarry = value & 0x01
 		value >>= 1
-		value |= cpu.registers.carryFlag() << 7
+		value |= cpu.registers.CarryFlag() << 7
 		cpu.memory.Write(info.OperandAddress, value)
 	}
 
-	cpu.registers.updateNegativeFlag(value)
-	cpu.registers.updateZeroFlag(value)
-	cpu.registers.updateFlag(carryFlag, newCarry)
+	cpu.registers.UpdateNegativeFlag(value)
+	cpu.registers.UpdateZeroFlag(value)
+	cpu.registers.SetCarryFlag(newCarry == 1)
 
 	return false
 }
@@ -1154,11 +1151,11 @@ func (cpu *Cpu6502) ror(info OperationMethodArgument) bool {
 */
 func (cpu *Cpu6502) rti(info OperationMethodArgument) bool {
 	statusRegister := cpu.popStack()
-	cpu.registers.loadStatusRegister(statusRegister)
+	cpu.registers.LoadStatusRegister(statusRegister)
 
 	lsb := cpu.popStack()
 	msb := cpu.popStack()
-	cpu.registers.Pc = CreateAddress(lsb, msb)
+	cpu.registers.Pc = types.CreateAddress(lsb, msb)
 
 	return false
 }
@@ -1175,7 +1172,7 @@ func (cpu *Cpu6502) rti(info OperationMethodArgument) bool {
 func (cpu *Cpu6502) rts(info OperationMethodArgument) bool {
 	lsb := cpu.popStack()
 	msb := cpu.popStack()
-	cpu.registers.Pc = CreateAddress(lsb, msb) + 1
+	cpu.registers.Pc = types.CreateAddress(lsb, msb) + 1
 
 	return false
 }
@@ -1198,25 +1195,25 @@ func (cpu *Cpu6502) rts(info OperationMethodArgument) bool {
 */
 func (cpu *Cpu6502) sbc(info OperationMethodArgument) bool {
 	value := cpu.memory.Read(info.OperandAddress)
-	borrow := (1 - cpu.registers.carryFlag()) & 0x01 // == !CarryFlag
+	borrow := (1 - cpu.registers.CarryFlag()) & 0x01 // == !CarryFlag
 	a := cpu.registers.A
 	result := a - value - borrow
 	cpu.registers.A = result
 
-	cpu.registers.updateZeroFlag(byte(result))
-	cpu.registers.updateNegativeFlag(byte(result))
+	cpu.registers.UpdateZeroFlag(byte(result))
+	cpu.registers.UpdateNegativeFlag(byte(result))
 
 	// Set overflow flag
 	if (a^cpu.registers.A)&0x80 != 0 && (a^value)&0x80 != 0 {
-		cpu.registers.updateFlag(overflowFlag, 1)
+		cpu.registers.SetOverflowFlag(true)
 	} else {
-		cpu.registers.updateFlag(overflowFlag, 0)
+		cpu.registers.SetOverflowFlag(false)
 	}
 
 	if int(a)-int(value)-int(borrow) < 0 {
-		cpu.registers.updateFlag(carryFlag, 0)
+		cpu.registers.SetCarryFlag(false)
 	} else {
-		cpu.registers.updateFlag(carryFlag, 1)
+		cpu.registers.SetCarryFlag(true)
 	}
 
 	return true
@@ -1232,7 +1229,7 @@ func (cpu *Cpu6502) sbc(info OperationMethodArgument) bool {
 	implied       SEC           38    1     2
 */
 func (cpu *Cpu6502) sec(info OperationMethodArgument) bool {
-	cpu.registers.updateFlag(carryFlag, 1)
+	cpu.registers.SetCarryFlag(true)
 
 	return false
 }
@@ -1247,13 +1244,13 @@ func (cpu *Cpu6502) sec(info OperationMethodArgument) bool {
 	implied       SED           F8    1     2
 */
 func (cpu *Cpu6502) sed(info OperationMethodArgument) bool {
-	cpu.registers.updateFlag(decimalFlag, 1)
+	cpu.registers.SetDecimalFlag(true)
 
 	return false
 }
 
 func (cpu *Cpu6502) sei(info OperationMethodArgument) bool {
-	cpu.registers.updateFlag(interruptFlag, 1)
+	cpu.registers.SetInterruptFlag(true)
 
 	return false
 }
@@ -1287,8 +1284,8 @@ func (cpu *Cpu6502) sty(info OperationMethodArgument) bool {
 */
 func (cpu *Cpu6502) tax(info OperationMethodArgument) bool {
 	cpu.registers.X = cpu.registers.A
-	cpu.registers.updateNegativeFlag(cpu.registers.X)
-	cpu.registers.updateZeroFlag(cpu.registers.X)
+	cpu.registers.UpdateNegativeFlag(cpu.registers.X)
+	cpu.registers.UpdateZeroFlag(cpu.registers.X)
 
 	return false
 }
@@ -1304,8 +1301,8 @@ func (cpu *Cpu6502) tax(info OperationMethodArgument) bool {
 */
 func (cpu *Cpu6502) tay(info OperationMethodArgument) bool {
 	cpu.registers.Y = cpu.registers.A
-	cpu.registers.updateNegativeFlag(cpu.registers.Y)
-	cpu.registers.updateZeroFlag(cpu.registers.Y)
+	cpu.registers.UpdateNegativeFlag(cpu.registers.Y)
+	cpu.registers.UpdateZeroFlag(cpu.registers.Y)
 
 	return false
 }
@@ -1321,8 +1318,8 @@ func (cpu *Cpu6502) tay(info OperationMethodArgument) bool {
 */
 func (cpu *Cpu6502) tsx(info OperationMethodArgument) bool {
 	cpu.registers.X = cpu.Registers().Sp
-	cpu.registers.updateZeroFlag(cpu.registers.X)
-	cpu.registers.updateNegativeFlag(cpu.registers.X)
+	cpu.registers.UpdateZeroFlag(cpu.registers.X)
+	cpu.registers.UpdateNegativeFlag(cpu.registers.X)
 
 	return false
 }
@@ -1338,8 +1335,8 @@ func (cpu *Cpu6502) tsx(info OperationMethodArgument) bool {
 */
 func (cpu *Cpu6502) txa(info OperationMethodArgument) bool {
 	cpu.registers.A = cpu.registers.X
-	cpu.registers.updateZeroFlag(cpu.registers.A)
-	cpu.registers.updateNegativeFlag(cpu.registers.A)
+	cpu.registers.UpdateZeroFlag(cpu.registers.A)
+	cpu.registers.UpdateNegativeFlag(cpu.registers.A)
 
 	return false
 }
@@ -1385,8 +1382,8 @@ func (cpu *Cpu6502) txs(info OperationMethodArgument) bool {
 */
 func (cpu *Cpu6502) tya(info OperationMethodArgument) bool {
 	cpu.registers.A = cpu.registers.Y
-	cpu.registers.updateZeroFlag(cpu.registers.A)
-	cpu.registers.updateNegativeFlag(cpu.registers.A)
+	cpu.registers.UpdateZeroFlag(cpu.registers.A)
+	cpu.registers.UpdateNegativeFlag(cpu.registers.A)
 
 	return false
 }

@@ -1,6 +1,9 @@
 package nes
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/raulferras/nes-golang/src/nes/types"
+)
 
 /**
  * This Memory component handles the interfaces processors will use to
@@ -32,15 +35,15 @@ import "fmt"
 //          ZeroPage, Stack, General Purpose RAM and Mirroring from 0x07FF-0x1FFF
 // gamePak: from 0x8000 -> 0x10000
 
-const RAM_LOWER_ADDRESS = Address(0x0000)
-const RAM_HIGHER_ADDRESS = Address(0x1FFF)
-const RAM_LAST_REAL_ADDRESS = Address(0x07FF)
+const RAM_LOWER_ADDRESS = types.Address(0x0000)
+const RAM_HIGHER_ADDRESS = types.Address(0x1FFF)
+const RAM_LAST_REAL_ADDRESS = types.Address(0x07FF)
 
 type Memory interface {
 	// Peek Reads without side effects. Useful for debugging
-	Peek(Address) byte
-	Read(Address) byte
-	Write(Address, byte)
+	Peek(types.Address) byte
+	Read(types.Address) byte
+	Write(types.Address, byte)
 }
 
 type CPUMemory struct {
@@ -56,15 +59,15 @@ func CreateCPUMemory(ppu PPU, gamePak *GamePak) *CPUMemory {
 	return &CPUMemory{gamePak: gamePak, mapper: mapper, ppu: ppu}
 }
 
-func (cm *CPUMemory) Peek(address Address) byte {
+func (cm *CPUMemory) Peek(address types.Address) byte {
 	return cm.read(address, false)
 }
 
-func (cm *CPUMemory) Read(address Address) byte {
+func (cm *CPUMemory) Read(address types.Address) byte {
 	return cm.read(address, true)
 }
 
-func (cm *CPUMemory) read(address Address, readOnly bool) byte {
+func (cm *CPUMemory) read(address types.Address, readOnly bool) byte {
 	if address <= RAM_HIGHER_ADDRESS {
 		// Read with mirror after RAM_LAST_REAL_ADDRESS
 		return cm.ram[address&RAM_LAST_REAL_ADDRESS]
@@ -77,7 +80,7 @@ func (cm *CPUMemory) read(address Address, readOnly bool) byte {
 	panic(fmt.Sprintf("reading from invalid address %X", address))
 }
 
-func (cm *CPUMemory) Write(address Address, value byte) {
+func (cm *CPUMemory) Write(address types.Address, value byte) {
 	if address <= RAM_HIGHER_ADDRESS {
 		cm.ram[address&RAM_LAST_REAL_ADDRESS] = value
 	} else if address <= 0x3FFF {
