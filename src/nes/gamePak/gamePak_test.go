@@ -1,4 +1,4 @@
-package nes
+package gamePak
 
 /*
 func Test_read_gamePak_with_trainer(t *testing.T) {

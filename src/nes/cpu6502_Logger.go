@@ -49,8 +49,8 @@ func (logger *cpu6502Logger) logToFile() {
 	for _, state := range logger.snapshots {
 		logger.fileBuffer.WriteString(state.String())
 	}
-	//logger.fileBuffer.Flush()
-	//logger.file.Sync()
+	logger.fileBuffer.Flush()
+	logger.file.Sync()
 }
 
 func (logger cpu6502Logger) Snapshots() []CpuState {

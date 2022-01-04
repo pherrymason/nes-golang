@@ -18,7 +18,7 @@ func myHex(n types.Word, d int) string {
 	return s
 }
 
-func (cpu *Cpu6502) Disassemble(start types.Address, end types.Address) map[types.Address]string {
+func (cpu6502 *Cpu6502) Disassemble(start types.Address, end types.Address) map[types.Address]string {
 	disassembledCode := make(map[types.Address]string)
 	addr := start
 	value := byte(0x00)
@@ -35,9 +35,9 @@ func (cpu *Cpu6502) Disassemble(start types.Address, end types.Address) map[type
 		sInst := "$" + myHex(addr, 4) + ": "
 
 		// Read instruction, and get its readable name
-		opcode := cpu.memory.Peek(addr)
+		opcode := cpu6502.memory.Peek(addr)
 		addr++
-		instruction := cpu.instructions[opcode]
+		instruction := cpu6502.instructions[opcode]
 
 		if len(instruction.Name()) == 0 {
 			sInst += "0x" + myHex(types.Word(opcode), 2) + "? "
@@ -48,60 +48,60 @@ func (cpu *Cpu6502) Disassemble(start types.Address, end types.Address) map[type
 		if instruction.AddressMode() == Implicit {
 			sInst += " {IMP}"
 		} else if instruction.AddressMode() == Immediate {
-			value = cpu.memory.Peek(addr)
+			value = cpu6502.memory.Peek(addr)
 			addr++
 			sInst += "#$" + myHex(types.Word(value), 2) + " {IMM}"
 		} else if instruction.AddressMode() == ZeroPage {
-			lo = cpu.memory.Peek(addr)
+			lo = cpu6502.memory.Peek(addr)
 			addr++
 			hi = 0x00
 			sInst += "$" + myHex(types.Word(lo), 2) + " {ZP0}"
 		} else if instruction.AddressMode() == ZeroPageX {
-			lo = cpu.memory.Peek(addr)
+			lo = cpu6502.memory.Peek(addr)
 			addr++
 			hi = 0x00
 			sInst += "$" + myHex(types.Word(lo), 2) + ", X {ZPX}"
 		} else if instruction.AddressMode() == ZeroPageY {
-			lo = cpu.memory.Peek(addr)
+			lo = cpu6502.memory.Peek(addr)
 			addr++
 			hi = 0x00
 			sInst += "$" + myHex(types.Word(lo), 2) + ", Y {ZPY}"
 		} else if instruction.AddressMode() == IndirectX {
-			lo = cpu.memory.Peek(addr)
+			lo = cpu6502.memory.Peek(addr)
 			addr++
 			hi = 0x00
 			sInst += "($" + myHex(types.Word(lo), 2) + ", X) {IZX}"
 		} else if instruction.AddressMode() == IndirectY {
-			lo = cpu.memory.Peek(addr)
+			lo = cpu6502.memory.Peek(addr)
 			addr++
 			hi = 0x00
 			sInst += "($" + myHex(types.Word(lo), 2) + "), Y {IZY}"
 		} else if instruction.AddressMode() == Absolute {
-			lo = cpu.memory.Peek(addr)
+			lo = cpu6502.memory.Peek(addr)
 			addr++
-			hi = cpu.memory.Peek(addr)
+			hi = cpu6502.memory.Peek(addr)
 			addr++
 			sInst += "$" + myHex(types.CreateWord(lo, hi), 4) + " {ABS}"
 		} else if instruction.AddressMode() == AbsoluteXIndexed {
-			lo = cpu.memory.Peek(addr)
+			lo = cpu6502.memory.Peek(addr)
 			addr++
-			hi = cpu.memory.Peek(addr)
+			hi = cpu6502.memory.Peek(addr)
 			addr++
 			sInst += "$" + myHex(types.CreateWord(lo, hi), 4) + ", X {ABX}"
 		} else if instruction.AddressMode() == AbsoluteYIndexed {
-			lo = cpu.memory.Peek(addr)
+			lo = cpu6502.memory.Peek(addr)
 			addr++
-			hi = cpu.memory.Peek(addr)
+			hi = cpu6502.memory.Peek(addr)
 			addr++
 			sInst += "$" + myHex(types.CreateWord(lo, hi), 4) + ", Y {ABY}"
 		} else if instruction.AddressMode() == Indirect {
-			lo = cpu.memory.Peek(addr)
+			lo = cpu6502.memory.Peek(addr)
 			addr++
-			hi = cpu.memory.Peek(addr)
+			hi = cpu6502.memory.Peek(addr)
 			addr++
 			sInst += "($" + myHex(types.CreateWord(lo, hi), 4) + ") {IND}"
 		} else if instruction.AddressMode() == Relative {
-			value = cpu.memory.Peek(addr)
+			value = cpu6502.memory.Peek(addr)
 			addr++
 			sInst += "$" + myHex(types.Word(value), 2) + " [$" + myHex(addr+types.Word(value), 4) + "] {REL}"
 		}

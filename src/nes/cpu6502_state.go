@@ -133,7 +133,7 @@ func (state *CpuState) String() string {
 	return msg.String()
 }
 
-func (state CpuState) Equals(b CpuState) bool {
+func (state CpuState) RegistersEquals(b CpuState) bool {
 	if state.Registers.Pc != b.Registers.Pc ||
 		state.Registers.A != b.Registers.A ||
 		state.Registers.X != b.Registers.X ||

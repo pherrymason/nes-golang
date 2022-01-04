@@ -1,21 +1,24 @@
 package nes
 
 import (
+	gamePak2 "github.com/raulferras/nes-golang/src/nes/gamePak"
+	"github.com/raulferras/nes-golang/src/nes/mappers"
+	"github.com/raulferras/nes-golang/src/nes/types"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 type fakePPU struct {
-	register Address
+	register types.Address
 	value    byte
 }
 
-func (f *fakePPU) WriteRegister(register Address, value byte) {
+func (f *fakePPU) WriteRegister(register types.Address, value byte) {
 	f.register = register
 	f.value = value
 }
 
-func (f *fakePPU) ReadRegister(register Address) byte {
+func (f *fakePPU) ReadRegister(register types.Address) byte {
 	return f.value
 }
 
@@ -29,23 +32,23 @@ func (f fakeMapper) chrBanks() byte {
 	panic("implement me")
 }
 
-func (f fakeMapper) Read(address Address) byte {
+func (f fakeMapper) Read(address types.Address) byte {
 	panic("implement me")
 }
 
-func (f fakeMapper) Write(address Address, value byte) {
+func (f fakeMapper) Write(address types.Address, value byte) {
 	panic("implement me")
 }
 
 type fields struct {
 	ram     [0xFFFF + 1]byte
-	gamePak *GamePak
-	mapper  Mapper
+	gamePak *gamePak2.GamePak
+	mapper  mappers.Mapper
 	ppu     *fakePPU
 }
 
 type args struct {
-	address Address
+	address types.Address
 	value   byte
 }
 

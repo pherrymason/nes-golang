@@ -3,19 +3,20 @@ package nes
 import (
 	"fmt"
 	"github.com/raulferras/nes-golang/src/nes/gamePak"
+	"github.com/raulferras/nes-golang/src/nes/types"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func TestPPUMemory_read(t *testing.T) {
 	type fields struct {
-		gamePak      *GamePak
+		gamePak      *gamePak.GamePak
 		vram         [2048]byte
 		oamData      [256]byte
 		paletteTable [32]byte
 	}
 	type args struct {
-		address Address
+		address types.Address
 	}
 
 	tests := []struct {
@@ -46,9 +47,9 @@ func TestPPUMemory_read(t *testing.T) {
 
 func TestPPUMemory_read_nametables(t *testing.T) {
 	type mirrored struct {
-		address         Address
-		addressMirrored Address
-		realVRAM        Address
+		address         types.Address
+		addressMirrored types.Address
+		realVRAM        types.Address
 	}
 	tests := []struct {
 		name       string
@@ -103,7 +104,7 @@ func TestPPUMemory_read_nametables(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			header := gamePak.CreateINes1Header(10, 10, tt.mirrorMode, 0, 0, 0, 0)
-			pak := CreateGamePak(header, []byte{0}, []byte{0})
+			pak := gamePak.CreateGamePak(header, []byte{0}, []byte{0})
 			ppu := &PPUMemory{
 				gamePak:      &pak,
 				vram:         [2048]byte{},
@@ -123,9 +124,9 @@ func TestPPUMemory_read_nametables(t *testing.T) {
 
 func TestPPUMemory_write_nametables(t *testing.T) {
 	type mirrored struct {
-		address         Address
-		addressMirrored Address
-		realVRAM        Address
+		address         types.Address
+		addressMirrored types.Address
+		realVRAM        types.Address
 	}
 	tests := []struct {
 		name       string
@@ -166,7 +167,7 @@ func TestPPUMemory_write_nametables(t *testing.T) {
 				mirrorMode = 1
 			}
 			header := gamePak.CreateINes1Header(10, 10, mirrorMode, 0, 0, 0, 0)
-			pak := CreateGamePak(header, []byte{0}, []byte{0})
+			pak := gamePak.CreateGamePak(header, []byte{0}, []byte{0})
 			ppu := &PPUMemory{
 				gamePak:      &pak,
 				vram:         [2048]byte{},

@@ -2,6 +2,7 @@ package nes
 
 import (
 	"github.com/FMNSSun/hexit"
+	"github.com/raulferras/nes-golang/src/nes/gamePak"
 	"github.com/raulferras/nes-golang/src/nes/types"
 )
 
@@ -13,14 +14,14 @@ type Nes struct {
 	debug              *NesDebugger
 }
 
-func CreateNes(gamePak *GamePak, debugger *NesDebugger) Nes {
+func CreateNes(gamePak *gamePak.GamePak, debugger *NesDebugger) Nes {
 	hexit.BuildTable()
 	ppuBus := CreatePPUMemory(gamePak)
 	ppu := CreatePPU(
 		ppuBus,
 	)
 
-	cpuBus := CreateCPUMemory(ppu, gamePak)
+	cpuBus := newNESCPUMemory(ppu, gamePak)
 	cpu := CreateCPU(
 		cpuBus,
 		Cpu6502DebugOptions{debugger.debug, debugger.outputLogPath},

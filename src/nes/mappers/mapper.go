@@ -1,19 +1,20 @@
-package nes
+package mappers
 
 import (
 	"fmt"
+	"github.com/raulferras/nes-golang/src/nes/gamePak"
 	"github.com/raulferras/nes-golang/src/nes/types"
 )
 
 type Mapper interface {
-	prgBanks() byte
-	chrBanks() byte
+	PrgBanks() byte
+	ChrBanks() byte
 
 	Read(address types.Address) byte
 	Write(address types.Address, value byte)
 }
 
-func CreateMapper(gamePak *GamePak) Mapper {
+func CreateMapper(gamePak *gamePak.GamePak) Mapper {
 	header := gamePak.Header()
 	switch header.MapperNumber() {
 	case 0:

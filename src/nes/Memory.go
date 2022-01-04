@@ -2,6 +2,8 @@ package nes
 
 import (
 	"fmt"
+	"github.com/raulferras/nes-golang/src/nes/gamePak"
+	"github.com/raulferras/nes-golang/src/nes/mappers"
 	"github.com/raulferras/nes-golang/src/nes/types"
 )
 
@@ -48,13 +50,17 @@ type Memory interface {
 
 type CPUMemory struct {
 	ram     [0xFFFF + 1]byte
-	gamePak *GamePak
-	mapper  Mapper
+	gamePak *gamePak.GamePak
+	mapper  mappers.Mapper
 	ppu     PPU
 }
 
-func CreateCPUMemory(ppu PPU, gamePak *GamePak) *CPUMemory {
-	mapper := CreateMapper(gamePak)
+func newCPUMemory(ppu PPU, gamePak *gamePak.GamePak, mapper mappers.Mapper) *CPUMemory {
+	return &CPUMemory{gamePak: gamePak, mapper: mapper, ppu: ppu}
+}
+
+func newNESCPUMemory(ppu PPU, gamePak *gamePak.GamePak) *CPUMemory {
+	mapper := mappers.CreateMapper(gamePak)
 
 	return &CPUMemory{gamePak: gamePak, mapper: mapper, ppu: ppu}
 }
@@ -73,7 +79,7 @@ func (cm *CPUMemory) read(address types.Address, readOnly bool) byte {
 		return cm.ram[address&RAM_LAST_REAL_ADDRESS]
 	} else if address <= 0x3FFF {
 		return cm.ppu.ReadRegister(address & 0x2007)
-	} else if address >= GAMEPAK_LOW_RANGE {
+	} else if address >= gamePak.GAMEPAK_LOW_RANGE {
 		return cm.mapper.Read(address)
 	}
 
@@ -85,7 +91,7 @@ func (cm *CPUMemory) Write(address types.Address, value byte) {
 		cm.ram[address&RAM_LAST_REAL_ADDRESS] = value
 	} else if address <= 0x3FFF {
 		cm.ppu.WriteRegister(address&0x2007, value)
-	} else if address >= GAMEPAK_ROM_LOWER_BANK_START {
+	} else if address >= gamePak.GAMEPAK_ROM_LOWER_BANK_START {
 		cm.mapper.Write(address, value)
 	}
 }

@@ -1,6 +1,7 @@
 package nes
 
 import (
+	"github.com/raulferras/nes-golang/src/nes/types"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -144,7 +145,7 @@ func TestPPU_PPUADDR_write_twice_to_set_address(t *testing.T) {
 		name     string
 		hi       byte
 		lo       byte
-		expected Address
+		expected types.Address
 	}{
 		{"writes address", 0x28, 0x10, 0x2810},
 		{"writes address > 0x3FFF is mirrored down", 0x40, 0x20, 0x0020},
@@ -157,7 +158,7 @@ func TestPPU_PPUADDR_write_twice_to_set_address(t *testing.T) {
 			ppu := CreatePPU(memory)
 
 			ppu.WriteRegister(PPUADDR, tt.hi)
-			assert.Equal(t, Address(tt.hi)<<8, ppu.registers.ppuAddr)
+			assert.Equal(t, types.Address(tt.hi)<<8, ppu.registers.ppuAddr)
 
 			ppu.WriteRegister(PPUADDR, tt.lo)
 			assert.Equal(t, tt.expected, ppu.registers.ppuAddr)
@@ -174,7 +175,7 @@ func TestPPU_PPUData_read(t *testing.T) {
 
 	cases := []struct {
 		name          string
-		addressToRead Address
+		addressToRead types.Address
 		incrementMode byte
 		firstRead     byte
 		secondRead    byte
@@ -194,7 +195,7 @@ func TestPPU_PPUData_read(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ppu.registers.ppuAddr = tt.addressToRead
 			ppu.ppuctrlWriteFlag(incrementMode, tt.incrementMode)
-			expectedIncrement := Address(1)
+			expectedIncrement := types.Address(1)
 			if tt.incrementMode == 1 {
 				expectedIncrement = 32
 			}
@@ -224,7 +225,7 @@ func TestPPUDATA_is_instructed_to_read_address_and_mirrors(t *testing.T) {
 
 	// Dummy Read
 	ppu.ReadRegister(PPUDATA)
-	assert.Equal(t, Address(0x0000), ppu.registers.ppuAddr, "ppuAddr(cpu@0x2006) must increment on each read to cpu@0x2007")
+	assert.Equal(t, types.Address(0x0000), ppu.registers.ppuAddr, "ppuAddr(cpu@0x2006) must increment on each read to cpu@0x2007")
 }
 
 func TestPPU_PPUData_write(t *testing.T) {
@@ -236,7 +237,7 @@ func TestPPU_PPUData_write(t *testing.T) {
 
 	cases := []struct {
 		name           string
-		addressToWrite Address
+		addressToWrite types.Address
 		incrementMode  byte
 		valueToWrite   byte
 	}{
@@ -252,7 +253,7 @@ func TestPPU_PPUData_write(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ppu.registers.ppuAddr = tt.addressToWrite
 			ppu.ppuctrlWriteFlag(incrementMode, tt.incrementMode)
-			expectedIncrement := Address(1)
+			expectedIncrement := types.Address(1)
 			if tt.incrementMode == 1 {
 				expectedIncrement = 32
 			}

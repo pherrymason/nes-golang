@@ -9,7 +9,7 @@ import (
 func TestSetAFlag(t *testing.T) {
 	registers := CreateRegisters()
 
-	registers.updateFlag(carryFlag, 1)
+	registers.UpdateFlag(CarryFlag, 1)
 }
 
 func TestNegativeFlagIsSet(t *testing.T) {

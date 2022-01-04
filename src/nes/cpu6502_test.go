@@ -1,6 +1,7 @@
 package nes
 
 import (
+	nesCpu "github.com/raulferras/nes-golang/src/nes/cpu"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -29,24 +30,24 @@ func TestGetStatusRegister(t *testing.T) {
 	cpu := CreateCPUWithGamePak()
 	cpu.registers.Status = 0
 
-	cpu.registers.setFlag(carryFlag)
+	cpu.registers.SetFlag(nesCpu.CarryFlag)
 	assert.Equal(t, byte(0x1), cpu.registers.Status)
 
-	cpu.registers.setFlag(zeroFlag)
+	cpu.registers.SetFlag(nesCpu.ZeroFlag)
 	assert.Equal(t, byte(0x3), cpu.registers.Status)
 
-	cpu.registers.setFlag(interruptFlag)
+	cpu.registers.SetFlag(nesCpu.InterruptFlag)
 	assert.Equal(t, byte(0x7), cpu.registers.Status)
 
-	cpu.registers.setFlag(decimalFlag)
+	cpu.registers.SetFlag(nesCpu.DecimalFlag)
 	assert.Equal(t, byte(0xF), cpu.registers.Status)
 
-	//cpu.registers.setFlag(breakCommandFlag)
+	//cpu.registers.SetFlag(nesCpu.breakCommandFlag)
 	//assert.Equal(t, byte(0x3F), cpu.registers.Status)
 
-	cpu.registers.setFlag(overflowFlag)
+	cpu.registers.SetFlag(nesCpu.OverflowFlag)
 	assert.Equal(t, byte(0x4F), cpu.registers.Status)
 
-	cpu.registers.setFlag(negativeFlag)
+	cpu.registers.SetFlag(nesCpu.NegativeFlag)
 	assert.Equal(t, byte(0xCF), cpu.registers.Status)
 }

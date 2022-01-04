@@ -2,6 +2,7 @@ package nes
 
 import (
 	"fmt"
+	"github.com/raulferras/nes-golang/src/nes/types"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,11 +10,11 @@ import (
 
 func TestImmediate(t *testing.T) {
 	cpu := CreateCPUWithGamePak()
-	cpu.registers.Pc = Address(0x100)
+	cpu.registers.Pc = types.Address(0x100)
 
 	address, _, _, pageCrossed := cpu.evalImmediate(cpu.registers.Pc)
 
-	assert.Equal(t, Address(0x100), address, "Immediate address mode failed to evaluate address")
+	assert.Equal(t, types.Address(0x100), address, "Immediate address mode failed to evaluate address")
 	assert.False(t, pageCrossed)
 
 }
@@ -24,7 +25,7 @@ func TestZeroPage(t *testing.T) {
 	cpu.memory.Write(0x00, 0x40)
 
 	result, _, _, pageCrossed := cpu.evalZeroPage(cpu.registers.Pc)
-	expected := Address(0x040)
+	expected := types.Address(0x040)
 	assert.Equal(t, expected, result, fmt.Sprintf("ZeroPage address mode decoded wrongly, expected %d, got %d", expected, result))
 	assert.False(t, pageCrossed)
 }
@@ -38,7 +39,7 @@ func TestZeroPageX(t *testing.T) {
 	state := cpu.registers.Pc
 	result, _, _, pageCrossed := cpu.evalZeroPageX(state)
 
-	expected := Address(0x15)
+	expected := types.Address(0x15)
 	assert.Equal(t, expected, result, fmt.Sprintf("ZeroPageX address mode decoded wrongly, expected %d, got %d", expected, result))
 	assert.False(t, pageCrossed)
 }
@@ -46,12 +47,12 @@ func TestZeroPageX(t *testing.T) {
 func TestZeroPageY(t *testing.T) {
 	cpu := CreateCPUWithGamePak()
 	cpu.registers.Y = 0x10
-	cpu.registers.Pc = Address(0x0000)
+	cpu.registers.Pc = types.Address(0x0000)
 	cpu.memory.Write(cpu.registers.Pc, 0xF0)
 
 	result, _, _, pageCrossed := cpu.evalZeroPageY(cpu.registers.Pc)
 
-	expected := Address(0x00)
+	expected := types.Address(0x00)
 
 	assert.Equal(t, expected, result, fmt.Sprintf("ZeroPageY address mode decoded wrongly, expected %d, got %d", expected, result))
 	assert.False(t, pageCrossed)
@@ -65,7 +66,7 @@ func TestAbsolute(t *testing.T) {
 
 	result, _, _, pageCrossed := cpu.evalAbsolute(cpu.registers.Pc)
 
-	assert.Equal(t, Address(0x0130), result, "Error")
+	assert.Equal(t, types.Address(0x0130), result, "Error")
 	assert.False(t, pageCrossed)
 }
 
@@ -74,7 +75,7 @@ func TestAbsoluteXIndexed(t *testing.T) {
 		name                string
 		lsb                 byte
 		hsb                 byte
-		expectedAddress     Address
+		expectedAddress     types.Address
 		expectedPageCrossed bool
 	}{
 		{"page not crossed", 0x01, 0x01, 0x106, false},
@@ -102,7 +103,7 @@ func TestAbsoluteYIndexed(t *testing.T) {
 		test                string
 		lsb                 byte
 		hsb                 byte
-		expectedAddress     Address
+		expectedAddress     types.Address
 		expectedPageCrossed bool
 	}{
 		{"page not crossed", 0x01, 0x01, 0x106, false},
@@ -127,24 +128,28 @@ func TestAbsoluteYIndexed(t *testing.T) {
 }
 
 func TestIndirect(t *testing.T) {
-
 	cases := []struct {
 		name           string
-		pointerAddress Address
-		finalAddress   Address
+		pointerAddress types.Address
+		finalAddress   types.Address
 	}{
-		{"normal indirect jump", Address(0x0134), Address(0x200)},
-		{"indirect jump across page", Address(0xC0FF), Address(0x155)},
+		{"normal indirect jump", types.Address(0x0134), types.Address(0x200)},
+		/*
+			6502 has indirect jump operation. It's expressed as JMP (address), so JMP ($C000) would first fetch the target address from $C000 (low byte) and $C001 (high byte), then jump to that address.
+
+			However, 6502 is buggy what comes to page boundary: if we were to do JMP ($C0FF), the high byte will not be fetched from $C100 as expected, but from $C000!
+		*/
+		{"indirect jump across page", types.Address(0x00FF), types.Address(0x155)},
 	}
 
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
 			cpu := CreateCPUWithGamePak()
-			cpu.registers.Pc = 0x00
-			cpu.memory.Write(0xC000, 0x01) // This is to pass jump with bug
+			cpu.registers.Pc = 0x10        // Arbitrary pc to not collide with wraparoun bug @
+			cpu.memory.Write(0x0000, 0x01) // This is to pass jump with bug
 
-			cpu.memory.Write(0, byte(tt.pointerAddress))
-			cpu.memory.Write(1, byte(tt.pointerAddress>>8))
+			cpu.memory.Write(0x10, byte(tt.pointerAddress))
+			cpu.memory.Write(0x11, byte(tt.pointerAddress>>8))
 
 			cpu.memory.Write(tt.pointerAddress, byte(tt.finalAddress))
 			cpu.memory.Write(tt.pointerAddress+1, byte(tt.finalAddress>>8))
@@ -160,9 +165,9 @@ func TestIndexed_indirect(t *testing.T) {
 		name                string
 		x                   byte
 		operand             byte
-		lsbPtr              Address
-		hsbPtr              Address
-		expectedAddress     Address
+		lsbPtr              types.Address
+		hsbPtr              types.Address
+		expectedAddress     types.Address
 		expectedPageCrossed bool
 	}{
 		{"page not crossed", 0x04, 0x10, 0x0014, 0x0015, 0x1025, false},
@@ -196,9 +201,9 @@ func TestIndirectY(t *testing.T) {
 		name                string
 		y                   byte
 		operand             byte
-		lsbPtr              Address
-		hsbPtr              Address
-		expectedAddress     Address
+		lsbPtr              types.Address
+		hsbPtr              types.Address
+		expectedAddress     types.Address
 		expectedPageCrossed bool
 	}{
 		{"page not crossed", 0x10, 0x86, 0x86, 0x87, 0x4038, false},
@@ -215,8 +220,8 @@ func TestIndirectY(t *testing.T) {
 			cpu.memory.Write(0x50, tt.operand)
 
 			// Indexed Table Pointers
-			cpu.memory.Write(Address(tt.operand), byte(tt.expectedAddress-Address(tt.y)))
-			cpu.memory.Write(Address(tt.operand+1), byte((tt.expectedAddress-Address(tt.y))>>8))
+			cpu.memory.Write(types.Address(tt.operand), byte(tt.expectedAddress-types.Address(tt.y)))
+			cpu.memory.Write(types.Address(tt.operand+1), byte((tt.expectedAddress-types.Address(tt.y))>>8))
 
 			result, _, _, pageCrossed := cpu.evalIndirectY(cpu.registers.Pc)
 
@@ -236,7 +241,7 @@ func TestRelativeAddressMode(t *testing.T) {
 
 	result, _, _, _ := cpu.evalRelative(cpu.registers.Pc)
 
-	assert.Equal(t, Address(0x15), result)
+	assert.Equal(t, types.Address(0x15), result)
 }
 
 func TestRelativeAddressModeNegative(t *testing.T) {
@@ -248,5 +253,5 @@ func TestRelativeAddressModeNegative(t *testing.T) {
 
 	result, _, _, _ := cpu.evalRelative(cpu.registers.Pc)
 
-	assert.Equal(t, Address(0x0D), result)
+	assert.Equal(t, types.Address(0x0D), result)
 }

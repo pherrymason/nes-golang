@@ -5,14 +5,14 @@ import "github.com/raulferras/nes-golang/src/nes/types"
 type StatusRegisterFlag int
 
 const (
-	carryFlag StatusRegisterFlag = iota
-	zeroFlag
-	interruptFlag
-	decimalFlag
-	breakCommandFlag
-	unusedFlag
-	overflowFlag
-	negativeFlag
+	CarryFlag StatusRegisterFlag = iota
+	ZeroFlag
+	InterruptFlag
+	DecimalFlag
+	BreakCommandFlag
+	UnusedFlag
+	OverflowFlag
+	NegativeFlag
 )
 
 type Registers struct {
@@ -62,11 +62,11 @@ func (registers *Registers) Reset() {
 	registers.X = 0x00
 	registers.Y = 0x00
 	registers.Sp = 0xFD
-	registers.Pc = types.Address(0xFFFC)
+	registers.Pc = types.Address(ResetVectorAddress)
 	registers.Status = 0x24
 }
 
-func (registers *Registers) setStackPointer(stackPointer byte) {
+func (registers *Registers) SetStackPointer(stackPointer byte) {
 	registers.Sp = stackPointer
 }
 
@@ -95,14 +95,14 @@ func (registers *Registers) CarryFlag() byte {
 
 func (registers *Registers) SetCarryFlag(set bool) {
 	if set {
-		registers.setFlag(carryFlag)
+		registers.SetFlag(CarryFlag)
 	} else {
-		registers.unsetFlag(carryFlag)
+		registers.unsetFlag(CarryFlag)
 	}
 }
 
 func (registers *Registers) UnsetCarryFlag() {
-	registers.unsetFlag(carryFlag)
+	registers.unsetFlag(CarryFlag)
 }
 
 func (registers *Registers) ZeroFlag() byte {
@@ -111,9 +111,9 @@ func (registers *Registers) ZeroFlag() byte {
 
 func (registers *Registers) SetZeroFlag(set bool) {
 	if set {
-		registers.setFlag(zeroFlag)
+		registers.SetFlag(ZeroFlag)
 	} else {
-		registers.unsetFlag(zeroFlag)
+		registers.unsetFlag(ZeroFlag)
 	}
 }
 
@@ -123,9 +123,9 @@ func (registers *Registers) InterruptFlag() byte {
 
 func (registers *Registers) SetInterruptFlag(set bool) {
 	if set {
-		registers.setFlag(interruptFlag)
+		registers.SetFlag(InterruptFlag)
 	} else {
-		registers.unsetFlag(interruptFlag)
+		registers.unsetFlag(InterruptFlag)
 	}
 }
 
@@ -135,9 +135,9 @@ func (registers *Registers) DecimalFlag() byte {
 
 func (registers *Registers) SetDecimalFlag(set bool) {
 	if set {
-		registers.setFlag(decimalFlag)
+		registers.SetFlag(DecimalFlag)
 	} else {
-		registers.unsetFlag(decimalFlag)
+		registers.unsetFlag(DecimalFlag)
 	}
 }
 
@@ -151,9 +151,9 @@ func (registers *Registers) OverflowFlag() byte {
 
 func (registers *Registers) SetOverflowFlag(set bool) {
 	if set {
-		registers.setFlag(overflowFlag)
+		registers.SetFlag(OverflowFlag)
 	} else {
-		registers.unsetFlag(overflowFlag)
+		registers.unsetFlag(OverflowFlag)
 	}
 }
 
@@ -163,16 +163,16 @@ func (registers *Registers) NegativeFlag() byte {
 
 func (registers *Registers) SetNegativeFlag(set bool) {
 	if set {
-		registers.setFlag(negativeFlag)
+		registers.SetFlag(NegativeFlag)
 	} else {
-		registers.unsetFlag(negativeFlag)
+		registers.unsetFlag(NegativeFlag)
 	}
 }
 
 func (registers *Registers) UpdateNegativeFlag(value byte) {
 	//Registers.NegativeFlag = value&0x80 == 0x80
 	if value&0x80 == 0x80 {
-		registers.Status |= 1 << negativeFlag
+		registers.Status |= 1 << NegativeFlag
 	} else {
 		registers.Status &= 0b01111111
 	}
@@ -180,13 +180,13 @@ func (registers *Registers) UpdateNegativeFlag(value byte) {
 
 func (registers *Registers) UpdateZeroFlag(value byte) {
 	if value == 0x00 {
-		registers.Status |= 1 << zeroFlag
+		registers.Status |= 1 << ZeroFlag
 	} else {
 		registers.Status &= 0b11111101
 	}
 }
 
-func (registers *Registers) updateFlag(flag StatusRegisterFlag, state byte) {
+func (registers *Registers) UpdateFlag(flag StatusRegisterFlag, state byte) {
 	if state == 1 {
 		registers.Status |= 1 << flag
 	} else {
@@ -194,7 +194,7 @@ func (registers *Registers) updateFlag(flag StatusRegisterFlag, state byte) {
 	}
 }
 
-func (registers *Registers) setFlag(flag StatusRegisterFlag) {
+func (registers *Registers) SetFlag(flag StatusRegisterFlag) {
 	registers.Status |= 1 << flag
 }
 

@@ -35,13 +35,13 @@ import (
 // - $3000-3EFF is usually a mirror of the 2kB region from $2000-2EFF. The PPU does not render from this address range, so this space has negligible utility.
 // - $3F00-3FFF is not configurable, always mapped to the internal palette control.
 type PPUMemory struct {
-	gamePak *GamePak
+	gamePak *gamePak2.GamePak
 	vram    [2048]byte
 
 	paletteTable [32]byte
 }
 
-func CreatePPUMemory(gamePak *GamePak) *PPUMemory {
+func CreatePPUMemory(gamePak *gamePak2.GamePak) *PPUMemory {
 	return &PPUMemory{
 		gamePak: gamePak,
 	}
@@ -93,10 +93,10 @@ func (ppu *PPUMemory) read(address types.Address, readOnly bool) byte {
 
 	// CHR ROM address
 	if address < 0x01FFF {
-		result = ppu.gamePak.chrROM[address]
+		result = ppu.gamePak.ReadCHRROM(address)
 	} else if address >= 0x2000 && address <= 0x2FFF {
 		// Nametable 0, 1, 2, 3
-		mirroring := ppu.gamePak.header.Mirroring()
+		mirroring := ppu.gamePak.Header().Mirroring()
 		realAddress := nameTableMirrorAddress(mirroring, address)
 		result = ppu.vram[realAddress]
 	} else if address >= 0x3F00 && address <= 0x3FFF {

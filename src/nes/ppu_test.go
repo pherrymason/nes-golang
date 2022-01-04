@@ -7,12 +7,14 @@ import (
 	"testing"
 )
 
-func CreateDummyGamePak() *GamePak {
-	return &GamePak{
+func CreateDummyGamePak() *gamePak.GamePak {
+	pak := gamePak.CreateGamePak(
 		gamePak.CreateINes1Header(1, 1, 0, 0, 0, 0, 0),
 		make([]byte, 100),
 		make([]byte, 0x01FFF),
-	}
+	)
+
+	return &pak
 }
 
 func aPPU() *Ppu2c02 {

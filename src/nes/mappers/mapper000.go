@@ -1,6 +1,9 @@
-package nes
+package mappers
 
-import "github.com/raulferras/nes-golang/src/nes/types"
+import (
+	gamePak2 "github.com/raulferras/nes-golang/src/nes/gamePak"
+	"github.com/raulferras/nes-golang/src/nes/types"
+)
 
 // if PRGROM is 16KB
 //     CPU Address Bus          PRG ROM
@@ -11,12 +14,12 @@ import "github.com/raulferras/nes-golang/src/nes/types"
 //     0x8000 -> 0xFFFF: Map    0x0000 -> 0x7FFF
 
 type Mapper000 struct {
-	gamePak     *GamePak
+	gamePak     *gamePak2.GamePak
 	prgROMBanks byte
 	chrROMBanks byte
 }
 
-func CreateMapper000(gamePak *GamePak) Mapper000 {
+func CreateMapper000(gamePak *gamePak2.GamePak) Mapper000 {
 	header := gamePak.Header()
 	return Mapper000{
 		gamePak:     gamePak,
@@ -25,11 +28,11 @@ func CreateMapper000(gamePak *GamePak) Mapper000 {
 	}
 }
 
-func (mapper Mapper000) prgBanks() byte {
+func (mapper Mapper000) PrgBanks() byte {
 	return mapper.prgROMBanks
 }
 
-func (mapper Mapper000) chrBanks() byte {
+func (mapper Mapper000) ChrBanks() byte {
 	return mapper.chrROMBanks
 }
 
@@ -38,13 +41,13 @@ func (mapper Mapper000) Read(address types.Address) byte {
 		return 0
 	}
 
-	if mapper.prgBanks() == 1 {
+	if mapper.PrgBanks() == 1 {
 		address = address & 0x3FFF
 	} else {
 		address = address & 0x7FFF
 	}
 
-	return mapper.gamePak.prgROM[address]
+	return mapper.gamePak.ReadPrgROM(address)
 }
 
 func (mapper Mapper000) Write(address types.Address, value byte) {
@@ -52,7 +55,7 @@ func (mapper Mapper000) Write(address types.Address, value byte) {
 		return
 	}
 
-	mapper.gamePak.prgROM[address] = value
+	mapper.gamePak.WritePrgROM(address, value)
 }
 
 func satisfiableAddress(address types.Address) bool {

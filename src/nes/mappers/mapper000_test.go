@@ -1,7 +1,8 @@
-package nes
+package mappers
 
 import (
 	gamePak2 "github.com/raulferras/nes-golang/src/nes/gamePak"
+	"github.com/raulferras/nes-golang/src/nes/types"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -9,7 +10,7 @@ import (
 func CreateMapper000ForTest(prgROMSize byte) Mapper {
 	rom := prgROM()
 
-	gamePak := CreateGamePak(
+	gamePak := gamePak2.CreateGamePak(
 		gamePak2.CreateINes1Header(prgROMSize, 1, 0, 0, 0, 0, 0),
 		rom,
 		make([]byte, 100),
@@ -31,7 +32,7 @@ func prgROM() []byte {
 func TestReads_from_last_byte_in_16KB_ROM(t *testing.T) {
 	oneBank := byte(1)
 	mapper := CreateMapper000ForTest(oneBank)
-	startOfCPUMap := Address(0x8000)
+	startOfCPUMap := types.Address(0x8000)
 
 	result := mapper.Read(startOfCPUMap)
 	assert.Equal(t, byte(0x01), result)
@@ -46,7 +47,7 @@ func TestReads_from_last_byte_in_16KB_ROM(t *testing.T) {
 func TestReads_from_last_byte_in_32KB_ROM(t *testing.T) {
 	twoBanks := byte(2)
 	mapper := CreateMapper000ForTest(twoBanks)
-	startOfCPUMap := Address(0x8000)
+	startOfCPUMap := types.Address(0x8000)
 
 	result := mapper.Read(startOfCPUMap)
 	assert.Equal(t, byte(0x01), result)

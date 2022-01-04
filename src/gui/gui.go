@@ -30,7 +30,7 @@ func Run() {
 	//path :="./assets/roms/Donkey Kong (World) (Rev A).nes"
 	//path := "./assets/roms/Super Mario Bros. (World).nes"
 	//path = "./assets/roms/Mega Man 2 (Europe).nes"
-	gamePak := nes.CreateGamePakFromROMFile(path)
+	gamePak := gamePak.CreateGamePakFromROMFile(path)
 
 	printRomInfo(&gamePak)
 
@@ -75,7 +75,7 @@ func Run() {
 	console.Stop()
 }
 
-func printRomInfo(cartridge *nes.GamePak) {
+func printRomInfo(cartridge *gamePak.GamePak) {
 	inesHeader := cartridge.Header()
 
 	if inesHeader.HasTrainer() {
