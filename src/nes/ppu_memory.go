@@ -83,6 +83,8 @@ func nameTableMirrorAddress(mirrorMode byte, address types.Address) types.Addres
 		} else if address >= 0x2C00 && address <= 0x2FFF {
 			realAddress = address - 0x2800
 		}
+	} else if mirrorMode == gamePak2.OneScreenMirroring {
+		realAddress = (address - 0x2000) & 0x3FF
 	}
 
 	return realAddress

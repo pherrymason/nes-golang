@@ -30,11 +30,9 @@ func (ines INesHeader) CHRSize() byte {
 }
 
 func (ines INesHeader) Mirroring() byte {
-	if ines.flags6&0x01 == 1 {
-		return VerticalMirroring
-	}
+	mirroring := byte(ines.flags6 & 0b11)
 
-	return HorizontalMirroring
+	return mirroring
 }
 
 func (ines INesHeader) HasTrainer() bool {
