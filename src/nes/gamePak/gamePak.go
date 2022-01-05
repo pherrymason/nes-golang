@@ -12,6 +12,13 @@ const GAMEPAK_HIGH_RANGE = 0xFFFF
 
 const GAMEPAK_ROM_LOWER_BANK_START = 0x8000
 
+type GamePakInterface interface {
+	Header() Header
+	ReadPrgROM(address types.Address) byte
+	WritePrgROM(address types.Address, value byte)
+	ReadCHRROM(address types.Address) byte
+}
+
 type GamePak struct {
 	header Header
 	prgROM []byte
