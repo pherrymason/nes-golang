@@ -77,7 +77,7 @@ func (cm *CPUMemory) read(address types.Address, readOnly bool) byte {
 	if address <= RAM_HIGHER_ADDRESS {
 		// Read with mirror after RAM_LAST_REAL_ADDRESS
 		return cm.ram[address&RAM_LAST_REAL_ADDRESS]
-	} else if address <= 0x3FFF {
+	} else if address <= PPU_HIGH_ADDRESS {
 		return cm.ppu.ReadRegister(address & 0x2007)
 	} else if address >= gamePak.GAMEPAK_LOW_RANGE {
 		return cm.mapper.Read(address)

@@ -26,6 +26,9 @@ import (
 // $2C00-$2FFF 	$0400 	Nametable 3		/
 // $3000-$3EFF 	$0F00 	Mirrors of $2000-$2EFF
 // $3F00-$3F1F 	$0020 	Palette RAM indexes		} Palette Memory
+const PALETTE_LOW_ADDRESS = types.Address(0x3F00)
+const PALETTE_HIGH_ADDRESS = types.Address(0x3FFF)
+
 // $3F20-$3FFF 	$00E0 	Mirrors of $3F00-$3F1F
 // ---------------------------------------------
 // The actual device that the PPU fetches data from, however, may be configured by the cartridge.
@@ -34,11 +37,22 @@ import (
 // - $2000-2FFF is normally mapped to the 2kB NES internal VRAM, providing 2 nametables with a mirroring configuration controlled by the cartridge, but it can be partly or fully remapped to RAM on the cartridge, allowing up to 4 simultaneous nametables.
 // - $3000-3EFF is usually a mirror of the 2kB region from $2000-2EFF. The PPU does not render from this address range, so this space has negligible utility.
 // - $3F00-3FFF is not configurable, always mapped to the internal palette control.
+const PPU_HIGH_ADDRESS = types.Address(0x3FFF)
+
 type PPUMemory struct {
 	gamePak *gamePak2.GamePak
 	vram    [2048]byte
 
 	paletteTable [32]byte
+	//$3F00 	    Universal background color
+	//$3F01-$3F03 	Background palette 0
+	//$3F05-$3F07 	Background palette 1
+	//$3F09-$3F0B 	Background palette 2
+	//$3F0D-$3F0F 	Background palette 3
+	//$3F11-$3F13 	Sprite palette 0
+	//$3F15-$3F17 	Sprite palette 1
+	//$3F19-$3F1B 	Sprite palette 2
+	//$3F1D-$3F1F 	Sprite palette 3
 }
 
 func CreatePPUMemory(gamePak *gamePak2.GamePak) *PPUMemory {
@@ -101,20 +115,8 @@ func (ppu *PPUMemory) read(address types.Address, readOnly bool) byte {
 		mirroring := ppu.gamePak.Header().Mirroring()
 		realAddress := nameTableMirrorAddress(mirroring, address)
 		result = ppu.vram[realAddress]
-	} else if address >= 0x3F00 && address <= 0x3FFF {
-		// palette ram indexes
-		address &= 0x1F
-		// Mirrors
-		if address == 0x10 {
-			address = 0x00
-		} else if address == 0x14 {
-			address = 0x04
-		} else if address == 0x18 {
-			address = 0x08
-		} else if address == 0x1C {
-			address = 0x0C
-		}
-		result = ppu.paletteTable[address]
+	} else if isPaletteAddress(address) {
+		result = readPalette(ppu, address)
 	}
 
 	return result
@@ -127,18 +129,46 @@ func (ppu *PPUMemory) Write(address types.Address, value byte) {
 	} else if address == 0x4010 {
 		// OAM DMA: Transfers 256 bytes of data from CPU page $XX00-$XXFF to internal PPU OAM
 		// DMA will begin at current OAM write address.
-	} else if address >= 0x3F00 && address <= 0x3FFF {
-		address &= 0x1F
-		// Mirrors
-		if address == 0x10 {
-			address = 0x00
-		} else if address == 0x14 {
-			address = 0x04
-		} else if address == 0x18 {
-			address = 0x08
-		} else if address == 0x1C {
-			address = 0x0C
-		}
-		ppu.paletteTable[address] = value
+	} else if isPaletteAddress(address) {
+		writePalette(ppu, address, value)
+	} else {
+		panic("Unhandled ppu address")
 	}
+}
+
+func isPaletteAddress(address types.Address) bool {
+	return address >= PALETTE_LOW_ADDRESS && address <= PALETTE_HIGH_ADDRESS
+}
+
+// Addresses $3F10/$3F14/$3F18/$3F1C are mirrors of $3F00/$3F04/$3F08/$3F0C
+func readPalette(nesPPU *PPUMemory, address types.Address) byte {
+	address &= 0x1F
+	// Mirrors
+	// Addresses $3F10/$3F14/$3F18/$3F1C are mirrors of $3F00/$3F04/$3F08/$3F0C
+	if address == 0x10 {
+		address = 0x00
+	} else if address == 0x14 {
+		address = 0x04
+	} else if address == 0x18 {
+		address = 0x08
+	} else if address == 0x1C {
+		address = 0x0C
+	}
+
+	return nesPPU.paletteTable[address]
+}
+
+func writePalette(nesPPU *PPUMemory, address types.Address, colorIndex byte) {
+	address &= 0x1F
+	// Mirrors
+	if address == 0x10 {
+		address = 0x00
+	} else if address == 0x14 {
+		address = 0x04
+	} else if address == 0x18 {
+		address = 0x08
+	} else if address == 0x1C {
+		address = 0x0C
+	}
+	nesPPU.paletteTable[address] = colorIndex
 }

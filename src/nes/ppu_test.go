@@ -1,8 +1,10 @@
 package nes
 
 import (
+	"fmt"
 	"github.com/raulferras/nes-golang/src/graphics"
 	"github.com/raulferras/nes-golang/src/nes/gamePak"
+	"github.com/raulferras/nes-golang/src/nes/types"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -72,6 +74,23 @@ func TestPPU_tick_should_end_vblank_on_end_of_scanline_261(t *testing.T) {
 	ppu.Tick()
 
 	assert.Equal(t, byte(0), (ppu.registers.status>>verticalBlankStarted)&0x01)
+}
+
+func TestPPU_writes_and_reads_into_palette(t *testing.T) {
+	ppu := aPPU()
+
+	for i := 0; i < 32; i++ {
+		colorIndex := byte(i + 1)
+		address := PALETTE_LOW_ADDRESS + types.Address(i)
+		ppu.Write(address, colorIndex)
+		readValue := ppu.Read(address)
+		assert.Equal(
+			t,
+			colorIndex,
+			readValue,
+			fmt.Sprintf("@%X has unexpected value", address),
+		)
+	}
 }
 
 func TestPPU_should_get_propper_color_for_a_given_pixel_color_and_palette(t *testing.T) {
