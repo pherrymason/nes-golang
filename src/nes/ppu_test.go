@@ -24,16 +24,16 @@ func aPPU() *Ppu2c02 {
 	memory := CreatePPUMemory(cartridge)
 
 	// 0x3F00
-	memory.paletteTable[0] = 0x21 // light blue
+	//memory.paletteTable[0] = 0x21 // light blue
 	// 0x3F01
-	memory.paletteTable[1] = 0x01 // Dark Blue
-	memory.paletteTable[2] = 0x02 // Blue-Purple
-	memory.paletteTable[3] = 0x03 // Dark Purple
+	//memory.paletteTable[1] = 0x01 // Dark Blue
+	//memory.paletteTable[2] = 0x02 // Blue-Purple
+	//memory.paletteTable[3] = 0x03 // Dark Purple
 
 	// Mirrored addresses
-	memory.paletteTable[4] = 0x04
-	memory.paletteTable[8] = 0x08
-	memory.paletteTable[0x0C] = 0x0C
+	//memory.paletteTable[4] = 0x04
+	//memory.paletteTable[8] = 0x08
+	//memory.paletteTable[0x0C] = 0x0C
 
 	ppu := CreatePPU(memory)
 	return ppu
@@ -99,22 +99,28 @@ func TestPPU_should_get_propper_color_for_a_given_pixel_color_and_palette(t *tes
 	cases := []struct {
 		name          string
 		palette       byte
-		pixelColor    byte
+		colorIndex    byte
 		expectedColor graphics.Color
 	}{
 		{"", 0, 0, backgroundColor},
 		{"", 0, 1, graphics.Color{0, 30, 116}},
 		{"", 0, 2, graphics.Color{8, 16, 144}},
 		{"", 0, 3, graphics.Color{48, 0, 136}},
-		{"mirroring $0x3F10", 4, 0, backgroundColor},
-		{"mirroring $0x3F14", 5, 0, graphics.Color{68, 0, 100}},
-		{"mirroring $0x3F18", 6, 0, graphics.Color{32, 42, 0}},
-		{"mirroring $0x3F1C", 7, 0, graphics.Color{0, 50, 60}},
+		//{"mirroring $0x3F10", 4, 0, backgroundColor},
+		//{"mirroring $0x3F14", 5, 0, graphics.Color{68, 0, 100}},
+		//{"mirroring $0x3F18", 6, 0, graphics.Color{32, 42, 0}},
+		//{"mirroring $0x3F1C", 7, 0, graphics.Color{0, 50, 60}},
 	}
+
+	// 0x3F00
+	ppu.Write(PALETTE_LOW_ADDRESS+0, 0x25) // light blue
+	ppu.Write(PALETTE_LOW_ADDRESS+1, 0x01) // Dark Blue
+	ppu.Write(PALETTE_LOW_ADDRESS+2, 0x02) // Blue-Purple
+	ppu.Write(PALETTE_LOW_ADDRESS+3, 0x03) // Dark Purple
 
 	for _, tt := range cases {
 		t.Run("", func(t *testing.T) {
-			color := ppu.getColorFromPaletteRam(tt.palette, tt.pixelColor)
+			color := ppu.getColorFromPaletteRam(tt.palette, tt.colorIndex)
 			assert.Equal(t, tt.expectedColor, color)
 		})
 	}

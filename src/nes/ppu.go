@@ -387,19 +387,30 @@ var SystemPalette = [NES_PALETTE_COLORS][3]byte{
 	{0, 0, 0},
 }
 
-func (ppu Ppu2c02) getColorFromPaletteRam(palette byte, pixelColor byte) graphics.Color {
-	paletteAddress := types.Address((palette * 4) + pixelColor)
+/*
+	//$3F00 	    Universal background color
+	//$3F01-$3F03 	Background palette 0
+	//$3F05-$3F07 	Background palette 1
+	//$3F09-$3F0B 	Background palette 2
+	//$3F0D-$3F0F 	Background palette 3
+	//$3F11-$3F13 	Sprite palette 0
+	//$3F15-$3F17 	Sprite palette 1
+	//$3F19-$3F1B 	Sprite palette 2
+	//$3F1D-$3F1F 	Sprite palette 3
+*/
+func (ppu Ppu2c02) getColorFromPaletteRam(palette byte, colorIndex byte) graphics.Color {
+	paletteAddress := types.Address((palette * 4) + colorIndex)
 	/*
 		if int(colorIndex) > len(SystemPalette) {
-			panic(fmt.Sprintf("pixel color out of palette: %X", pixelColor))
+			panic(fmt.Sprintf("pixel color out of palette: %X", colorIndex))
 		}*/
 
-	colorIndex := ppu.Read(types.Address(0x3F00) + paletteAddress)
+	color := ppu.Read(PALETTE_LOW_ADDRESS + paletteAddress)
 
 	return graphics.Color{
-		R: SystemPalette[colorIndex][0],
-		G: SystemPalette[colorIndex][1],
-		B: SystemPalette[colorIndex][2],
+		R: SystemPalette[color][0],
+		G: SystemPalette[color][1],
+		B: SystemPalette[color][2],
 	}
 }
 
