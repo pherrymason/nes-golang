@@ -1,4 +1,4 @@
-package nes
+package ppu
 
 import (
 	"github.com/raulferras/nes-golang/src/nes/types"
@@ -153,9 +153,9 @@ func TestPPU_PPUADDR_write_twice_to_set_address(t *testing.T) {
 
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
-			gamePak := CreateDummyGamePak()
-			memory := CreatePPUMemory(gamePak)
-			ppu := CreatePPU(memory)
+			dummyGamePak := CreateDummyGamePak()
+			memory := CreateMemory(dummyGamePak)
+			ppu := CreatePPU(*memory)
 
 			ppu.WriteRegister(PPUADDR, tt.hi)
 			assert.Equal(t, types.Address(tt.hi)<<8, ppu.registers.ppuAddr)
@@ -167,8 +167,8 @@ func TestPPU_PPUADDR_write_twice_to_set_address(t *testing.T) {
 }
 
 func TestPPU_PPUData_read(t *testing.T) {
-	gamePak := CreateDummyGamePak()
-	memory := CreatePPUMemory(gamePak)
+	dummyGamePak := CreateDummyGamePak()
+	memory := CreateMemory(dummyGamePak)
 
 	const PALETTE_VALUE = byte(0x20)
 	const EXPECTED_VALUE = byte(0x15)
@@ -186,7 +186,7 @@ func TestPPU_PPUData_read(t *testing.T) {
 		{"reading from palette addresses does not buffer", 0x3FFF, 0, PALETTE_VALUE, PALETTE_VALUE},
 	}
 
-	ppu := CreatePPU(memory)
+	ppu := CreatePPU(*memory)
 	ppu.Write(0x2600, EXPECTED_VALUE)
 	ppu.Write(0x3F00, PALETTE_VALUE)
 	ppu.Write(0x3FFF, PALETTE_VALUE)
@@ -216,9 +216,9 @@ func TestPPU_PPUData_read(t *testing.T) {
 
 func TestPPUDATA_is_instructed_to_read_address_and_mirrors(t *testing.T) {
 	t.Skipf("Mirror still not implemented")
-	gamePak := CreateDummyGamePak()
-	memory := CreatePPUMemory(gamePak)
-	ppu := CreatePPU(memory)
+	dummyGamePak := CreateDummyGamePak()
+	memory := CreateMemory(dummyGamePak)
+	ppu := CreatePPU(*memory)
 
 	ppu.WriteRegister(PPUADDR, 0x3F)
 	ppu.WriteRegister(PPUADDR, 0xFF)
@@ -229,8 +229,8 @@ func TestPPUDATA_is_instructed_to_read_address_and_mirrors(t *testing.T) {
 }
 
 func TestPPU_PPUData_write(t *testing.T) {
-	gamePak := CreateDummyGamePak()
-	memory := CreatePPUMemory(gamePak)
+	dummyPak := CreateDummyGamePak()
+	memory := CreateMemory(dummyPak)
 
 	const PALETTE_VALUE = byte(0x20)
 	const EXPECTED_VALUE = byte(0x15)
@@ -247,7 +247,7 @@ func TestPPU_PPUData_write(t *testing.T) {
 		{"write into palette, high edge", 0x3FFF, 0, PALETTE_VALUE},
 	}
 
-	ppu := CreatePPU(memory)
+	ppu := CreatePPU(*memory)
 
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {

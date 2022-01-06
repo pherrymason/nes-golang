@@ -1,56 +1,8 @@
-package nes
+package ppu
 
 import (
 	"github.com/raulferras/nes-golang/src/graphics"
 	"github.com/raulferras/nes-golang/src/nes/types"
-)
-
-type PPURegisters struct {
-	ctrl   byte // Controls PPU operation
-	mask   byte // Controls the rendering of sprites and backgrounds
-	status byte // Reflects state of various functions inside PPU
-
-	scrollX     byte // Changes scroll position
-	scrollY     byte // Changes scroll position
-	scrollLatch byte // Controls which scroll needs to be written
-
-	oamAddr      byte
-	ppuAddr      types.Address
-	addressLatch byte
-	readBuffer   byte
-}
-
-type PPUCtrlFlag int
-
-const (
-	baseNameTableAddress0 PPUCtrlFlag = iota // Most significant bit of scrolling coordinates (X)
-	baseNameTableAddress1                    // Most significant bit of scrolling coordinates (Y)
-	incrementMode
-	spritePatternTableAddress
-	backgroundPatternTableAddress
-	spriteSize
-	generateNMIAtVBlank
-)
-
-type PPUMASKFlag int
-
-const (
-	greyScale PPUMASKFlag = iota
-	showBackgroundLeftEdge
-	showSpritesLeftEdge
-	showBackground
-	showSprites
-	emphasizeRed
-	emphasizeGreen
-	emphasizeBlue
-)
-
-type PPUSTATUSFlag int
-
-const (
-	spriteOverflow       = 5
-	sprite0Hit           = 6
-	verticalBlankStarted = 7
 )
 
 const PPUCTRL = 0x2000 // NMI enable (V), PPU master/slave (P), sprite height (H),
@@ -65,13 +17,7 @@ const PPUSCROLL = 0x2005
 const PPUADDR = 0x2006
 const PPUDATA = 0x2007
 const OAMDMA = 0x4014
-
 const NES_PALETTE_COLORS = 64
-
-type PPU interface {
-	WriteRegister(register types.Address, value byte)
-	ReadRegister(register types.Address) byte
-}
 
 const PPU_SCREEN_SPACE_CYCLES_BY_SCANLINE = 256
 const PPU_CYCLES_BY_SCANLINE = 341
@@ -80,12 +26,14 @@ const PPU_SCANLINES = 261
 const PPU_VBLANK_START_CYCLE = (PPU_SCREEN_SPACE_SCANLINES + 1) * PPU_CYCLES_BY_SCANLINE
 const PPU_VBLANK_END_CYCLE = PPU_SCANLINES * PPU_CYCLES_BY_SCANLINE
 
-// Ppu2c02 Processor
-//  Registers mapped to memory locations: $2000 through $2007
-//  mirrored in every 8 bytes from $2008 through $3FFF
+type PPU interface {
+	WriteRegister(register types.Address, value byte)
+	ReadRegister(register types.Address) byte
+}
+
 type Ppu2c02 struct {
-	Memory
-	registers PPURegisters
+	registers Registers
+	memory    Memory
 
 	// OAM (Object Attribute Memory) is internal memory inside the PPU.
 	// Contains a display list of up to 64 sprites, where each sprite occupies 4 bytes
@@ -99,7 +47,7 @@ type Ppu2c02 struct {
 
 func CreatePPU(memory Memory) *Ppu2c02 {
 	ppu := &Ppu2c02{
-		Memory:       memory,
+		memory:       memory,
 		patternTable: make([]byte, 8*8*512),
 	}
 
@@ -127,6 +75,26 @@ func (ppu *Ppu2c02) Tick() {
 	if ppu.cycle == PPU_SCANLINES*PPU_CYCLES_BY_SCANLINE {
 		ppu.cycle = 0
 	}
+}
+
+func (ppu *Ppu2c02) Peek(address types.Address) byte {
+	return ppu.memory.Peek(address)
+}
+
+func (ppu *Ppu2c02) Read(address types.Address) byte {
+	return ppu.memory.Read(address)
+}
+
+func (ppu *Ppu2c02) Write(address types.Address, value byte) {
+	ppu.memory.Write(address, value)
+}
+
+func (ppu *Ppu2c02) Nmi() bool {
+	return ppu.nmi
+}
+
+func (ppu *Ppu2c02) ResetNmi() {
+	ppu.nmi = false
 }
 
 // Read made by CPU
@@ -160,7 +128,7 @@ func (ppu *Ppu2c02) ReadRegister(register types.Address) byte {
 
 	case PPUDATA:
 		value = ppu.registers.readBuffer
-		ppu.registers.readBuffer = ppu.Read(ppu.registers.ppuAddr)
+		ppu.registers.readBuffer = ppu.memory.Read(ppu.registers.ppuAddr)
 		if ppu.registers.ppuAddr >= 0x3F00 && ppu.registers.ppuAddr <= 0x3FFF {
 			value = ppu.registers.readBuffer
 		}
@@ -245,146 +213,20 @@ func (ppu *Ppu2c02) WriteRegister(register types.Address, value byte) {
 	}
 }
 
-func (ppu *Ppu2c02) PatternTable(patternTable int, palette uint8) []graphics.Pixel {
-	chr := make([]graphics.Pixel, 128*128)
+func (ppu *Ppu2c02) ppuctrlReadFlag(flag CtrlFlag) byte {
+	ctrl := ppu.registers.ctrl
+	mask := byte(1) << flag
 
-	bankAddress := types.Address(patternTable * 0x1000)
-	i := 0
-	for tileY := 0; tileY < 16; tileY++ {
-		for tileX := 0; tileX < 16; tileX++ {
-			offset := bankAddress + types.Address(tileY*256+tileX*16)
-
-			for row := 0; row < 8; row++ {
-				pixelLSB := ppu.Read(offset + types.Address(row))
-				pixelMSB := ppu.Read(offset + types.Address(row+8))
-
-				for col := 0; col < 8; col++ {
-					value := (pixelLSB & 0x01) | ((pixelMSB & 0x01) << 1)
-
-					pixelLSB >>= 1
-					pixelMSB >>= 1
-
-					coordY := tileY*8 + row
-					coordX := (7 - col) + tileX*8
-
-					pixel := graphics.Pixel{
-						X:     coordX,
-						Y:     coordY,
-						Color: ppu.getColorFromPaletteRam(palette, value),
-					}
-					chr[i] = pixel
-					i++
-				}
-			}
-		}
-	}
-
-	return chr
+	return (ctrl & mask) >> flag
 }
 
-func (ppu *Ppu2c02) getTile(patternTable int, palette uint8, tileX int, tileY int) []graphics.Pixel {
-	tile := make([]graphics.Pixel, 8*8)
-	bankAddress := types.Address(patternTable * 0x1000)
-
-	offset := bankAddress + types.Address(tileY*256+tileX*16)
-
-	for row := 0; row < 8; row++ {
-		pixelLSB := ppu.Read(offset + types.Address(row))
-		pixelMSB := ppu.Read(offset + types.Address(row+8))
-
-		for col := 0; col < 8; col++ {
-			value := (pixelLSB & 0x01) | ((pixelMSB & 0x01) << 1)
-
-			pixelLSB >>= 1
-			pixelMSB >>= 1
-
-			coordY := tileY*8 + row
-			coordX := (7 - col) + tileX*8
-
-			pixel := graphics.Pixel{
-				X:     coordX,
-				Y:     coordY,
-				Color: ppu.getColorFromPaletteRam(palette, value),
-			}
-			tile[row+col*8] = pixel
-		}
+// Helper method, only used in tests
+func (ppu *Ppu2c02) ppuctrlWriteFlag(flag CtrlFlag, value byte) {
+	if value == 1 {
+		ppu.registers.ctrl |= 1 << flag
+	} else {
+		ppu.registers.ctrl &= ^(1 << flag)
 	}
-
-	return tile
-}
-
-// blargg's palette
-var SystemPalette = [NES_PALETTE_COLORS][3]byte{
-	{84, 84, 84},
-	{0, 30, 116},
-	{8, 16, 144},
-	{48, 0, 136},
-	{68, 0, 100},
-	{92, 0, 48},
-	{84, 4, 0},
-	{60, 24, 0},
-	{32, 42, 0},
-	{8, 58, 0},
-	{0, 64, 0},
-	{0, 60, 0},
-	{0, 50, 60},
-	{0, 0, 0},
-	{0, 0, 0},
-	{0, 0, 0},
-
-	// 0x10
-	{152, 150, 152},
-	{8, 76, 196},
-	{48, 50, 236},
-	{92, 30, 228},
-	{136, 20, 176},
-	{160, 20, 100},
-	{152, 34, 32},
-	{120, 60, 0},
-	{84, 90, 0},
-	{40, 114, 0},
-	{8, 124, 0},
-	{0, 118, 40},
-	{0, 102, 120},
-	{0, 0, 0},
-	{0, 0, 0},
-	{0, 0, 0},
-
-	// 0x20
-	{236, 238, 236},
-	{76, 154, 236},
-	{120, 124, 236},
-	{176, 98, 236},
-	{228, 84, 236},
-	{236, 88, 180},
-	{236, 106, 100},
-	{212, 136, 32},
-	{160, 170, 0},
-	{116, 196, 0},
-	{76, 208, 32},
-	{56, 204, 108},
-	{56, 180, 204},
-	{60, 60, 60},
-	{0, 0, 0},
-	{0, 0, 0},
-
-	// 0x3F
-	{236, 238, 236},
-	{168, 204, 236},
-	{188, 188, 236},
-	{212, 178, 236},
-	{236, 174, 236},
-	{236, 174, 212},
-	{236, 180, 176},
-	{228, 196, 144},
-	{204, 210, 120},
-	{180, 222, 120},
-	{168, 226, 144},
-	{152, 226, 180},
-	{160, 214, 228},
-	{160, 162, 160},
-	{0, 0, 0},
-	{0, 0, 0},
 }
 
 /*
@@ -398,35 +240,18 @@ var SystemPalette = [NES_PALETTE_COLORS][3]byte{
 	//$3F19-$3F1B 	Sprite palette 2
 	//$3F1D-$3F1F 	Sprite palette 3
 */
-func (ppu Ppu2c02) getColorFromPaletteRam(palette byte, colorIndex byte) graphics.Color {
+func (ppu Ppu2c02) GetColorFromPaletteRam(palette byte, colorIndex byte) graphics.Color {
 	paletteAddress := types.Address((palette * 4) + colorIndex)
 	/*
 		if int(colorIndex) > len(SystemPalette) {
 			panic(fmt.Sprintf("pixel color out of palette: %X", colorIndex))
 		}*/
 
-	color := ppu.Read(PALETTE_LOW_ADDRESS + paletteAddress)
+	color := ppu.Read(PaletteLowAddress + paletteAddress)
 
 	return graphics.Color{
 		R: SystemPalette[color][0],
 		G: SystemPalette[color][1],
 		B: SystemPalette[color][2],
-	}
-}
-
-// Helper method, only used in tests
-func (ppu *Ppu2c02) ppuctrlReadFlag(flag PPUCtrlFlag) byte {
-	ctrl := ppu.registers.ctrl
-	mask := byte(1) << flag
-
-	return (ctrl & mask) >> flag
-}
-
-// Helper method, only used in tests
-func (ppu *Ppu2c02) ppuctrlWriteFlag(flag PPUCtrlFlag, value byte) {
-	if value == 1 {
-		ppu.registers.ctrl |= 1 << flag
-	} else {
-		ppu.registers.ctrl &= ^(1 << flag)
 	}
 }

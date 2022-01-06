@@ -2,6 +2,7 @@ package nes
 
 import (
 	"github.com/raulferras/nes-golang/src/graphics"
+	"github.com/raulferras/nes-golang/src/nes/ppu"
 	"github.com/raulferras/nes-golang/src/nes/types"
 )
 
@@ -10,7 +11,7 @@ import (
 type NesDebugger struct {
 	debug         bool
 	cpu           *Cpu6502
-	ppu           *Ppu2c02
+	ppu           *ppu.Ppu2c02
 	outputLogPath string
 
 	disassembled map[types.Address]string
@@ -117,9 +118,9 @@ func (debugger *NesDebugger) PatternTable(patternTable int) []graphics.Pixel {
 func (debugger *NesDebugger) GetPaletteFromRam(paletteIndex uint8) [3]graphics.Color {
 	var colors [3]graphics.Color
 
-	colors[0] = debugger.ppu.getColorFromPaletteRam(paletteIndex, 0)
-	colors[1] = debugger.ppu.getColorFromPaletteRam(paletteIndex, 1)
-	colors[2] = debugger.ppu.getColorFromPaletteRam(paletteIndex, 2)
+	colors[0] = debugger.ppu.GetColorFromPaletteRam(paletteIndex, 0)
+	colors[1] = debugger.ppu.GetColorFromPaletteRam(paletteIndex, 1)
+	colors[2] = debugger.ppu.GetColorFromPaletteRam(paletteIndex, 2)
 
 	return colors
 }

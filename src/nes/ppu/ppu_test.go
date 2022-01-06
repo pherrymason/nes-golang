@@ -1,4 +1,4 @@
-package nes
+package ppu
 
 import (
 	"fmt"
@@ -21,21 +21,8 @@ func CreateDummyGamePak() *gamePak.GamePak {
 
 func aPPU() *Ppu2c02 {
 	cartridge := CreateDummyGamePak()
-	memory := CreatePPUMemory(cartridge)
-
-	// 0x3F00
-	//memory.paletteTable[0] = 0x21 // light blue
-	// 0x3F01
-	//memory.paletteTable[1] = 0x01 // Dark Blue
-	//memory.paletteTable[2] = 0x02 // Blue-Purple
-	//memory.paletteTable[3] = 0x03 // Dark Purple
-
-	// Mirrored addresses
-	//memory.paletteTable[4] = 0x04
-	//memory.paletteTable[8] = 0x08
-	//memory.paletteTable[0x0C] = 0x0C
-
-	ppu := CreatePPU(memory)
+	memory := CreateMemory(cartridge)
+	ppu := CreatePPU(*memory)
 	return ppu
 }
 
@@ -81,7 +68,7 @@ func TestPPU_writes_and_reads_into_palette(t *testing.T) {
 
 	for i := 0; i < 32; i++ {
 		colorIndex := byte(i + 1)
-		address := PALETTE_LOW_ADDRESS + types.Address(i)
+		address := PaletteLowAddress + types.Address(i)
 		ppu.Write(address, colorIndex)
 		readValue := ppu.Read(address)
 		assert.Equal(
@@ -113,14 +100,14 @@ func TestPPU_should_get_propper_color_for_a_given_pixel_color_and_palette(t *tes
 	}
 
 	// 0x3F00
-	ppu.Write(PALETTE_LOW_ADDRESS+0, 0x25) // light blue
-	ppu.Write(PALETTE_LOW_ADDRESS+1, 0x01) // Dark Blue
-	ppu.Write(PALETTE_LOW_ADDRESS+2, 0x02) // Blue-Purple
-	ppu.Write(PALETTE_LOW_ADDRESS+3, 0x03) // Dark Purple
+	ppu.Write(PaletteLowAddress+0, 0x25) // light blue
+	ppu.Write(PaletteLowAddress+1, 0x01) // Dark Blue
+	ppu.Write(PaletteLowAddress+2, 0x02) // Blue-Purple
+	ppu.Write(PaletteLowAddress+3, 0x03) // Dark Purple
 
 	for _, tt := range cases {
 		t.Run("", func(t *testing.T) {
-			color := ppu.getColorFromPaletteRam(tt.palette, tt.colorIndex)
+			color := ppu.GetColorFromPaletteRam(tt.palette, tt.colorIndex)
 			assert.Equal(t, tt.expectedColor, color)
 		})
 	}

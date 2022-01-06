@@ -3,12 +3,13 @@ package nes
 import (
 	"github.com/FMNSSun/hexit"
 	"github.com/raulferras/nes-golang/src/nes/gamePak"
+	"github.com/raulferras/nes-golang/src/nes/ppu"
 	"github.com/raulferras/nes-golang/src/nes/types"
 )
 
 type Nes struct {
 	cpu *Cpu6502
-	ppu *Ppu2c02
+	ppu *ppu.Ppu2c02
 
 	systemClockCounter byte // Controls how many times to call each processor
 	debug              *NesDebugger
@@ -16,9 +17,9 @@ type Nes struct {
 
 func CreateNes(gamePak *gamePak.GamePak, debugger *NesDebugger) Nes {
 	hexit.BuildTable()
-	ppuBus := CreatePPUMemory(gamePak)
-	ppu := CreatePPU(
-		ppuBus,
+	ppuBus := ppu.CreateMemory(gamePak)
+	ppu := ppu.CreatePPU(
+		*ppuBus,
 	)
 
 	cpuBus := newNESCPUMemory(ppu, gamePak)
@@ -59,9 +60,9 @@ func (nes *Nes) Tick() byte {
 		cpuCycles = nes.cpu.Tick()
 	}
 
-	if nes.ppu.nmi {
+	if nes.ppu.Nmi() {
 		nes.cpu.nmi()
-		nes.ppu.nmi = false
+		nes.ppu.ResetNmi()
 	}
 
 	nes.systemClockCounter++

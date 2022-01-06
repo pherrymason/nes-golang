@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/raulferras/nes-golang/src/nes/gamePak"
 	"github.com/raulferras/nes-golang/src/nes/mappers"
+	"github.com/raulferras/nes-golang/src/nes/ppu"
 	"github.com/raulferras/nes-golang/src/nes/types"
 )
 
@@ -52,14 +53,14 @@ type CPUMemory struct {
 	ram     [0xFFFF + 1]byte
 	gamePak *gamePak.GamePak
 	mapper  mappers.Mapper
-	ppu     PPU
+	ppu     ppu.PPU
 }
 
-func newCPUMemory(ppu PPU, gamePak *gamePak.GamePak, mapper mappers.Mapper) *CPUMemory {
+func newCPUMemory(ppu ppu.PPU, gamePak *gamePak.GamePak, mapper mappers.Mapper) *CPUMemory {
 	return &CPUMemory{gamePak: gamePak, mapper: mapper, ppu: ppu}
 }
 
-func newNESCPUMemory(ppu PPU, gamePak *gamePak.GamePak) *CPUMemory {
+func newNESCPUMemory(ppu ppu.PPU, gamePak *gamePak.GamePak) *CPUMemory {
 	mapper := mappers.CreateMapper(gamePak)
 
 	return &CPUMemory{gamePak: gamePak, mapper: mapper, ppu: ppu}
@@ -77,7 +78,7 @@ func (cm *CPUMemory) read(address types.Address, readOnly bool) byte {
 	if address <= RAM_HIGHER_ADDRESS {
 		// Read with mirror after RAM_LAST_REAL_ADDRESS
 		return cm.ram[address&RAM_LAST_REAL_ADDRESS]
-	} else if address <= PPU_HIGH_ADDRESS {
+	} else if address <= ppu.PPU_HIGH_ADDRESS {
 		return cm.ppu.ReadRegister(address & 0x2007)
 	} else if address >= gamePak.GAMEPAK_LOW_RANGE {
 		return cm.mapper.Read(address)

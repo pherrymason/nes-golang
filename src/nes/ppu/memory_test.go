@@ -1,4 +1,4 @@
-package nes
+package ppu
 
 import (
 	"fmt"
@@ -35,7 +35,7 @@ func TestPPUMemory_read(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			header := new(mocks.MockableHeader)
 			pak := gamePak.CreateGamePak(header, []byte{0}, []byte{0})
-			ppu := &PPUMemory{
+			ppu := &Memory{
 				gamePak:      &pak,
 				vram:         tt.fields.vram,
 				paletteTable: tt.fields.paletteTable,
@@ -110,7 +110,7 @@ func TestPPUMemory_read_nametables(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			header := gamePak.CreateINes1Header(10, 10, tt.mirrorMode, 0, 0, 0, 0)
 			pak := gamePak.CreateGamePak(header, []byte{0}, []byte{0})
-			ppu := &PPUMemory{
+			ppu := &Memory{
 				gamePak:      &pak,
 				vram:         [2048]byte{},
 				paletteTable: [32]byte{},
@@ -173,21 +173,21 @@ func TestPPUMemory_write_nametables(t *testing.T) {
 			}
 			header := gamePak.CreateINes1Header(10, 10, mirrorMode, 0, 0, 0, 0)
 			pak := gamePak.CreateGamePak(header, []byte{0}, []byte{0})
-			ppu := &PPUMemory{
+			ppuMemory := &Memory{
 				gamePak:      &pak,
 				vram:         [2048]byte{},
 				paletteTable: [32]byte{},
 			}
 
-			ppu.Write(tt.mirrorA.address, 0xFF)
-			assert.Equal(t, byte(0xFF), ppu.vram[tt.mirrorA.realVRAM])
-			ppu.Write(tt.mirrorA.addressMirrored, 0xF1)
-			assert.Equal(t, byte(0xF1), ppu.vram[tt.mirrorA.realVRAM])
+			ppuMemory.Write(tt.mirrorA.address, 0xFF)
+			assert.Equal(t, byte(0xFF), ppuMemory.vram[tt.mirrorA.realVRAM])
+			ppuMemory.Write(tt.mirrorA.addressMirrored, 0xF1)
+			assert.Equal(t, byte(0xF1), ppuMemory.vram[tt.mirrorA.realVRAM])
 
-			ppu.Write(tt.mirrorB.address, 0xFF)
-			assert.Equal(t, byte(0xFF), ppu.vram[tt.mirrorB.realVRAM])
-			ppu.Write(tt.mirrorB.addressMirrored, 0xF1)
-			assert.Equal(t, byte(0xF1), ppu.vram[tt.mirrorB.realVRAM])
+			ppuMemory.Write(tt.mirrorB.address, 0xFF)
+			assert.Equal(t, byte(0xFF), ppuMemory.vram[tt.mirrorB.realVRAM])
+			ppuMemory.Write(tt.mirrorB.addressMirrored, 0xF1)
+			assert.Equal(t, byte(0xF1), ppuMemory.vram[tt.mirrorB.realVRAM])
 		})
 	}
 }
