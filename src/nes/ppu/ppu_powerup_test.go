@@ -1,6 +1,7 @@
 package ppu
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -34,15 +35,16 @@ func TestPPU_writing_to_registers_are_ready_first_29658_CPU_clocks(t *testing.T)
 		//assert.NotEqual(t, 0xFF, ppu.registers.status)
 
 		ppu.WriteRegister(OAMADDR, 0xFF)
-		assert.NotEqual(t, 0xFF, ppu.registers.oamAddr)
+		assert.NotEqual(t, 0xFF, ppu.registers.oamAddr, fmt.Sprintf("OAMAddr was not 0xFF at cycle %d", cpuCycles))
 
 		ppu.WriteRegister(OAMDATA, 0xFF)
-		assert.NotEqual(t, 0xFF, ppu.ReadRegister(OAMDATA))
+		assert.NotEqual(t, 0xFF, ppu.ReadRegister(OAMDATA), fmt.Sprintf("OAMData was not 0xFF at cycle %d", cpuCycles))
 
+		ppu.registers.ppuAddr = 0x2000
 		ppu.WriteRegister(PPUDATA, 0xFF)
-		assert.NotEqual(t, 0xFF, ppu.Read(0x00))
+		assert.NotEqual(t, 0xFF, ppu.Read(0x00), fmt.Sprintf("PPUDATA was not 0xFF at cycle %d", cpuCycles))
 
 		ppu.WriteRegister(OAMDMA, 0xFF)
-		assert.NotEqual(t, 0xFF, ppu.registers.ppuAddr)
+		assert.NotEqual(t, 0xFF, ppu.registers.ppuAddr, fmt.Sprintf("OAMDMA was not 0xFF at cycle %d", cpuCycles))
 	}
 }
