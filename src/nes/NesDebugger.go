@@ -1,7 +1,6 @@
 package nes
 
 import (
-	"github.com/raulferras/nes-golang/src/graphics"
 	"github.com/raulferras/nes-golang/src/nes/ppu"
 	"github.com/raulferras/nes-golang/src/nes/types"
 )
@@ -111,12 +110,12 @@ func (debugger *NesDebugger) YRegister() byte {
 }
 
 //func (debugger NesDebugger) PatternTable(patternTable int) [][]byte {
-func (debugger *NesDebugger) PatternTable(patternTable int) []graphics.Pixel {
+func (debugger *NesDebugger) PatternTable(patternTable int) []types.Pixel {
 	return debugger.ppu.PatternTable(patternTable, 0)
 }
 
-func (debugger *NesDebugger) GetPaletteFromRam(paletteIndex uint8) [3]graphics.Color {
-	var colors [3]graphics.Color
+func (debugger *NesDebugger) GetPaletteFromRam(paletteIndex uint8) [3]types.Color {
+	var colors [3]types.Color
 
 	colors[0] = debugger.ppu.GetColorFromPaletteRam(paletteIndex, 0)
 	colors[1] = debugger.ppu.GetColorFromPaletteRam(paletteIndex, 1)

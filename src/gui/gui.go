@@ -6,6 +6,7 @@ import (
 	"github.com/raulferras/nes-golang/src/graphics"
 	"github.com/raulferras/nes-golang/src/nes"
 	"github.com/raulferras/nes-golang/src/nes/gamePak"
+	"github.com/raulferras/nes-golang/src/nes/types"
 	"math/rand"
 	"time"
 )
@@ -100,11 +101,46 @@ func draw(console nes.Nes) {
 	r.BeginDrawing()
 	r.ClearBackground(r.Black)
 
-	drawEmulation()
+	drawEmulation(console)
+	drawBackgroundTileIDs(console)
 	DrawDebug(console)
 	r.EndDrawing()
 }
 
-func drawEmulation() {
-	// TODO
+func drawEmulation(console nes.Nes) {
+	frame := console.Frame()
+
+	padding := 20
+	paddingY := 20
+	r.DrawRectangle(padding, paddingY, types.WIDTH, types.HEIGHT, r.DarkBrown)
+	for i := 0; i < types.WIDTH*types.HEIGHT; i++ {
+		pixel := frame.Pixels[i]
+		color := types.PixelColor2RaylibColor(pixel)
+		x := i % types.WIDTH
+		y := i / types.WIDTH
+
+		r.DrawPixel(padding+x, paddingY+y, color)
+	}
+
+}
+
+func drawBackgroundTileIDs(console nes.Nes) {
+	padding := 20
+	paddingY := 100
+	// Debug background tiles IDS
+	offsetY := paddingY + types.HEIGHT + 10
+	framePattern := console.FramePattern()
+	tilesWidth := 32
+	//tilesHeight := 30
+	for i := 0; i < 0x3C0; i++ {
+		x := i % tilesWidth * 17
+		y := (i / tilesWidth) * 17
+		r.DrawText(
+			fmt.Sprintf("%X", framePattern[i]),
+			padding+x,
+			offsetY+y,
+			8,
+			r.Violet,
+		)
+	}
 }

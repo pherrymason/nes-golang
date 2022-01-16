@@ -1,7 +1,6 @@
 package ppu
 
 import (
-	"github.com/raulferras/nes-golang/src/graphics"
 	"github.com/raulferras/nes-golang/src/nes/types"
 )
 
@@ -41,17 +40,29 @@ type Ppu2c02 struct {
 
 	patternTable []byte // Decoded pattern table
 
-	cycle uint32
-	nmi   bool // NMI Interrupt thrown
+	cycle           uint32
+	currentScanline uint8
+	nmi             bool // NMI Interrupt thrown
+	frame           types.Frame
+	framePattern    [1024]byte
 }
 
 func CreatePPU(memory Memory) *Ppu2c02 {
 	ppu := &Ppu2c02{
-		memory:       memory,
-		patternTable: make([]byte, 8*8*512),
+		memory:          memory,
+		patternTable:    make([]byte, 8*8*512),
+		currentScanline: 0,
 	}
 
 	return ppu
+}
+
+func (ppu *Ppu2c02) Frame() *types.Frame {
+	return &ppu.frame
+}
+
+func (ppu *Ppu2c02) FramePattern() *[1024]byte {
+	return &ppu.framePattern
 }
 
 func (ppu *Ppu2c02) Tick() {
@@ -62,8 +73,16 @@ func (ppu *Ppu2c02) Tick() {
 
 	}
 
-	if ppu.cycle == PPU_VBLANK_START_CYCLE {
+	// 341 PPU clock cycles have passed
+	if ppu.cycle%PPU_CYCLES_BY_SCANLINE == 0 {
+		ppu.currentScanline++
+	}
+
+	// ppu.cycle == PPU_VBLANK_START_CYCLE
+	//if ppu.cycle == PPU_VBLANK_START_CYCLE {
+	if ppu.currentScanline == 241 {
 		ppu.registers.status |= 1 << verticalBlankStarted
+		// scanline 241
 		if (ppu.registers.ctrl & (1 << generateNMIAtVBlank)) > 0 {
 			ppu.nmi = true
 		}
@@ -74,7 +93,12 @@ func (ppu *Ppu2c02) Tick() {
 
 	if ppu.cycle == PPU_SCANLINES*PPU_CYCLES_BY_SCANLINE {
 		ppu.cycle = 0
+		ppu.currentScanline = 0
 	}
+}
+
+func (ppu *Ppu2c02) VBlank() bool {
+	return ppu.currentScanline >= 241
 }
 
 func (ppu *Ppu2c02) Peek(address types.Address) byte {
@@ -240,7 +264,7 @@ func (ppu *Ppu2c02) ppuctrlWriteFlag(flag CtrlFlag, value byte) {
 	//$3F19-$3F1B 	Sprite palette 2
 	//$3F1D-$3F1F 	Sprite palette 3
 */
-func (ppu Ppu2c02) GetColorFromPaletteRam(palette byte, colorIndex byte) graphics.Color {
+func (ppu *Ppu2c02) GetColorFromPaletteRam(palette byte, colorIndex byte) types.Color {
 	paletteAddress := types.Address((palette * 4) + colorIndex)
 	/*
 		if int(colorIndex) > len(SystemPalette) {
@@ -249,7 +273,7 @@ func (ppu Ppu2c02) GetColorFromPaletteRam(palette byte, colorIndex byte) graphic
 
 	color := ppu.Read(PaletteLowAddress + paletteAddress)
 
-	return graphics.Color{
+	return types.Color{
 		R: SystemPalette[color][0],
 		G: SystemPalette[color][1],
 		B: SystemPalette[color][2],

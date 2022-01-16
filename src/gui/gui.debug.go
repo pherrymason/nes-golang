@@ -128,7 +128,7 @@ func drawCHR(console nes.Nes, font *raylib.Font) {
 	//r.DrawRectangle(x, y, 16*8, 16*8, r.RayWhite)
 }
 
-func pixelColor2RaylibColor(pixelColor graphics.Color) raylib.Color {
+func pixelColor2RaylibColor(pixelColor types.Color) raylib.Color {
 	return raylib.NewColor(
 		pixelColor.R,
 		pixelColor.G,

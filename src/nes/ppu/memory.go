@@ -16,6 +16,8 @@ import (
 // $3F00-$3F1F 	$0020 	Palette RAM indexes		} Palette Memory
 const PaletteLowAddress = types.Address(0x3F00)
 const PaletteHighAddress = types.Address(0x3FFF)
+const PPU_NAMETABLES_0_START = types.Address(0x2000)
+const PPU_NAMETABLES_0_END = types.Address(0x23C0)
 const PPU_HIGH_ADDRESS = types.Address(0x3FFF)
 
 type Memory struct {

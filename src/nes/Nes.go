@@ -13,6 +13,7 @@ type Nes struct {
 
 	systemClockCounter byte // Controls how many times to call each processor
 	debug              *NesDebugger
+	vblankCount        byte
 }
 
 func CreateNes(gamePak *gamePak.GamePak, debugger *NesDebugger) Nes {
@@ -45,7 +46,7 @@ func (nes *Nes) StartAt(address types.Address) {
 	nes.cpu.ResetToAddress(address)
 }
 
-// Rename to PowerOn
+// Start todo Rename to PowerOn
 func (nes *Nes) Start() {
 	nes.systemClockCounter = 0
 	nes.debug.disassembled = nes.cpu.Disassemble(0x8000, 0xFFFF)
@@ -63,6 +64,13 @@ func (nes *Nes) Tick() byte {
 	if nes.ppu.Nmi() {
 		nes.cpu.nmi()
 		nes.ppu.ResetNmi()
+	}
+
+	if nes.ppu.VBlank() {
+		if nes.vblankCount == 60 {
+			nes.ppu.Render()
+		}
+		nes.vblankCount++
 	}
 
 	nes.systemClockCounter++
@@ -87,4 +95,11 @@ func (nes *Nes) Debugger() *NesDebugger {
 
 func (nes Nes) SystemClockCounter() byte {
 	return nes.systemClockCounter
+}
+
+func (nes Nes) Frame() *types.Frame {
+	return nes.ppu.Frame()
+}
+func (nes Nes) FramePattern() *[1024]byte {
+	return nes.ppu.FramePattern()
 }

@@ -2,7 +2,6 @@ package ppu
 
 import (
 	"fmt"
-	"github.com/raulferras/nes-golang/src/graphics"
 	"github.com/raulferras/nes-golang/src/nes/gamePak"
 	"github.com/raulferras/nes-golang/src/nes/types"
 	"github.com/stretchr/testify/assert"
@@ -31,8 +30,8 @@ func TestPPU_tick_should_start_vblank_on_scanline_240(t *testing.T) {
 		name     string
 		allowNMI bool
 	}{
-		{"vblank + nmi allowed", true},
-		{"vblank + nmi disallowed", false},
+		{"should trigger nmi on vblank", true},
+		{"should not trigger nmi on vblank", false},
 	}
 
 	for _, tt := range cases {
@@ -44,11 +43,12 @@ func TestPPU_tick_should_start_vblank_on_scanline_240(t *testing.T) {
 				ppu.ppuctrlWriteFlag(generateNMIAtVBlank, 0)
 			}
 			ppu.cycle = PPU_VBLANK_START_CYCLE
+			ppu.currentScanline = PPU_SCREEN_SPACE_SCANLINES
 
 			ppu.Tick()
 
 			assert.Equal(t, byte(1), (ppu.registers.status>>verticalBlankStarted)&0x01)
-			assert.Equal(t, tt.allowNMI, ppu.nmi, "should have enabled NMI on vblank")
+			assert.Equal(t, tt.allowNMI, ppu.nmi, "Unexpected NMI behaviour")
 		})
 	}
 }
@@ -82,17 +82,17 @@ func TestPPU_writes_and_reads_into_palette(t *testing.T) {
 
 func TestPPU_should_get_propper_color_for_a_given_pixel_color_and_palette(t *testing.T) {
 	ppu := aPPU()
-	backgroundColor := graphics.Color{236, 88, 180}
+	backgroundColor := types.Color{236, 88, 180}
 	cases := []struct {
 		name          string
 		palette       byte
 		colorIndex    byte
-		expectedColor graphics.Color
+		expectedColor types.Color
 	}{
 		{"", 0, 0, backgroundColor},
-		{"", 0, 1, graphics.Color{0, 30, 116}},
-		{"", 0, 2, graphics.Color{8, 16, 144}},
-		{"", 0, 3, graphics.Color{48, 0, 136}},
+		{"", 0, 1, types.Color{0, 30, 116}},
+		{"", 0, 2, types.Color{8, 16, 144}},
+		{"", 0, 3, types.Color{48, 0, 136}},
 		//{"mirroring $0x3F10", 4, 0, backgroundColor},
 		//{"mirroring $0x3F14", 5, 0, graphics.Color{68, 0, 100}},
 		//{"mirroring $0x3F18", 6, 0, graphics.Color{32, 42, 0}},

@@ -2,53 +2,11 @@ package ppu
 
 import (
 	"fmt"
-	"github.com/raulferras/nes-golang/src/mocks"
 	"github.com/raulferras/nes-golang/src/nes/gamePak"
 	"github.com/raulferras/nes-golang/src/nes/types"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
-
-func TestPPUMemory_read(t *testing.T) {
-	type fields struct {
-		gamePak      *gamePak.GamePak
-		vram         [2048]byte
-		oamData      [256]byte
-		paletteTable [32]byte
-		mirroring    byte
-	}
-	type args struct {
-		address types.Address
-	}
-
-	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   byte
-	}{
-		{"vertical mirroring, reading vram, low edge", fields{mirroring: gamePak.VerticalMirroring}, args{0x2000}, 0x01},
-		{"vertical mirroring, reading vram, high edge", fields{mirroring: gamePak.VerticalMirroring}, args{0x2800}, 0x01},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			header := new(mocks.MockableHeader)
-			pak := gamePak.CreateGamePak(header, []byte{0}, []byte{0})
-			ppu := &Memory{
-				gamePak:      &pak,
-				vram:         tt.fields.vram,
-				paletteTable: tt.fields.paletteTable,
-			}
-
-			header.On("Mirroring").Return(tt.fields.mirroring)
-			ppu.vram[(tt.args.address-0x2000)&0x27FF] = tt.want
-			if got := ppu.read(tt.args.address, false); got != tt.want {
-				t.Errorf("read() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
 
 func TestPPUMemory_read_nametables(t *testing.T) {
 	type mirrored struct {
