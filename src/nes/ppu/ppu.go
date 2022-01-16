@@ -38,8 +38,6 @@ type Ppu2c02 struct {
 	// Contains a display list of up to 64 sprites, where each sprite occupies 4 bytes
 	oamData [256]byte
 
-	patternTable []byte // Decoded pattern table
-
 	cycle           uint32
 	currentScanline uint8
 	nmi             bool // NMI Interrupt thrown
@@ -50,7 +48,6 @@ type Ppu2c02 struct {
 func CreatePPU(memory Memory) *Ppu2c02 {
 	ppu := &Ppu2c02{
 		memory:          memory,
-		patternTable:    make([]byte, 8*8*512),
 		currentScanline: 0,
 	}
 
