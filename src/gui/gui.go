@@ -28,7 +28,9 @@ func Run() {
 	fmt.Printf("Nes Emulator\n")
 	path := "./assets/roms/nestest/nestest.nes"
 	//path := "./assets/roms/full_palette/full_palette.nes"
-	//path :="./assets/roms/Donkey Kong (World) (Rev A).nes"
+	//path := "./assets/roms/snake.nes"
+	//path := "./assets/roms/Pac-Man (USA) (Namco).nes"
+	//path := "./assets/roms/Donkey Kong (World) (Rev A).nes"
 	//path := "./assets/roms/Super Mario Bros. (World).nes"
 	//path = "./assets/roms/Mega Man 2 (Europe).nes"
 	gamePak := gamePak.CreateGamePakFromROMFile(path)
