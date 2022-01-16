@@ -3,8 +3,9 @@
 # Status
 
 - CPU: 100% of "legal" opcodes implemented
-- PPU: 0% 
+- PPU: Implementing direct rendering. 
   - Renders contents of CHR ROM
+  - Renders background.
 - APU: 0%
 - MMU: 0%
 
@@ -16,6 +17,10 @@
 	</a>
 	<br>
 </div>
+<p align="center">
+  <img src="var/visual%20evolution/Screenshot%20from%202021-04-22%2019-02-13.png" width="20%"/>
+  <img src="var/visual%20evolution/Screenshot%20from%202021-04-22%2019-32-13.png" width="20%"/>
+</p>
 
 ![1](./var/visual%20evolution/Screenshot%20from%202021-04-22%2019-02-13.png)
 ![1](./var/visual%20evolution/Screenshot%20from%202021-04-22%2019-32-13.png)
