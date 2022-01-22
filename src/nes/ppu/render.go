@@ -25,25 +25,6 @@ func (ppu *Ppu2c02) renderBackground() {
 
 		ppu.frame.PushTile(tile, tileX*8, tileY*8)
 		ppu.framePattern[addr] = tileID
-		/*
-			//tileAddressInPatternTable := int(tileID) * 16
-			//tiles := ppu.Read([tileID : tileID+16]
-			ppu.framePattern[addr] = tileID
-			offsetAddress := types.Address(bankAddress + int(tileID)*16)
-			for y := 0; y <= 7; y++ {
-				upper := ppu.Read(offsetAddress + types.Address(y))
-				lower := ppu.Read(offsetAddress + types.Address(y+8))
-
-				for x := 0; x <= 7; x++ {
-					value := (1&upper)<<1 | (1 & lower)
-					upper = upper >> 1
-					lower = lower >> 1
-					palette := backgroundPalette(tileX, tileY, ppu.memory.vram)
-					rgb := ppu.GetColorFromPaletteRam(palette, value)
-
-					ppu.frame.SetPixel(tileX*8+(7-x), tileY*8+y, rgb)
-				}
-			}*/
 	}
 }
 

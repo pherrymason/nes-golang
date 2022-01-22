@@ -59,6 +59,8 @@ func DrawDebug(console nes.Nes) {
 	//
 	drawASM(console)
 	drawCHR(console, font)
+	drawBackgroundTileIDs(console)
+
 }
 
 func drawASM(console nes.Nes) {
@@ -117,11 +119,7 @@ func drawCHR(console nes.Nes, font *raylib.Font) {
 	const CanvasWidth = 128
 	decodedPatternTable := console.Debugger().PatternTable(0)
 	for i := 0; i < CanvasWidth*CanvasWidth; i++ {
-		pixelValue := decodedPatternTable[i]
-
-		color := pixelColor2RaylibColor(pixelValue)
-		//posX = pixelValue.X + (pixelValue.X * (scale - 1)) + DEBUG_X_OFFSET + 5
-		//posY = pixelValue.Y + (pixelValue.Y * (scale - 1)) + y + 5
+		color := decodedPatternTable[i]
 
 		screenX := types.LinearToXCoordinate(i, CanvasWidth)
 		screenX += (screenX * (scale - 1)) + DEBUG_X_OFFSET + 5
@@ -133,12 +131,33 @@ func drawCHR(console nes.Nes, font *raylib.Font) {
 			screenY,
 			scale,
 			scale,
-			color,
+			pixelColor2RaylibColor(color),
 		)
 	}
 	//fmt.Printf("%d - %d\n", posX, posY)
 	// CHR Right Container
 	//r.DrawRectangle(x, y, 16*8, 16*8, r.RayWhite)
+}
+
+func drawBackgroundTileIDs(console nes.Nes) {
+	padding := 20
+	paddingY := 100
+	// Debug background tiles IDS
+	offsetY := paddingY + types.HEIGHT + 10
+	framePattern := console.FramePattern()
+	tilesWidth := 32
+	//tilesHeight := 30
+	for i := 0; i < tilesWidth*30; i++ {
+		x := i % tilesWidth * 17
+		y := (i / tilesWidth) * 17
+		raylib.DrawText(
+			fmt.Sprintf("%X", framePattern[i]),
+			padding+x,
+			offsetY+y,
+			8,
+			raylib.Violet,
+		)
+	}
 }
 
 func pixelColor2RaylibColor(pixelColor types.Color) raylib.Color {

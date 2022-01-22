@@ -104,7 +104,7 @@ func draw(console nes.Nes) {
 	r.ClearBackground(r.Black)
 
 	drawEmulation(console)
-	drawBackgroundTileIDs(console)
+	//drawBackgroundTileIDs(console)
 	DrawDebug(console)
 	r.EndDrawing()
 }
@@ -114,7 +114,7 @@ func drawEmulation(console nes.Nes) {
 
 	padding := 20
 	paddingY := 20
-	r.DrawRectangle(padding, paddingY, types.WIDTH, types.HEIGHT, r.DarkBrown)
+	r.DrawRectangle(padding-1, paddingY-1, types.WIDTH+2, types.HEIGHT+2, r.RayWhite)
 	for i := 0; i < types.WIDTH*types.HEIGHT; i++ {
 		pixel := frame.Pixels[i]
 		color := types.PixelColor2RaylibColor(pixel)
@@ -122,26 +122,5 @@ func drawEmulation(console nes.Nes) {
 		y := i / types.WIDTH
 
 		r.DrawPixel(padding+x, paddingY+y, color)
-	}
-}
-
-func drawBackgroundTileIDs(console nes.Nes) {
-	padding := 20
-	paddingY := 100
-	// Debug background tiles IDS
-	offsetY := paddingY + types.HEIGHT + 10
-	framePattern := console.FramePattern()
-	tilesWidth := 32
-	//tilesHeight := 30
-	for i := 0; i < 0x3C0; i++ {
-		x := i % tilesWidth * 17
-		y := (i / tilesWidth) * 17
-		r.DrawText(
-			fmt.Sprintf("%X", framePattern[i]),
-			padding+x,
-			offsetY+y,
-			8,
-			r.Violet,
-		)
 	}
 }
