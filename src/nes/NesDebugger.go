@@ -109,8 +109,7 @@ func (debugger *NesDebugger) YRegister() byte {
 	return debugger.cpu.registers.Y
 }
 
-//func (debugger NesDebugger) PatternTable(patternTable int) [][]byte {
-func (debugger *NesDebugger) PatternTable(patternTable int) []types.Pixel {
+func (debugger *NesDebugger) PatternTable(patternTable byte) []types.Color {
 	return debugger.ppu.PatternTable(patternTable, 0)
 }
 

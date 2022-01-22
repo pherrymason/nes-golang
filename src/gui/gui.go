@@ -123,7 +123,6 @@ func drawEmulation(console nes.Nes) {
 
 		r.DrawPixel(padding+x, paddingY+y, color)
 	}
-
 }
 
 func drawBackgroundTileIDs(console nes.Nes) {

@@ -4,6 +4,7 @@ import (
 	"github.com/raulferras/nes-golang/src/nes/types"
 )
 
+// Registers
 const PPUCTRL = 0x2000 // NMI enable (V), PPU master/slave (P), sprite height (H),
 // background tile select (B), sprite tile select (S), increment mode (I),
 //nametable select (NN)
@@ -16,7 +17,11 @@ const PPUSCROLL = 0x2005
 const PPUADDR = 0x2006
 const PPUDATA = 0x2007
 const OAMDMA = 0x4014
+
+// Registers end
+
 const NES_PALETTE_COLORS = 64
+const OAMDATA_SIZE = 256
 
 const PPU_SCREEN_SPACE_CYCLES_BY_SCANLINE = 256
 const PPU_CYCLES_BY_SCANLINE = 341
@@ -36,12 +41,13 @@ type Ppu2c02 struct {
 
 	// OAM (Object Attribute Memory) is internal memory inside the PPU.
 	// Contains a display list of up to 64 sprites, where each sprite occupies 4 bytes
-	oamData [256]byte
+	oamData [OAMDATA_SIZE]byte
 
 	cycle           uint32
 	currentScanline uint8
 	nmi             bool // NMI Interrupt thrown
 	frame           types.Frame
+	frameSprites    types.Frame
 	framePattern    [1024]byte
 }
 

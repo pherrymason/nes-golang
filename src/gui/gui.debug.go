@@ -114,14 +114,27 @@ func drawCHR(console nes.Nes, font *raylib.Font) {
 	y = 40 + 15*20 + 50
 	raylib.DrawRectangle(x, y, (16*8)*scale+10, (16*8)*scale+10, raylib.RayWhite)
 
+	const CanvasWidth = 128
 	decodedPatternTable := console.Debugger().PatternTable(0)
-	for i := 0; i < 128*128; i++ {
+	for i := 0; i < CanvasWidth*CanvasWidth; i++ {
 		pixelValue := decodedPatternTable[i]
 
-		color := pixelColor2RaylibColor(pixelValue.Color)
-		posX = pixelValue.X + (pixelValue.X * (scale - 1)) + DEBUG_X_OFFSET + 5
-		posY = pixelValue.Y + (pixelValue.Y * (scale - 1)) + y + 5
-		raylib.DrawRectangle(posX, posY, scale, scale, color)
+		color := pixelColor2RaylibColor(pixelValue)
+		//posX = pixelValue.X + (pixelValue.X * (scale - 1)) + DEBUG_X_OFFSET + 5
+		//posY = pixelValue.Y + (pixelValue.Y * (scale - 1)) + y + 5
+
+		screenX := types.LinearToXCoordinate(i, CanvasWidth)
+		screenX += (screenX * (scale - 1)) + DEBUG_X_OFFSET + 5
+		screenY := types.LinearToYCoordinate(i, CanvasWidth)
+		screenY += screenY*(scale-1) + y + 5
+
+		raylib.DrawRectangle(
+			screenX,
+			screenY,
+			scale,
+			scale,
+			color,
+		)
 	}
 	//fmt.Printf("%d - %d\n", posX, posY)
 	// CHR Right Container
