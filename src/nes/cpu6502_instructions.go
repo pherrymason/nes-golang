@@ -480,7 +480,7 @@ func (cpu6502 *Cpu6502) bpl(info OperationMethodArgument) bool {
 */
 func (cpu6502 *Cpu6502) brk(info OperationMethodArgument) bool {
 	// Store PC in stack
-	pc := cpu6502.registers.Pc
+	pc := cpu6502.registers.Pc + 1
 	cpu6502.pushStack(types.HighNibble(pc))
 	cpu6502.pushStack(types.LowNibble(pc))
 

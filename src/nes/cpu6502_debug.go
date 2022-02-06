@@ -111,3 +111,7 @@ func (cpu6502 *Cpu6502) Disassemble(start types.Address, end types.Address) map[
 
 	return disassembledCode
 }
+
+func (cpu6502 *Cpu6502) GetOperation(operation byte) Instruction {
+	return cpu6502.instructions[operation]
+}
