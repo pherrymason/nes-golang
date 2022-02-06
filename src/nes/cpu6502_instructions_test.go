@@ -425,13 +425,13 @@ func TestBRK(t *testing.T) {
 
 	cpu.brk(OperationMethodArgument{Implicit, 0x0000})
 
-	assert.Equal(t, programCounter, cpu.read16(0x1FE))
+	assert.Equal(t, programCounter+1, cpu.read16(0x1FE))
 	// Stored status Registers in stack should be...
 	assert.Equal(t, byte(0b11110011), cpu.memory.Read(0x1FD))
 	assert.Equal(t, byte(1), cpu.registers.InterruptFlag())
 	assert.Equal(t, byte(0xF3), cpu.popStack(), "unexpected StatusRegister pushed in stack")
-	assert.Equal(t, types.LowNibble(programCounter), cpu.popStack(), "unexpected low nibble in stack pointer")
-	assert.Equal(t, types.HighNibble(programCounter), cpu.popStack(), "unexpected high nibble in stack pointer")
+	assert.Equal(t, types.LowNibble(programCounter+1), cpu.popStack(), "unexpected low nibble in stack pointer")
+	assert.Equal(t, types.HighNibble(programCounter+1), cpu.popStack(), "unexpected high nibble in stack pointer")
 
 	assert.Equal(t, expectedPc, cpu.registers.Pc)
 }
