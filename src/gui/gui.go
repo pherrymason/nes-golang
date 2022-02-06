@@ -18,7 +18,7 @@ func Run() {
 	rand.Seed(time.Now().UnixNano())
 
 	// Init Window System
-	r.InitWindow(800, 800, "NES golang")
+	r.InitWindow(800, 600, "NES golang")
 	r.SetTraceLogLevel(r.LogWarning)
 	//r.SetTargetFPS(60)
 	font = r.LoadFont("./assets/Pixel_NES.otf")
