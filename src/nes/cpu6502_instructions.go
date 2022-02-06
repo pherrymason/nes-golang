@@ -1063,7 +1063,7 @@ func (cpu6502 *Cpu6502) plp(info OperationMethodArgument) bool {
 	// From https://wiki.nesdev.com/w/index.php/Status_flags
 	// ...two instructions (PLP and RTI) pull a byte from the stack and set all the flags.
 	// They ignore bits 5 and 4.
-	cpu6502.registers.LoadStatusRegister(value)
+	cpu6502.registers.LoadStatusRegisterIgnoring5and4(value)
 
 	return false
 }
@@ -1152,7 +1152,7 @@ func (cpu6502 *Cpu6502) ror(info OperationMethodArgument) bool {
 */
 func (cpu6502 *Cpu6502) rti(info OperationMethodArgument) bool {
 	statusRegister := cpu6502.popStack()
-	cpu6502.registers.LoadStatusRegister(statusRegister)
+	cpu6502.registers.LoadStatusRegisterIgnoring5and4(statusRegister)
 
 	lsb := cpu6502.popStack()
 	msb := cpu6502.popStack()

@@ -85,6 +85,8 @@ func (registers *Registers) StackPointerPushed() {
 func (registers *Registers) StackPointerPopped() {
 	if registers.Sp < 0xFF {
 		registers.Sp++
+	} else {
+		registers.Sp = 0
 	}
 }
 
@@ -207,10 +209,11 @@ func (registers *Registers) StatusRegister() byte {
 	return registers.Status | 0x20
 }
 
-func (registers *Registers) LoadStatusRegister(value byte) {
+func (registers *Registers) LoadStatusRegisterIgnoring5and4(value byte) {
 	// From http://nesdev.com/the%20%27B%27%20flag%20&%20BRK%20instruction.txt
 	// ...when the flags are restored (via PLP or RTI), the Break flag (4 bit) is discarded.
-	registers.Status = value & 0b11101111
+	// Bit 5 should be kept as it was! Source: tomharter cpu tests
+	registers.Status = (value | 0b00100000) & 0b11101111
 }
 
 // CreateRegisters creates a properly initialized Cpu6502 Register
