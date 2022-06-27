@@ -27,7 +27,8 @@ import (
 //  0x0800 - 0x1FFF  Mirrors previous chunk of memory (0x0 - 0x7FF)
 //  0x2000 - 0x2007  PPU registers
 //  0x2008 - 0x4000  Mirrors PPU registers
-//  0x4000 - 0x4020  I/O Registers
+//  0x4000 - 0x4017  NES APU and I/O registers
+//  0x4018 - 0x401F  APU and I/O functionality that is normally disabled.
 //  0x4020 - 0x5FFF  Expansion ROM
 //  0x6000 - 0x7FFF  SRAM
 //  0x8000 - 0xBFFF  GamePak prgROM lower bank
@@ -80,6 +81,9 @@ func (cm *CPUMemory) read(address types.Address, readOnly bool) byte {
 		return cm.ram[address&RAM_LAST_REAL_ADDRESS]
 	} else if address <= ppu.PPU_HIGH_ADDRESS {
 		return cm.ppu.ReadRegister(address & 0x2007)
+	} else if address >= types.Address(0x4000) && address <= types.Address(0x401F) {
+		// TODO Implement APU / IO reading
+		return 0x00
 	} else if address >= gamePak.GAMEPAK_LOW_RANGE {
 		return cm.mapper.Read(address)
 	}
