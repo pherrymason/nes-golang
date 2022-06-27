@@ -57,10 +57,11 @@ func DrawDebug(console nes.Nes) {
 	//position := raylib.Vector2{X: 380, Y: 20}
 	//raylib.DrawTextEx(*font, registers, position, 16, 0, raylib.RayWhite)
 	//
+	scale := 3
 	drawASM(console)
-	drawCHR(console, font)
-	drawBackgroundTileIDs(console)
-
+	drawPalettes(console, scale, DEBUG_X_OFFSET, 40+15*20)
+	drawCHR(console, scale, DEBUG_X_OFFSET, 40+15*20+50, font)
+	//drawBackgroundTileIDs(console, DEBUG_X_OFFSET+356, 0)
 }
 
 func drawASM(console nes.Nes) {
@@ -86,14 +87,12 @@ func drawASM(console nes.Nes) {
 	}
 }
 
-func drawCHR(console nes.Nes, font *raylib.Font) {
-	x := DEBUG_X_OFFSET
-	y := 40 + 15*20 + 20
+func drawPalettes(console nes.Nes, scale int, xOffset int, yOffset int) {
+	// Draw defined palettes (8)
+	x := xOffset
+	y := yOffset
 	posX := 0
 	posY := 0
-	scale := 3
-
-	// Draw defined palettes (8)
 	selectedPalette := 5
 	for i := 0; i < 8; i++ {
 		width := 5 * scale
@@ -110,21 +109,30 @@ func drawCHR(console nes.Nes, font *raylib.Font) {
 			graphics.DrawArrow(posX+width+3, posY-height-2, scale)
 		}
 	}
+}
+
+func drawCHR(console nes.Nes, scale int, xOffset int, yOffset int, font *raylib.Font) {
+	x := xOffset
+	y := yOffset
+	drawIndexes := false
+
+	if raylib.IsKeyDown(raylib.KeyZero) {
+		drawIndexes = true
+	}
 
 	// CHR Left Container
-
-	y = 40 + 15*20 + 50
 	raylib.DrawRectangle(x, y, (16*8)*scale+10, (16*8)*scale+10, raylib.RayWhite)
 
 	const CanvasWidth = 128
+	const BorderWidth = 5
 	decodedPatternTable := console.Debugger().PatternTable(0)
 	for i := 0; i < CanvasWidth*CanvasWidth; i++ {
 		color := decodedPatternTable[i]
 
 		screenX := types.LinearToXCoordinate(i, CanvasWidth)
-		screenX += (screenX * (scale - 1)) + DEBUG_X_OFFSET + 5
+		screenX += (screenX * (scale - 1)) + DEBUG_X_OFFSET + BorderWidth
 		screenY := types.LinearToYCoordinate(i, CanvasWidth)
-		screenY += screenY*(scale-1) + y + 5
+		screenY += screenY*(scale-1) + y + BorderWidth
 
 		raylib.DrawRectangle(
 			screenX,
@@ -134,16 +142,40 @@ func drawCHR(console nes.Nes, font *raylib.Font) {
 			pixelColor2RaylibColor(color),
 		)
 	}
+
+	if drawIndexes {
+		for i := 0; i < 16*8; i++ {
+			screenX := DEBUG_X_OFFSET + BorderWidth +
+				types.LinearToXCoordinate(i, 16)*8*scale
+			screenY := y + BorderWidth + types.LinearToYCoordinate(i, 16)*8*scale
+
+			raylib.DrawRectangle(
+				screenX-1,
+				screenY-1,
+				20,
+				10,
+				raylib.RayWhite,
+			)
+			raylib.DrawText(
+				fmt.Sprintf("%d", i),
+				screenX,
+				screenY,
+				10,
+				raylib.Black,
+			)
+		}
+	}
 	//fmt.Printf("%d - %d\n", posX, posY)
 	// CHR Right Container
 	//r.DrawRectangle(x, y, 16*8, 16*8, r.RayWhite)
 }
 
-func drawBackgroundTileIDs(console nes.Nes) {
-	padding := 20
-	paddingY := 100
+func drawBackgroundTileIDs(console nes.Nes, xOffset int, yOffset int) {
+	padding := 20 + xOffset
+	//paddingY := 100 + yOffset
 	// Debug background tiles IDS
-	offsetY := paddingY + types.HEIGHT + 10
+	//offsetY := paddingY + types.HEIGHT + 10
+	offsetY := yOffset
 	framePattern := console.FramePattern()
 	tilesWidth := 32
 	//tilesHeight := 30
