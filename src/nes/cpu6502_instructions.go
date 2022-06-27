@@ -385,7 +385,7 @@ func (cpu6502 *Cpu6502) beq(info OperationMethodArgument) bool {
 /*
 	BIT  Test Bits in Memory with Accumulator
 
-	bits 7 and 6 of operand are transfered to bit 7 and 6 of SR (N,V);
+	bits 7 and 6 of operand are transferred to bit 7 and 6 of SR (N,V);
 	the zeroflag is set to the result of operand AND Accumulator.
 	The result is not kept.
 
