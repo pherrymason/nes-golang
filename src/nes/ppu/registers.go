@@ -26,7 +26,7 @@ const (
 	spritePatternTableAddress
 	backgroundPatternTableAddress
 	spriteSize
-	//masterSlaveSelect
+	masterSlaveSelect
 	generateNMIAtVBlank
 )
 
