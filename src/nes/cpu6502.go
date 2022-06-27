@@ -434,6 +434,7 @@ func (cpu6502 Cpu6502) evaluateOperandAddress(addressMode AddressMode, pc types.
 
 	if cpu6502.addressEvaluators[addressMode] == nil {
 		msg := fmt.Errorf("cannot find address evaluator for address mode \"%d\"", addressMode)
+		cpu6502.Stop()
 		panic(msg)
 	}
 

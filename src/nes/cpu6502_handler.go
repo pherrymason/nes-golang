@@ -31,7 +31,6 @@ func (cpu6502 *Cpu6502) Tick() byte {
 		cpu6502.opCyclesLeft--
 		return cpu6502.opCyclesLeft
 	}
-
 	registersCopy := *cpu6502.Registers()
 
 	opcode := cpu6502.memory.Read(cpu6502.registers.Pc)
@@ -40,6 +39,7 @@ func (cpu6502 *Cpu6502) Tick() byte {
 
 	if instruction.Method() == nil {
 		msg := fmt.Errorf("opcode 0x%X not implemented", opcode)
+		cpu6502.Stop()
 		panic(msg)
 	}
 
