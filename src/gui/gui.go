@@ -18,7 +18,7 @@ func Run() {
 	rand.Seed(time.Now().UnixNano())
 
 	// Init Window System
-	r.InitWindow(1400, 600, "NES golang")
+	r.InitWindow(800, 600, "NES golang")
 	r.SetTraceLogLevel(r.LogWarning)
 	//r.SetTargetFPS(60)
 	font = r.LoadFont("./assets/Pixel_NES.otf")
@@ -32,7 +32,7 @@ func Run() {
 	//path := "./assets/roms/Pac-Man (USA) (Namco).nes"
 	//path := "./assets/roms/Donkey Kong (World) (Rev A).nes"
 	//path := "./assets/roms/Super Mario Bros. (World).nes"
-	//path = "./assets/roms/Mega Man 2 (Europe).nes"
+	//path := "./assets/roms/Mega Man 2 (Europe).nes"
 	gamePak := gamePak.CreateGamePakFromROMFile(path)
 
 	printRomInfo(&gamePak)
