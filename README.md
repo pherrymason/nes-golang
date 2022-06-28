@@ -20,4 +20,7 @@
   <img src="var/visual%20evolution/02-ppu-chr/nestest-chr.png" width="30%" alt="first try rendering pattern table"/>
   <img src="var/visual%20evolution/03-ppu-background/nestest-background-1.png" width="30%" alt="Renders background nestest"/>
   <img src="var/visual%20evolution/03-ppu-background/nestest-background-2.png" width="30%" alt="Renders background nestest"/>
+  <img src="var/visual%20evolution/03-ppu-background/pacman.png" width="30%" alt="Renders background nestest"/>
+  <img src="var/visual%20evolution/03-ppu-background/donkey-kong.png" width="30%" alt="Renders background nestest"/>
+  <img src="var/visual%20evolution/03-ppu-background/supermariobros.png" width="30%" alt="Renders background nestest"/>
 </p>
