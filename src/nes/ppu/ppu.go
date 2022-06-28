@@ -26,6 +26,8 @@ const OAMDATA_SIZE = 256
 const PPU_SCREEN_SPACE_CYCLES_BY_SCANLINE = 256
 const PPU_CYCLES_BY_SCANLINE = 341
 const PPU_SCREEN_SPACE_SCANLINES = 240
+const VBLANK_START_SCANLINE = 241
+const VBLANK_END_SCNALINE = 261
 const PPU_SCANLINES = 261
 const PPU_VBLANK_START_CYCLE = (PPU_SCREEN_SPACE_SCANLINES + 1) * PPU_CYCLES_BY_SCANLINE
 const PPU_VBLANK_END_CYCLE = PPU_SCANLINES * PPU_CYCLES_BY_SCANLINE
@@ -44,7 +46,8 @@ type Ppu2c02 struct {
 	oamData [OAMDATA_SIZE]byte
 
 	cycle           uint32
-	currentScanline uint8
+	renderCycle     uint16
+	currentScanline uint16
 	nmi             bool // NMI Interrupt thrown
 	frame           types.Frame
 	frameSprites    types.Frame
@@ -77,27 +80,25 @@ func (ppu *Ppu2c02) Tick() {
 	}
 
 	// 341 PPU clock cycles have passed
-	if ppu.cycle%PPU_CYCLES_BY_SCANLINE == 0 {
+	if ppu.renderCycle%PPU_CYCLES_BY_SCANLINE == 0 {
 		ppu.currentScanline++
+		ppu.renderCycle = 0
 	}
 
-	// ppu.cycle == PPU_VBLANK_START_CYCLE
-	//if ppu.cycle == PPU_VBLANK_START_CYCLE {
-	if ppu.currentScanline == 241 {
-		ppu.registers.status |= 1 << verticalBlankStarted
-		// scanline 241
+	// VBlank logic
+	if ppu.currentScanline == VBLANK_START_SCANLINE {
+		ppu.registers.status |= 1 << verticalBlankStarted // Todo refactor to a method to set Vblank
 		if (ppu.registers.ctrl & (1 << generateNMIAtVBlank)) > 0 {
-			ppu.nmi = true
+			if ppu.renderCycle == 0 {
+				ppu.nmi = true
+			}
 		}
-	} else if ppu.cycle == PPU_VBLANK_END_CYCLE {
+	} else if ppu.currentScanline == VBLANK_END_SCNALINE && ppu.renderCycle == PPU_CYCLES_BY_SCANLINE-1 {
 		ppu.registers.status &= ^byte(1 << verticalBlankStarted)
-	}
-	ppu.cycle++
-
-	if ppu.cycle == PPU_SCANLINES*PPU_CYCLES_BY_SCANLINE {
-		ppu.cycle = 0
 		ppu.currentScanline = 0
 	}
+	ppu.cycle++
+	ppu.renderCycle++
 }
 
 func (ppu *Ppu2c02) VBlank() bool {
@@ -117,7 +118,10 @@ func (ppu *Ppu2c02) Write(address types.Address, value byte) {
 }
 
 func (ppu *Ppu2c02) Nmi() bool {
-	return ppu.nmi
+	occurred := ppu.nmi
+	ppu.nmi = false
+
+	return occurred
 }
 
 func (ppu *Ppu2c02) ResetNmi() {
@@ -137,7 +141,7 @@ func (ppu *Ppu2c02) ReadRegister(register types.Address) byte {
 
 	case PPUSTATUS:
 		value = ppu.registers.status
-		ppu.registers.status &= 0x7F // Clear VBlank flag
+		ppu.registers.status &= 0x7F // Clear VBlank flag. Why are we clearing this?
 		break
 
 	case OAMADDR:
@@ -181,6 +185,8 @@ func (ppu *Ppu2c02) WriteRegister(register types.Address, value byte) {
 	case PPUCTRL:
 		if ppu.cycle > 30000 {
 			ppu.registers.ctrl = value
+
+			// todo trigger nmi if in vblank and generateNMI transitions from 0 to 1
 		}
 		break
 
