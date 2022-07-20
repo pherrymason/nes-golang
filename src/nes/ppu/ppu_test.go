@@ -55,7 +55,8 @@ func TestPPU_tick_should_start_vblank_on_scanline_240(t *testing.T) {
 
 func TestPPU_tick_should_end_vblank_on_end_of_scanline_261(t *testing.T) {
 	ppu := aPPU()
-	ppu.cycle = PPU_VBLANK_END_CYCLE
+	ppu.renderCycle = PPU_CYCLES_BY_SCANLINE - 1
+	ppu.currentScanline = VBLANK_END_SCNALINE
 	ppu.registers.status |= 1 << verticalBlankStarted
 
 	ppu.Tick()

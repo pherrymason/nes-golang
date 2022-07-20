@@ -79,8 +79,8 @@ func (ppu *Ppu2c02) findTile(tileID byte, patternTable byte) types.Tile {
 
 		for x := 0; x <= 7; x++ {
 			value := (1&upper)<<1 | (1 & lower)
-			upper = upper >> 1
-			lower = lower >> 1
+			upper >>= 1
+			lower >>= 1
 			palette := byte(0) //backgroundPalette(tileX, tileY, ppu.memory.vram)
 			rgb := ppu.GetColorFromPaletteRam(palette, value)
 			index := types.CoordinatesToArrayIndex(7-x, y, types.TILE_WIDTH)
