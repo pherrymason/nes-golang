@@ -5,6 +5,7 @@ import (
 	"github.com/raulferras/nes-golang/src/nes/gamePak"
 	"github.com/raulferras/nes-golang/src/nes/ppu"
 	"github.com/raulferras/nes-golang/src/nes/types"
+	"image"
 )
 
 type Nes struct {
@@ -65,7 +66,7 @@ func (nes *Nes) Tick() byte {
 
 	if nes.ppu.VBlank() {
 		if nes.vBlankCount == 60 {
-			//nes.ppu.Render()
+			nes.ppu.Render()
 		}
 		nes.vBlankCount++
 	}
@@ -94,7 +95,7 @@ func (nes Nes) SystemClockCounter() byte {
 	return nes.systemClockCounter
 }
 
-func (nes Nes) Frame() *types.Frame {
+func (nes Nes) Frame() *image.RGBA {
 	return nes.ppu.Frame()
 }
 func (nes Nes) FramePattern() *[1024]byte {

@@ -32,6 +32,8 @@ type Ppu2c02 struct {
 	nameTables   [2 * NAMETABLE_SIZE]byte
 	paletteTable [PALETTE_SIZE]byte
 
+	nameTableChanged bool
+
 	// PPU control and status flags
 	cycle           uint32
 	renderCycle     uint16
@@ -55,8 +57,8 @@ func CreatePPU(cartridge *gamePak.GamePak) *Ppu2c02 {
 	return ppu
 }
 
-func (ppu *Ppu2c02) Frame() *types.Frame {
-	return &ppu.deprecatedFrame
+func (ppu *Ppu2c02) Frame() *image.RGBA {
+	return ppu.screen
 }
 
 func (ppu *Ppu2c02) FramePattern() *[1024]byte {

@@ -106,13 +106,23 @@ func drawEmulation(console *nes.Nes) {
 
 	padding := 20
 	paddingY := 20
-	r.DrawRectangle(padding-1, paddingY-1, types.SCREEN_WIDTH+2, types.SCREEN_HEIGHT+2, r.RayWhite)
-	for i := 0; i < types.SCREEN_WIDTH*types.SCREEN_HEIGHT; i++ {
-		pixel := frame.Pixels[i]
-		color := utils.RGBA2raylibColor(pixel)
-		x := i % types.SCREEN_WIDTH
-		y := i / types.SCREEN_WIDTH
+	r.DrawRectangle(padding-1, paddingY-1, types.SCREEN_WIDTH+2, types.SCREEN_HEIGHT+2, r.RayWhite) /*
+		for i := 0; i < types.SCREEN_WIDTH*types.SCREEN_HEIGHT; i++ {
+			pixel := frame.Pixels[i]
+			color := utils.RGBA2raylibColor(pixel)
+			x := i % types.SCREEN_WIDTH
+			y := i / types.SCREEN_WIDTH
 
-		r.DrawPixel(padding+x, paddingY+y, color)
+			r.DrawPixel(padding+x, paddingY+y, color)
+		}*/
+	for x := 0; x < types.SCREEN_WIDTH; x++ {
+		for y := 0; y < types.SCREEN_HEIGHT; y++ {
+			pixel := frame.At(x, y)
+			color := utils.RGBA2raylibColor(pixel)
+			//x := i % types.SCREEN_WIDTH
+			//y := i / types.SCREEN_WIDTH
+
+			r.DrawPixel(padding+x, paddingY+y, color)
+		}
 	}
 }

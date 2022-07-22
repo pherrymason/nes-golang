@@ -22,6 +22,9 @@ func (ppu *Ppu2c02) renderBackground() {
 	backgroundPatternTable := ppu.ppuctrlReadFlag(backgroundPatternTableAddress)
 	//bankAddress := 0x1000 * int(backgroundPatternTable)
 	//tilesHeight := 30
+	if !ppu.nameTableChanged {
+		return
+	}
 	for addr := nameTableStart; addr < nameTablesEnd; addr++ {
 		tileID := ppu.nameTables[addr]
 		tile := ppu.findTile(tileID, backgroundPatternTable)
@@ -29,9 +32,12 @@ func (ppu *Ppu2c02) renderBackground() {
 		tileX := addr % tilesWidth
 		tileY := addr / tilesWidth
 
-		ppu.renderTile(tile, tileX, tileY)
-		ppu.framePattern[addr] = tileID
+		insertImageAt(ppu.screen, &tile, tileX*8, tileY*8)
+
+		//ppu.renderTile(tile, tileX, tileY)
+		//ppu.framePattern[addr] = tileID
 	}
+	ppu.nameTableChanged = false
 }
 
 func (ppu *Ppu2c02) renderTile(tile image.RGBA, coordX int, coordY int) {

@@ -48,9 +48,14 @@ func (ppu *Ppu2c02) read(address types.Address, readOnly bool) byte {
 }
 
 func (ppu *Ppu2c02) Write(address types.Address, value byte) {
-	if address >= 0x2000 && address <= 0x2FFF {
+	if isNameTableAddress(address) {
 		realAddress := nameTableMirrorAddress(ppu.cartridge.Header().Mirroring(), address)
+		if ppu.nameTables[realAddress] != value {
+			ppu.nameTableChanged = true
+		}
+
 		ppu.nameTables[realAddress] = value
+
 	} else if address == 0x4010 {
 		// OAM DMA: Transfers 256 bytes of data from CPU page $XX00-$XXFF to internal PPU OAM
 		// DMA will begin at current OAM write address.
