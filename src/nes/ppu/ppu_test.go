@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/raulferras/nes-golang/src/nes/gamePak"
 	"github.com/raulferras/nes-golang/src/nes/types"
+	"github.com/raulferras/nes-golang/src/utils"
 	"github.com/stretchr/testify/assert"
 	"image/color"
 	"testing"
@@ -84,7 +85,7 @@ func TestPPU_writes_and_reads_into_palette(t *testing.T) {
 
 func TestPPU_should_get_propper_color_for_a_given_pixel_color_and_palette(t *testing.T) {
 	ppu := aPPU()
-	backgroundColor := color.RGBA{236, 88, 180, 255}
+	backgroundColor := utils.NewColorRGB(236, 88, 180)
 	cases := []struct {
 		name          string
 		palette       byte
@@ -92,9 +93,9 @@ func TestPPU_should_get_propper_color_for_a_given_pixel_color_and_palette(t *tes
 		expectedColor color.Color
 	}{
 		{"", 0, 0, backgroundColor},
-		{"", 0, 1, color.RGBA{0, 30, 116, 255}},
-		{"", 0, 2, color.RGBA{8, 16, 144, 255}},
-		{"", 0, 3, color.RGBA{48, 0, 136, 255}},
+		{"", 0, 1, utils.NewColorRGB(0, 30, 116)},
+		{"", 0, 2, utils.NewColorRGB(8, 16, 144)},
+		{"", 0, 3, utils.NewColorRGB(48, 0, 136)},
 		//{"mirroring $0x3F10", 4, 0, backgroundColor},
 		//{"mirroring $0x3F14", 5, 0, graphics.Color{68, 0, 100}},
 		//{"mirroring $0x3F18", 6, 0, graphics.Color{32, 42, 0}},
@@ -109,8 +110,8 @@ func TestPPU_should_get_propper_color_for_a_given_pixel_color_and_palette(t *tes
 
 	for _, tt := range cases {
 		t.Run("", func(t *testing.T) {
-			color := ppu.GetColorFromPaletteRam(tt.palette, tt.colorIndex)
-			assert.Equal(t, tt.expectedColor, color)
+			paletteColor := ppu.GetColorFromPaletteRam(tt.palette, tt.colorIndex)
+			assert.Equal(t, tt.expectedColor, paletteColor)
 		})
 	}
 }

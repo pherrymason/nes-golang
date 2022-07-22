@@ -1,6 +1,6 @@
 version: 2.1
 jobs:
-  build_and_test:
+  build:
     resource_class: large
     docker:
       - image: cimg/go:1.18

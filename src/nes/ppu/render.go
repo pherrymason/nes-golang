@@ -111,8 +111,6 @@ func (ppu *Ppu2c02) findTile(tileID byte, patternTable byte) image.RGBA {
 }
 
 func SaveTile(tileID int, tile *image.RGBA) {
-	//myImage := image.NewRGBA(image.Rect(0, 0, 100, 200))
-
 	// outputFile is a File type which satisfies Writer interface
 	outputFile, err := os.Create(fmt.Sprintf("%d.png", tileID))
 	if err != nil {

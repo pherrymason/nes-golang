@@ -2,6 +2,7 @@ package ppu
 
 import (
 	"github.com/raulferras/nes-golang/src/nes/types"
+	"github.com/raulferras/nes-golang/src/utils"
 	"image"
 	"image/color"
 )
@@ -287,10 +288,9 @@ func (ppu *Ppu2c02) GetColorFromPaletteRam(palette byte, colorIndex byte) color.
 	paletteAddress := types.Address((palette * 4) + colorIndex)
 	paletteColor := ppu.Read(PaletteLowAddress + paletteAddress)
 
-	return color.RGBA{
-		R: SystemPalette[paletteColor][0],
-		G: SystemPalette[paletteColor][1],
-		B: SystemPalette[paletteColor][2],
-		A: 255,
-	}
+	return utils.NewColorRGB(
+		SystemPalette[paletteColor][0],
+		SystemPalette[paletteColor][1],
+		SystemPalette[paletteColor][2],
+	)
 }
