@@ -17,7 +17,7 @@ func (ppu *Ppu2c02) renderBackground() {
 	// Render first name table
 	//bankAddress := types.Address(1 * 0x1000)
 	nameTableStart := 0
-	nameTablesEnd := int(PPU_NAMETABLES_0_END - PPU_NAMETABLES_0_START)
+	nameTablesEnd := int(PPU_NAMETABLES_0_END - NameTableStartAddress)
 	tilesWidth := 32
 	backgroundPatternTable := ppu.ppuctrlReadFlag(backgroundPatternTableAddress)
 	//bankAddress := 0x1000 * int(backgroundPatternTable)

@@ -16,8 +16,9 @@ import (
 // $3F00-$3F1F 	$0020 	Palette RAM indexes		} Palette Memory
 const PaletteLowAddress = types.Address(0x3F00)
 const PaletteHighAddress = types.Address(0x3FFF)
-const PPU_NAMETABLES_0_START = types.Address(0x2000)
+const NameTableStartAddress = types.Address(0x2000)
 const PPU_NAMETABLES_0_END = types.Address(0x23C0)
+const NameTableEndAddress = types.Address(0x2FFF)
 const PPU_HIGH_ADDRESS = types.Address(0x3FFF)
 
 func (ppu *Ppu2c02) Peek(address types.Address) byte {
@@ -34,7 +35,7 @@ func (ppu *Ppu2c02) read(address types.Address, readOnly bool) byte {
 	// CHR ROM address
 	if address < 0x01FFF {
 		result = ppu.cartridge.ReadCHRROM(address)
-	} else if address >= 0x2000 && address <= 0x2FFF {
+	} else if isNameTableAddress(address) {
 		// Nametable 0, 1, 2, 3
 		mirroring := ppu.cartridge.Header().Mirroring()
 		realAddress := nameTableMirrorAddress(mirroring, address)
@@ -58,6 +59,10 @@ func (ppu *Ppu2c02) Write(address types.Address, value byte) {
 	} else {
 		panic("Unhandled ppu address")
 	}
+}
+
+func isNameTableAddress(address types.Address) bool {
+	return address >= NameTableStartAddress && address <= NameTableEndAddress
 }
 
 func isPaletteAddress(address types.Address) bool {
