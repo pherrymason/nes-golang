@@ -1,6 +1,7 @@
 version: 2.1
 jobs:
   build:
+    resource_class: large
     docker:
       - image: cimg/go:1.18
     steps: # steps that comprise the `build` job
@@ -13,6 +14,7 @@ jobs:
           paths:
             - assets/tests
   test:
+    resource_class: large
     docker:
       - image: cimg/go:1.18
     steps:
