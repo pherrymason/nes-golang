@@ -1,6 +1,6 @@
 version: 2.1
 jobs:
-  build:
+  build_and_test:
     resource_class: large
     docker:
       - image: cimg/go:1.18
@@ -8,17 +8,4 @@ jobs:
       - checkout
       - run: sudo apt-get update
       - run: sudo apt-get install libx11-dev libgl1-mesa-dev xorg-dev
-  test:
-    resource_class: large
-    docker:
-          - image: cimg/go:1.18
-    steps:
-      - checkout
       - run: make test
-workflows:
-  build_and_test:
-    jobs:
-      - build
-      - test:
-          requires:
-            - build
