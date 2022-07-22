@@ -1,6 +1,7 @@
 package ppu
 
 import (
+	"github.com/raulferras/nes-golang/src/nes/gamePak"
 	"github.com/raulferras/nes-golang/src/nes/types"
 	"github.com/raulferras/nes-golang/src/utils"
 	"image"
@@ -14,25 +15,39 @@ type PPU interface {
 
 type Ppu2c02 struct {
 	registers Registers
-	memory    Memory
 
+	//$3F00 	    Universal background color
+	//$3F01-$3F03 	Background palette 0
+	//$3F05-$3F07 	Background palette 1
+	//$3F09-$3F0B 	Background palette 2
+	//$3F0D-$3F0F 	Background palette 3
+	//$3F11-$3F13 	Sprite palette 0
+	//$3F15-$3F17 	Sprite palette 1
+	//$3F19-$3F1B 	Sprite palette 2
+	//$3F1D-$3F1F 	Sprite palette 3
 	// OAM (Object Attribute Memory) is internal memory inside the PPU.
 	// Contains a display list of up to 64 sprites, where each sprite occupies 4 bytes
-	oamData [OAMDATA_SIZE]byte
+	oamData      [OAMDATA_SIZE]byte
+	cartridge    *gamePak.GamePak
+	nameTables   [2 * NAMETABLE_SIZE]byte
+	paletteTable [PALETTE_SIZE]byte
 
+	// PPU control and status flags
 	cycle           uint32
 	renderCycle     uint16
 	currentScanline uint16
 	nmi             bool // NMI Interrupt thrown
+
+	// Render related
 	deprecatedFrame types.Frame
 	screen          *image.RGBA
 	frameSprites    *image.RGBA
 	framePattern    [1024]byte
 }
 
-func CreatePPU(memory Memory) *Ppu2c02 {
+func CreatePPU(cartridge *gamePak.GamePak) *Ppu2c02 {
 	ppu := &Ppu2c02{
-		memory:          memory,
+		cartridge:       cartridge,
 		currentScanline: 0,
 		screen:          image.NewRGBA(image.Rect(0, 0, types.SCREEN_WIDTH, types.SCREEN_HEIGHT)),
 	}
@@ -76,22 +91,6 @@ func (ppu *Ppu2c02) Tick() {
 	}
 	ppu.cycle++
 	ppu.renderCycle++
-}
-
-func (ppu *Ppu2c02) VBlank() bool {
-	return ppu.currentScanline >= 241
-}
-
-func (ppu *Ppu2c02) Peek(address types.Address) byte {
-	return ppu.memory.Peek(address)
-}
-
-func (ppu *Ppu2c02) Read(address types.Address) byte {
-	return ppu.memory.Read(address)
-}
-
-func (ppu *Ppu2c02) Write(address types.Address, value byte) {
-	ppu.memory.Write(address, value)
 }
 
 func (ppu *Ppu2c02) Nmi() bool {
@@ -140,7 +139,7 @@ func (ppu *Ppu2c02) ReadRegister(register types.Address) byte {
 
 	case PPUDATA:
 		value = ppu.registers.readBuffer
-		ppu.registers.readBuffer = ppu.memory.Read(ppu.registers.ppuAddr)
+		ppu.registers.readBuffer = ppu.Read(ppu.registers.ppuAddr)
 
 		// If reading from Palette, there is no delay
 		if ppu.registers.ppuAddr >= 0x3F00 && ppu.registers.ppuAddr <= 0x3FFF {
@@ -226,22 +225,6 @@ func (ppu *Ppu2c02) WriteRegister(register types.Address, value byte) {
 		break
 	case OAMDMA:
 		break
-	}
-}
-
-func (ppu *Ppu2c02) ppuctrlReadFlag(flag CtrlFlag) byte {
-	ctrl := ppu.registers.ctrl
-	mask := byte(1) << flag
-
-	return (ctrl & mask) >> flag
-}
-
-// Helper method, only used in tests
-func (ppu *Ppu2c02) ppuctrlWriteFlag(flag CtrlFlag, value byte) {
-	if value == 1 {
-		ppu.registers.ctrl |= 1 << flag
-	} else {
-		ppu.registers.ctrl &= ^(1 << flag)
 	}
 }
 

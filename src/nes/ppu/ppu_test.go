@@ -22,8 +22,7 @@ func CreateDummyGamePak() *gamePak.GamePak {
 
 func aPPU() *Ppu2c02 {
 	cartridge := CreateDummyGamePak()
-	memory := CreateMemory(cartridge)
-	ppu := CreatePPU(*memory)
+	ppu := CreatePPU(cartridge)
 	return ppu
 }
 

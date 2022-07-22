@@ -50,3 +50,23 @@ const (
 	sprite0Hit           = 6
 	verticalBlankStarted = 7
 )
+
+func (ppu *Ppu2c02) ppuctrlReadFlag(flag CtrlFlag) byte {
+	ctrl := ppu.registers.ctrl
+	mask := byte(1) << flag
+
+	return (ctrl & mask) >> flag
+}
+
+// Helper method, only used in tests
+func (ppu *Ppu2c02) ppuctrlWriteFlag(flag CtrlFlag, value byte) {
+	if value == 1 {
+		ppu.registers.ctrl |= 1 << flag
+	} else {
+		ppu.registers.ctrl &= ^(1 << flag)
+	}
+}
+
+func (ppu *Ppu2c02) VBlank() bool {
+	return ppu.currentScanline >= 241
+}

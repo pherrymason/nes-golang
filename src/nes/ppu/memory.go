@@ -1,7 +1,7 @@
 package ppu
 
 import (
-	gamePak2 "github.com/raulferras/nes-golang/src/nes/gamePak"
+	"github.com/raulferras/nes-golang/src/nes/gamePak"
 	"github.com/raulferras/nes-golang/src/nes/types"
 )
 
@@ -20,63 +20,41 @@ const PPU_NAMETABLES_0_START = types.Address(0x2000)
 const PPU_NAMETABLES_0_END = types.Address(0x23C0)
 const PPU_HIGH_ADDRESS = types.Address(0x3FFF)
 
-type Memory struct {
-	gamePak *gamePak2.GamePak
-	vram    [2048]byte
-
-	paletteTable [32]byte
-	//$3F00 	    Universal background color
-	//$3F01-$3F03 	Background palette 0
-	//$3F05-$3F07 	Background palette 1
-	//$3F09-$3F0B 	Background palette 2
-	//$3F0D-$3F0F 	Background palette 3
-	//$3F11-$3F13 	Sprite palette 0
-	//$3F15-$3F17 	Sprite palette 1
-	//$3F19-$3F1B 	Sprite palette 2
-	//$3F1D-$3F1F 	Sprite palette 3
+func (ppu *Ppu2c02) Peek(address types.Address) byte {
+	return ppu.read(address, true)
 }
 
-func CreateMemory(gamePak *gamePak2.GamePak) *Memory {
-	return &Memory{
-		gamePak: gamePak,
-	}
+func (ppu *Ppu2c02) Read(address types.Address) byte {
+	return ppu.read(address, false)
 }
 
-func (memory *Memory) Peek(address types.Address) byte {
-	return memory.read(address, false)
-}
-
-func (memory *Memory) Read(address types.Address) byte {
-	return memory.read(address, true)
-}
-
-func (memory *Memory) read(address types.Address, readOnly bool) byte {
+func (ppu *Ppu2c02) read(address types.Address, readOnly bool) byte {
 	result := byte(0x00)
 
 	// CHR ROM address
 	if address < 0x01FFF {
-		result = memory.gamePak.ReadCHRROM(address)
+		result = ppu.cartridge.ReadCHRROM(address)
 	} else if address >= 0x2000 && address <= 0x2FFF {
 		// Nametable 0, 1, 2, 3
-		mirroring := memory.gamePak.Header().Mirroring()
+		mirroring := ppu.cartridge.Header().Mirroring()
 		realAddress := nameTableMirrorAddress(mirroring, address)
-		result = memory.vram[realAddress]
+		result = ppu.nameTables[realAddress]
 	} else if isPaletteAddress(address) {
-		result = readPalette(memory, address)
+		result = ppu.readPalette(address)
 	}
 
 	return result
 }
 
-func (memory *Memory) Write(address types.Address, value byte) {
+func (ppu *Ppu2c02) Write(address types.Address, value byte) {
 	if address >= 0x2000 && address <= 0x2FFF {
-		realAddress := nameTableMirrorAddress(memory.gamePak.Header().Mirroring(), address)
-		memory.vram[realAddress] = value
+		realAddress := nameTableMirrorAddress(ppu.cartridge.Header().Mirroring(), address)
+		ppu.nameTables[realAddress] = value
 	} else if address == 0x4010 {
 		// OAM DMA: Transfers 256 bytes of data from CPU page $XX00-$XXFF to internal PPU OAM
 		// DMA will begin at current OAM write address.
 	} else if isPaletteAddress(address) {
-		writePalette(memory, address, value)
+		ppu.writePalette(address, value)
 	} else {
 		panic("Unhandled ppu address")
 	}
@@ -87,7 +65,7 @@ func isPaletteAddress(address types.Address) bool {
 }
 
 // Addresses $3F10/$3F14/$3F18/$3F1C are mirrors of $3F00/$3F04/$3F08/$3F0C
-func readPalette(memory *Memory, address types.Address) byte {
+func (ppu *Ppu2c02) readPalette(address types.Address) byte {
 	address &= 0x1F
 	// Mirrors
 	// Addresses $3F10/$3F14/$3F18/$3F1C are mirrors of $3F00/$3F04/$3F08/$3F0C
@@ -101,10 +79,10 @@ func readPalette(memory *Memory, address types.Address) byte {
 		address = 0x0C
 	}
 
-	return memory.paletteTable[address]
+	return ppu.paletteTable[address]
 }
 
-func writePalette(memory *Memory, address types.Address, colorIndex byte) {
+func (ppu *Ppu2c02) writePalette(address types.Address, colorIndex byte) {
 	address &= 0x1F
 	// Mirrors
 	if address == 0x10 {
@@ -116,12 +94,12 @@ func writePalette(memory *Memory, address types.Address, colorIndex byte) {
 	} else if address == 0x1C {
 		address = 0x0C
 	}
-	memory.paletteTable[address] = colorIndex
+	ppu.paletteTable[address] = colorIndex
 }
 
 func nameTableMirrorAddress(mirrorMode byte, address types.Address) types.Address {
 	realAddress := address
-	if mirrorMode == gamePak2.VerticalMirroring {
+	if mirrorMode == gamePak.VerticalMirroring {
 		realAddress = (address - 0x2000) & 0x27FF
 		/*
 			if address >= 0x2000 && address <= 0x23FF {
@@ -137,7 +115,7 @@ func nameTableMirrorAddress(mirrorMode byte, address types.Address) types.Addres
 				// Nametable 3
 				realAddress = address - 0x2800
 			}*/
-	} else if mirrorMode == gamePak2.HorizontalMirroring {
+	} else if mirrorMode == gamePak.HorizontalMirroring {
 		if address >= 0x2000 && address < 0x2400 {
 			realAddress = address - 0x2000
 		} else if address >= 0x2400 && address <= 0x27FF {
@@ -147,7 +125,7 @@ func nameTableMirrorAddress(mirrorMode byte, address types.Address) types.Addres
 		} else if address >= 0x2C00 && address <= 0x2FFF {
 			realAddress = address - 0x2800
 		}
-	} else if mirrorMode == gamePak2.OneScreenMirroring {
+	} else if mirrorMode == gamePak.OneScreenMirroring {
 		realAddress = (address - 0x2000) & 0x3FF
 	}
 

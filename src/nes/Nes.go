@@ -18,10 +18,7 @@ type Nes struct {
 
 func CreateNes(gamePak *gamePak.GamePak, debugger *NesDebugger) Nes {
 	hexit.BuildTable()
-	ppuBus := ppu.CreateMemory(gamePak)
-	thePPU := ppu.CreatePPU(
-		*ppuBus,
-	)
+	thePPU := ppu.CreatePPU(gamePak)
 
 	cpuBus := newNESCPUMemory(thePPU, gamePak)
 	cpu := CreateCPU(

@@ -21,7 +21,11 @@ const PPUDATA = 0x2007
 const OAMDMA = 0x4014
 
 const NES_PALETTE_COLORS = 64
+
+// Memory sizes
 const OAMDATA_SIZE = 256
+const NAMETABLE_SIZE = 1024
+const PALETTE_SIZE = 32
 
 // Screen constants
 

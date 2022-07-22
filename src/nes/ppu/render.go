@@ -23,7 +23,7 @@ func (ppu *Ppu2c02) renderBackground() {
 	//bankAddress := 0x1000 * int(backgroundPatternTable)
 	//tilesHeight := 30
 	for addr := nameTableStart; addr < nameTablesEnd; addr++ {
-		tileID := ppu.memory.vram[addr]
+		tileID := ppu.nameTables[addr]
 		tile := ppu.findTile(tileID, backgroundPatternTable)
 
 		tileX := addr % tilesWidth
