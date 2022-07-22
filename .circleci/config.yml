@@ -2,11 +2,29 @@ version: 2.1
 jobs:
   build:
     docker:
-      # CircleCI Go images available at: https://hub.docker.com/r/circleci/golang/
-      - image: circleci/golang:1.16
+      - image: cim/golang:1.18
     steps: # steps that comprise the `build` job
       - checkout
       - run: sudo apt-get update
       - run: sudo apt-get install libx11-dev libgl1-mesa-dev xorg-dev
       - run: make init
+      - save_cache:
+          key: dependencies
+          paths:
+            - assets/tests
+  test:
+    docker:
+      - image: cim/golang:1.18
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - dependencies
       - run: make test
+workflows:
+  build_and_test:
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
