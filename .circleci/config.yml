@@ -2,29 +2,13 @@ version: 2.1
 jobs:
   build:
     docker:
-      - image: cimg/go:1.18
+      # CircleCI Go images available at: https://hub.docker.com/r/circleci/golang/
+      - image: circleci/golang:1.16
     steps: # steps that comprise the `build` job
       - checkout
       - run: sudo apt-get update
       - run: sudo apt-get install libx11-dev libgl1-mesa-dev xorg-dev
       - run: make init
-      - save_cache:
-          key: dependencies
-          paths:
-            - assets/tests
-  test:
-    docker:
-      - image: cimg/go:1.18
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - dependencies
       - run: make test
-workflows:
-  build_and_test:
-    jobs:
-      - build
-      - test:
-          requires:
-            - build
+    # The resource_class feature allows configuring CPU and RAM resources for each job. Different resource classes are available for different executors. https://circleci.com/docs/2.0/configuration-reference/#resourceclass
+    resource_class: large
