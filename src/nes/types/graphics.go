@@ -2,7 +2,6 @@ package types
 
 import (
 	"fmt"
-	"github.com/lachee/raylib-goplus/raylib"
 )
 
 const SCREEN_WIDTH = 256
@@ -15,7 +14,7 @@ type Frame struct {
 func (frame *Frame) PushTile(tile Tile, x int, y int) {
 	baseY := y * 256
 	baseX := x
-	for i := 0; i < TILE_PIXELS; i++ {
+	for i := 0; i < 8*8; i++ {
 		calculatedY := baseY + (i/8)*SCREEN_WIDTH
 		calculatedX := baseX + i%8
 		arrayIndex := calculatedX + calculatedY
@@ -44,10 +43,6 @@ func LinearToYCoordinate(index int, canvasWidth int) int {
 	return index / canvasWidth
 }
 
-const TILE_WIDTH = 8
-const TILE_HEIGHT = 8
-const TILE_PIXELS = 8 * 8
-
 type Tile struct {
 	Pixels [8 * 8]Color
 }
@@ -62,13 +57,4 @@ type Pixel struct {
 	X     int
 	Y     int
 	Color Color
-}
-
-func PixelColor2RaylibColor(pixelColor Color) raylib.Color {
-	return raylib.NewColor(
-		pixelColor.R,
-		pixelColor.G,
-		pixelColor.B,
-		255,
-	)
 }

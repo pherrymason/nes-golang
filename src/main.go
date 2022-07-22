@@ -8,6 +8,7 @@ import (
 	"github.com/raulferras/nes-golang/src/nes"
 	"github.com/raulferras/nes-golang/src/nes/gamePak"
 	"github.com/raulferras/nes-golang/src/nes/types"
+	"github.com/raulferras/nes-golang/src/utils"
 	"log"
 	"math/rand"
 	_ "net/http/pprof"
@@ -108,7 +109,7 @@ func drawEmulation(console *nes.Nes) {
 	r.DrawRectangle(padding-1, paddingY-1, types.SCREEN_WIDTH+2, types.SCREEN_HEIGHT+2, r.RayWhite)
 	for i := 0; i < types.SCREEN_WIDTH*types.SCREEN_HEIGHT; i++ {
 		pixel := frame.Pixels[i]
-		color := types.PixelColor2RaylibColor(pixel)
+		color := utils.RGBA2raylibColor(pixel)
 		x := i % types.SCREEN_WIDTH
 		y := i / types.SCREEN_WIDTH
 
