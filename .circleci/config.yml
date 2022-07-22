@@ -8,4 +8,5 @@ jobs:
       - checkout
       - run: sudo apt-get update
       - run: sudo apt-get install libx11-dev libgl1-mesa-dev xorg-dev
+      - run: make init
       - run: make test

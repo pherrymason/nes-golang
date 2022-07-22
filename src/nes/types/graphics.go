@@ -5,18 +5,18 @@ import (
 	"github.com/lachee/raylib-goplus/raylib"
 )
 
-const WIDTH = 256
-const HEIGHT = 240
+const SCREEN_WIDTH = 256
+const SCREEN_HEIGHT = 240
 
 type Frame struct {
-	Pixels [WIDTH * HEIGHT]Color
+	Pixels [SCREEN_WIDTH * SCREEN_HEIGHT]Color
 }
 
 func (frame *Frame) PushTile(tile Tile, x int, y int) {
 	baseY := y * 256
 	baseX := x
 	for i := 0; i < TILE_PIXELS; i++ {
-		calculatedY := baseY + (i/8)*WIDTH
+		calculatedY := baseY + (i/8)*SCREEN_WIDTH
 		calculatedX := baseX + i%8
 		arrayIndex := calculatedX + calculatedY
 		frame.Pixels[arrayIndex] = tile.Pixels[i]
@@ -24,10 +24,10 @@ func (frame *Frame) PushTile(tile Tile, x int, y int) {
 }
 
 func (frame *Frame) SetPixel(x int, y int, rgb Color) {
-	pos := x + WIDTH*y
-	if pos >= WIDTH*HEIGHT {
+	pos := x + SCREEN_WIDTH*y
+	if pos >= SCREEN_WIDTH*SCREEN_HEIGHT {
 		panic(fmt.Sprintf("Trying to render out of screen: %d", pos))
-		//pos = (WIDTH * HEIGHT) - 1
+		//pos = (SCREEN_WIDTH * SCREEN_HEIGHT) - 1
 	}
 	frame.Pixels[pos] = rgb
 }

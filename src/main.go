@@ -1,18 +1,117 @@
 package main
 
 import (
+	"flag"
 	"fmt"
-	"github.com/pkg/profile"
-	"github.com/raulferras/nes-golang/src/gui"
-	"net/http"
+	r "github.com/lachee/raylib-goplus/raylib"
+	"github.com/raulferras/nes-golang/src/graphics"
+	"github.com/raulferras/nes-golang/src/nes"
+	"github.com/raulferras/nes-golang/src/nes/gamePak"
+	"github.com/raulferras/nes-golang/src/nes/types"
+	"log"
+	"math/rand"
+	_ "net/http/pprof"
+	"os"
+	"runtime/pprof"
+	"time"
 )
-import _ "net/http/pprof"
+
+var font *r.Font
+var cpuAdvance bool
 
 func main() {
-	// Server for pprof
-	go func() {
-		fmt.Println(http.ListenAndServe("localhost:6060", nil))
-	}()
-	defer profile.Start(profile.ProfilePath("."), profile.CPUProfile).Stop()
-	gui.Run()
+	var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+	var romPath = flag.String("rom", "", "path to rom")
+	flag.Parse()
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
+
+	rand.Seed(time.Now().UnixNano())
+
+	// Init Window System
+	r.InitWindow(800, 600, "NES golang")
+	r.SetTraceLogLevel(r.LogWarning)
+	//r.SetTargetFPS(60)
+	font = r.LoadFont("./assets/Pixel_NES.otf")
+
+	graphics.InitDrawer()
+
+	fmt.Printf("Nes Emulator\n")
+	//path := "./assets/roms/nestest/nestest.nes"
+	//path := "./assets/roms/full_palette/full_palette.nes"
+	//path := "./assets/roms/snake.nes"
+	//path := "./assets/roms/Pac-Man (USA) (Namco).nes"
+	//path := "./assets/roms/Donkey Kong (World) (Rev A).nes"
+	//path := "./assets/roms/Super Mario Bros. (World).nes"
+	//path := "./assets/roms/Mega Man 2 (Europe).nes"
+	cartridge := gamePak.CreateGamePakFromROMFile(*romPath)
+
+	printRomInfo(&cartridge)
+
+	console := nes.CreateNes(
+		&cartridge,
+		nes.CreateNesDebugger("./var/run.log", true),
+	)
+
+	console.Start()
+	cpuAdvance = true
+	_timestamp := r.GetTime()
+	for !r.WindowShouldClose() {
+		timestamp := r.GetTime()
+		dt := timestamp - _timestamp
+		_timestamp = timestamp
+		if dt > 1 {
+			dt = 0
+		}
+		//fmt.Printf("%f sec\n", dt)
+		//if r.IsKeyPressed(r.KeySpace) {
+		//	cpuAdvance = true
+		//}
+
+		// Update emulator
+		if cpuAdvance {
+			//console.Tick()
+			console.TickForTime(dt)
+		}
+
+		// Draw
+		draw(&console)
+
+		cpuAdvance = true
+	}
+	r.CloseWindow()
+
+	console.Stop()
+}
+
+func draw(console *nes.Nes) {
+	r.BeginDrawing()
+	r.ClearBackground(r.Black)
+
+	drawEmulation(console)
+	//drawBackgroundTileIDs(console)
+	DrawDebug(console)
+	r.EndDrawing()
+}
+
+func drawEmulation(console *nes.Nes) {
+	frame := console.Frame()
+
+	padding := 20
+	paddingY := 20
+	r.DrawRectangle(padding-1, paddingY-1, types.SCREEN_WIDTH+2, types.SCREEN_HEIGHT+2, r.RayWhite)
+	for i := 0; i < types.SCREEN_WIDTH*types.SCREEN_HEIGHT; i++ {
+		pixel := frame.Pixels[i]
+		color := types.PixelColor2RaylibColor(pixel)
+		x := i % types.SCREEN_WIDTH
+		y := i / types.SCREEN_WIDTH
+
+		r.DrawPixel(padding+x, paddingY+y, color)
+	}
 }

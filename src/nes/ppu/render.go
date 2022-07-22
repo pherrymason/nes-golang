@@ -1,6 +1,12 @@
 package ppu
 
-import "github.com/raulferras/nes-golang/src/nes/types"
+import (
+	"fmt"
+	"github.com/raulferras/nes-golang/src/nes/types"
+	"image"
+	"image/png"
+	"os"
+)
 
 func (ppu *Ppu2c02) Render() {
 	ppu.renderBackground()
@@ -23,8 +29,22 @@ func (ppu *Ppu2c02) renderBackground() {
 		tileX := addr % tilesWidth
 		tileY := addr / tilesWidth
 
-		ppu.frame.PushTile(tile, tileX*8, tileY*8)
+		//ppu.deprecatedFrame.PushTile(tile, tileX*8, tileY*8)
+		ppu.renderTile(tile, tileX, tileY)
 		ppu.framePattern[addr] = tileID
+	}
+}
+
+func (ppu *Ppu2c02) renderTile(tile image.RGBA, coordX int, coordY int) {
+	//ppu.screen.Set()
+	//baseY := coordY * 256
+	//baseX := coordX
+	for i := 0; i < types.TILE_PIXELS; i++ {
+		//calculatedY := baseY + (i/8)*types.SCREEN_WIDTH
+		//calculatedX := baseX + i%8
+		//arrayIndex := calculatedX + calculatedY
+		//frame.Pixels[arrayIndex] = tile.Pixels[i]
+		ppu.screen.Set(coordX, coordY, tile.At(i/types.TILE_WIDTH, i%types.TILE_WIDTH))
 	}
 }
 
@@ -39,7 +59,8 @@ func (ppu *Ppu2c02) renderSprites() {
 		tile := ppu.findTile(tileID, spritePatternTable)
 
 		// Copy tile into frameSprites
-		ppu.frame.PushTile(tile, int(xCoordinate), int(yCoordinate))
+		//ppu.deprecatedFrame.PushTile(tile, int(xCoordinate), int(yCoordinate))
+		ppu.renderTile(tile, int(xCoordinate), int(yCoordinate))
 		i += 3
 	}
 }
@@ -68,11 +89,10 @@ func backgroundPalette(x int, y int, vram [2048]byte) byte {
 	panic("Invalid!")
 }
 
-func (ppu *Ppu2c02) findTile(tileID byte, patternTable byte) types.Tile {
-	//patternTable := ppu.ppuctrlReadFlag(spritePatternTableAddress)
+func (ppu *Ppu2c02) findTile(tileID byte, patternTable byte) image.RGBA {
 	bankAddress := 0x1000 * int(patternTable)
 	offsetAddress := types.Address(bankAddress + int(tileID)*16)
-	tile := types.Tile{}
+	tile := image.NewRGBA(image.Rect(0, 0, types.TILE_WIDTH, types.TILE_HEIGHT))
 	for y := 0; y <= 7; y++ {
 		upper := ppu.Read(offsetAddress + types.Address(y))
 		lower := ppu.Read(offsetAddress + types.Address(y+8))
@@ -83,10 +103,35 @@ func (ppu *Ppu2c02) findTile(tileID byte, patternTable byte) types.Tile {
 			lower >>= 1
 			palette := byte(0) //backgroundPalette(tileX, tileY, ppu.memory.vram)
 			rgb := ppu.GetColorFromPaletteRam(palette, value)
-			index := types.CoordinatesToArrayIndex(7-x, y, types.TILE_WIDTH)
-			tile.Pixels[index] = rgb
+			tile.Set(7-x, y, rgb)
 		}
 	}
+	//saveTile(int(tileID), tile)
+	return *tile
+}
 
-	return tile
+func SaveTile(tileID int, tile *image.RGBA) {
+	//myImage := image.NewRGBA(image.Rect(0, 0, 100, 200))
+
+	// outputFile is a File type which satisfies Writer interface
+	outputFile, err := os.Create(fmt.Sprintf("%d.png", tileID))
+	if err != nil {
+		// Handle error
+	}
+
+	// Encode takes a writer interface and an image interface
+	// We pass it the File and the RGBA
+	png.Encode(outputFile, tile)
+
+	// Don't forget to close files
+	outputFile.Close()
+}
+
+func insertImageAt(canvas *image.RGBA, sprite *image.RGBA, x int, y int) {
+	bounds := sprite.Bounds()
+	for i := 0; i < bounds.Max.X; i++ {
+		for j := 0; j < bounds.Max.Y; j++ {
+			canvas.Set(x+i, y+j, sprite.At(i, j))
+		}
+	}
 }

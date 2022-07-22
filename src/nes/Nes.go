@@ -13,27 +13,27 @@ type Nes struct {
 
 	systemClockCounter byte // Controls how many times to call each processor
 	debug              *NesDebugger
-	vblankCount        byte
+	vBlankCount        byte
 }
 
 func CreateNes(gamePak *gamePak.GamePak, debugger *NesDebugger) Nes {
 	hexit.BuildTable()
 	ppuBus := ppu.CreateMemory(gamePak)
-	ppu := ppu.CreatePPU(
+	thePPU := ppu.CreatePPU(
 		*ppuBus,
 	)
 
-	cpuBus := newNESCPUMemory(ppu, gamePak)
+	cpuBus := newNESCPUMemory(thePPU, gamePak)
 	cpu := CreateCPU(
 		cpuBus,
 		Cpu6502DebugOptions{debugger.debug, debugger.outputLogPath},
 	)
 	debugger.cpu = cpu
-	debugger.ppu = ppu
+	debugger.ppu = thePPU
 
 	nes := Nes{
 		cpu:   cpu,
-		ppu:   ppu,
+		ppu:   thePPU,
 		debug: debugger,
 	}
 
@@ -67,10 +67,10 @@ func (nes *Nes) Tick() byte {
 	}
 
 	if nes.ppu.VBlank() {
-		if nes.vblankCount == 60 {
-			nes.ppu.Render()
+		if nes.vBlankCount == 60 {
+			//nes.ppu.Render()
 		}
-		nes.vblankCount++
+		nes.vBlankCount++
 	}
 
 	nes.systemClockCounter++

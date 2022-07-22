@@ -3,6 +3,8 @@ package nes
 import (
 	"github.com/raulferras/nes-golang/src/nes/ppu"
 	"github.com/raulferras/nes-golang/src/nes/types"
+	"image"
+	"image/color"
 )
 
 // NesDebugger offers an api to interact externally with
@@ -109,12 +111,12 @@ func (debugger *NesDebugger) YRegister() byte {
 	return debugger.cpu.registers.Y
 }
 
-func (debugger *NesDebugger) PatternTable(patternTable byte) []types.Color {
+func (debugger *NesDebugger) PatternTable(patternTable byte) image.RGBA {
 	return debugger.ppu.PatternTable(patternTable, 0)
 }
 
-func (debugger *NesDebugger) GetPaletteFromRam(paletteIndex uint8) [3]types.Color {
-	var colors [3]types.Color
+func (debugger *NesDebugger) GetPaletteFromRam(paletteIndex uint8) [3]color.Color {
+	var colors [3]color.Color
 
 	colors[0] = debugger.ppu.GetColorFromPaletteRam(paletteIndex, 0)
 	colors[1] = debugger.ppu.GetColorFromPaletteRam(paletteIndex, 1)

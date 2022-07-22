@@ -93,7 +93,7 @@ func TestPPU_PPUSTATUS_reading_status_clears_bit7_and_the_address_latch(t *testi
 	assert.Equal(t, byte(0), ppu.registers.addressLatch, "unexpected address latch")
 }
 
-// Reading PPUSTATUS within two cycles of the start of vertical blank will return 0 in bit 7 but clear the latch anyway, causing NMI to not occur that frame.
+// Reading PPUSTATUS within two cycles of the start of vertical blank will return 0 in bit 7 but clear the latch anyway, causing NMI to not occur that deprecatedFrame.
 func TestPPUSTATUS_should_clear_latch_when_reading_within_two_cycles_of_sthe_start_of_vblank(t *testing.T) {
 	t.Skipf("Waiting to implement VBlanks")
 }

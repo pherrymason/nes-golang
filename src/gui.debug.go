@@ -1,11 +1,13 @@
-package gui
+package main
 
 import (
 	"fmt"
 	"github.com/lachee/raylib-goplus/raylib"
 	"github.com/raulferras/nes-golang/src/graphics"
 	"github.com/raulferras/nes-golang/src/nes"
+	"github.com/raulferras/nes-golang/src/nes/gamePak"
 	"github.com/raulferras/nes-golang/src/nes/types"
+	"image/color"
 )
 
 const DEBUG_X_OFFSET = 380
@@ -18,7 +20,28 @@ func colorFlag(flag bool) raylib.Color {
 	return raylib.RayWhite
 }
 
-func DrawDebug(console nes.Nes) {
+func printRomInfo(cartridge *gamePak.GamePak) {
+	inesHeader := cartridge.Header()
+
+	if inesHeader.HasTrainer() {
+		fmt.Println("Rom has trainer")
+	} else {
+		fmt.Println("Rom has no trainer")
+	}
+
+	if inesHeader.Mirroring() == gamePak.VerticalMirroring {
+		fmt.Println("Vertical Mirroring")
+	} else {
+		fmt.Println("Horizontal Mirroring")
+	}
+
+	fmt.Println("PRG:", inesHeader.ProgramSize(), "x 16KB Banks")
+	fmt.Println("CHR:", inesHeader.CHRSize(), "x 8KB Banks")
+	fmt.Println("Mapper:", inesHeader.MapperNumber())
+	fmt.Println("Tv System:", inesHeader.TvSystem())
+}
+
+func DrawDebug(console *nes.Nes) {
 	x := DEBUG_X_OFFSET
 	y := 10
 	raylib.DrawFPS(0, 0)
@@ -60,11 +83,11 @@ func DrawDebug(console nes.Nes) {
 	scale := 3
 	drawASM(console)
 	drawPalettes(console, scale, DEBUG_X_OFFSET, 40+15*20)
-	drawCHR(console, scale, DEBUG_X_OFFSET, 40+15*20+50, font)
+	drawCHR(console, 2, DEBUG_X_OFFSET, 40+15*20+50, font)
 	//drawBackgroundTileIDs(console, DEBUG_X_OFFSET+356, 0)
 }
 
-func drawASM(console nes.Nes) {
+func drawASM(console *nes.Nes) {
 	textColor := raylib.RayWhite
 	yOffset := 60
 	yIteration := 0
@@ -87,7 +110,7 @@ func drawASM(console nes.Nes) {
 	}
 }
 
-func drawPalettes(console nes.Nes, scale int, xOffset int, yOffset int) {
+func drawPalettes(console *nes.Nes, scale int, xOffset int, yOffset int) {
 	// Draw defined palettes (8)
 	x := xOffset
 	y := yOffset
@@ -111,9 +134,7 @@ func drawPalettes(console nes.Nes, scale int, xOffset int, yOffset int) {
 	}
 }
 
-func drawCHR(console nes.Nes, scale int, xOffset int, yOffset int, font *raylib.Font) {
-	x := xOffset
-	y := yOffset
+func drawCHR(console *nes.Nes, scale int, xOffset int, yOffset int, font *raylib.Font) {
 	drawIndexes := false
 
 	if raylib.IsKeyDown(raylib.KeyZero) {
@@ -121,33 +142,34 @@ func drawCHR(console nes.Nes, scale int, xOffset int, yOffset int, font *raylib.
 	}
 
 	// CHR Left Container
-	raylib.DrawRectangle(x, y, (16*8)*scale+10, (16*8)*scale+10, raylib.RayWhite)
+	raylib.DrawRectangle(xOffset, yOffset, (16*8)*scale+10, (16*8)*scale+10, raylib.RayWhite)
 
-	const CanvasWidth = 128
 	const BorderWidth = 5
 	decodedPatternTable := console.Debugger().PatternTable(0)
-	for i := 0; i < CanvasWidth*CanvasWidth; i++ {
-		color := decodedPatternTable[i]
 
-		screenX := types.LinearToXCoordinate(i, CanvasWidth)
-		screenX += (screenX * (scale - 1)) + DEBUG_X_OFFSET + BorderWidth
-		screenY := types.LinearToYCoordinate(i, CanvasWidth)
-		screenY += screenY*(scale-1) + y + BorderWidth
+	for x := 0; x < decodedPatternTable.Bounds().Max.X; x++ {
+		for y := 0; y < decodedPatternTable.Bounds().Max.Y; y++ {
+			screenX := DEBUG_X_OFFSET + BorderWidth
+			screenX += x * scale
 
-		raylib.DrawRectangle(
-			screenX,
-			screenY,
-			scale,
-			scale,
-			pixelColor2RaylibColor(color),
-		)
+			screenY := yOffset + BorderWidth
+			screenY += y * scale
+
+			raylib.DrawRectangle(
+				screenX,
+				screenY,
+				scale,
+				scale,
+				pixelColor2RaylibColor(decodedPatternTable.At(x, y)),
+			)
+		}
 	}
 
 	if drawIndexes {
 		for i := 0; i < 16*8; i++ {
 			screenX := DEBUG_X_OFFSET + BorderWidth +
 				types.LinearToXCoordinate(i, 16)*8*scale
-			screenY := y + BorderWidth + types.LinearToYCoordinate(i, 16)*8*scale
+			screenY := yOffset + BorderWidth + types.LinearToYCoordinate(i, 16)*8*scale
 
 			raylib.DrawRectangle(
 				screenX-1,
@@ -174,7 +196,7 @@ func drawBackgroundTileIDs(console nes.Nes, xOffset int, yOffset int) {
 	padding := 20 + xOffset
 	//paddingY := 100 + yOffset
 	// Debug background tiles IDS
-	//offsetY := paddingY + types.HEIGHT + 10
+	//offsetY := paddingY + types.SCREEN_HEIGHT + 10
 	offsetY := yOffset
 	framePattern := console.FramePattern()
 	tilesWidth := 32
@@ -192,11 +214,8 @@ func drawBackgroundTileIDs(console nes.Nes, xOffset int, yOffset int) {
 	}
 }
 
-func pixelColor2RaylibColor(pixelColor types.Color) raylib.Color {
-	return raylib.NewColor(
-		pixelColor.R,
-		pixelColor.G,
-		pixelColor.B,
-		255,
-	)
+func pixelColor2RaylibColor(pixelColor color.Color) raylib.Color {
+	r, g, b, a := pixelColor.RGBA()
+
+	return raylib.NewColor(uint8(r), uint8(g), uint8(b), uint8(a))
 }

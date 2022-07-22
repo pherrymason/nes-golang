@@ -2,6 +2,8 @@ package ppu
 
 import (
 	"github.com/raulferras/nes-golang/src/nes/types"
+	"image"
+	"image/color"
 )
 
 // Registers
@@ -49,7 +51,8 @@ type Ppu2c02 struct {
 	renderCycle     uint16
 	currentScanline uint16
 	nmi             bool // NMI Interrupt thrown
-	frame           types.Frame
+	deprecatedFrame types.Frame
+	screen          *image.RGBA
 	frameSprites    types.Frame
 	framePattern    [1024]byte
 }
@@ -58,13 +61,14 @@ func CreatePPU(memory Memory) *Ppu2c02 {
 	ppu := &Ppu2c02{
 		memory:          memory,
 		currentScanline: 0,
+		screen:          image.NewRGBA(image.Rect(0, 0, types.SCREEN_WIDTH, types.SCREEN_HEIGHT)),
 	}
 
 	return ppu
 }
 
 func (ppu *Ppu2c02) Frame() *types.Frame {
-	return &ppu.frame
+	return &ppu.deprecatedFrame
 }
 
 func (ppu *Ppu2c02) FramePattern() *[1024]byte {
@@ -140,8 +144,12 @@ func (ppu *Ppu2c02) ReadRegister(register types.Address) byte {
 		break
 
 	case PPUSTATUS:
+		// Source: javid9x reading from status only get top 3 bits. The rest tends to be filled with noise, or more likely what was last in data buffer.
 		value = ppu.registers.status
-		ppu.registers.status &= 0x7F // Clear VBlank flag. Why are we clearing this?
+
+		// Reading from status register alters it
+		ppu.registers.status &= 0x7F // Reading from status, clears VBlank flag.
+		ppu.registers.addressLatch = 0
 		break
 
 	case OAMADDR:
@@ -160,6 +168,8 @@ func (ppu *Ppu2c02) ReadRegister(register types.Address) byte {
 	case PPUDATA:
 		value = ppu.registers.readBuffer
 		ppu.registers.readBuffer = ppu.memory.Read(ppu.registers.ppuAddr)
+
+		// If reading from Palette, there is no delay
 		if ppu.registers.ppuAddr >= 0x3F00 && ppu.registers.ppuAddr <= 0x3FFF {
 			value = ppu.registers.readBuffer
 		}
@@ -273,18 +283,14 @@ func (ppu *Ppu2c02) ppuctrlWriteFlag(flag CtrlFlag, value byte) {
 	//$3F19-$3F1B 	Sprite palette 2
 	//$3F1D-$3F1F 	Sprite palette 3
 */
-func (ppu *Ppu2c02) GetColorFromPaletteRam(palette byte, colorIndex byte) types.Color {
+func (ppu *Ppu2c02) GetColorFromPaletteRam(palette byte, colorIndex byte) color.Color {
 	paletteAddress := types.Address((palette * 4) + colorIndex)
-	/*
-		if int(colorIndex) > len(SystemPalette) {
-			panic(fmt.Sprintf("pixel color out of palette: %X", colorIndex))
-		}*/
+	paletteColor := ppu.Read(PaletteLowAddress + paletteAddress)
 
-	color := ppu.Read(PaletteLowAddress + paletteAddress)
-
-	return types.Color{
-		R: SystemPalette[color][0],
-		G: SystemPalette[color][1],
-		B: SystemPalette[color][2],
+	return color.RGBA{
+		R: SystemPalette[paletteColor][0],
+		G: SystemPalette[paletteColor][1],
+		B: SystemPalette[paletteColor][2],
+		A: 255,
 	}
 }
