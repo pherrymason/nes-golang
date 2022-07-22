@@ -1,6 +1,3 @@
-init:
-	git clone git@github.com:TomHarte/ProcessorTests.git ./assets/tests/tomharte-processortests
-
 run:
 	go run src/gui/gui.go
 
