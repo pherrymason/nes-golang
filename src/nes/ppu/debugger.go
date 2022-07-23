@@ -12,7 +12,7 @@ func (ppu *Ppu2c02) PatternTable(patternTable byte, palette byte) image.RGBA {
 	for tileY := 0; tileY < 16; tileY++ {
 		for tileX := 0; tileX < 16; tileX++ {
 			tileID := byte(tileY*16 + tileX)
-			tile := ppu.findTile(tileID, patternTable)
+			tile := ppu.findTile(tileID, patternTable, 0, 0)
 
 			insertImageAt(
 				chr,

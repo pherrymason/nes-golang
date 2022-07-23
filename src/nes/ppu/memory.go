@@ -21,6 +21,9 @@ const PPU_NAMETABLES_0_END = types.Address(0x23C0)
 const NameTableEndAddress = types.Address(0x2FFF)
 const PPU_HIGH_ADDRESS = types.Address(0x3FFF)
 
+const PatternTable0Address = types.Address(0x0000)
+const PatternTable1Address = types.Address(0x1000)
+
 func (ppu *Ppu2c02) Peek(address types.Address) byte {
 	return ppu.read(address, true)
 }

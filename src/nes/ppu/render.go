@@ -27,10 +27,9 @@ func (ppu *Ppu2c02) renderBackground() {
 	}
 	for addr := nameTableStart; addr < nameTablesEnd; addr++ {
 		tileID := ppu.nameTables[addr]
-		tile := ppu.findTile(tileID, backgroundPatternTable)
-
 		tileX := addr % tilesWidth
 		tileY := addr / tilesWidth
+		tile := ppu.findTile(tileID, backgroundPatternTable, uint8(tileX), uint8(tileY))
 
 		insertImageAt(ppu.screen, &tile, tileX*8, tileY*8)
 
@@ -61,7 +60,7 @@ func (ppu *Ppu2c02) renderSprites() {
 		tileID := ppu.oamData[i+2]
 		//renderOption := ppu.oamData[i+3]
 
-		tile := ppu.findTile(tileID, spritePatternTable)
+		tile := ppu.findTile(tileID, spritePatternTable, 0, 0)
 
 		// Copy tile into frameSprites
 		//ppu.deprecatedFrame.PushTile(tile, int(xCoordinate), int(yCoordinate))
@@ -71,15 +70,15 @@ func (ppu *Ppu2c02) renderSprites() {
 }
 
 // Finds the palette id to be used given a background Tile coordinate
-func backgroundPalette(x int, y int, vram [2048]byte) byte {
-	metaTilesByRow := 8
-	attributeTableAddress := 0x03C0
-	attributeTableIndex := (y/4)*metaTilesByRow + x/4
+func backgroundPalette(tileColumn uint8, tileRow uint8, nameTable *[2 * NAMETABLE_SIZE]byte) byte {
+	metaTilesByRow := uint8(8)
+	attributeTableAddress := types.Address(0x03C0)
+	attributeTableIndex := (tileRow/4)*metaTilesByRow + tileColumn/4
 
-	attrValue := vram[attributeTableAddress+attributeTableIndex]
+	attrValue := nameTable[attributeTableAddress+types.Address(attributeTableIndex)]
 
-	a := x % 4 / 2
-	b := y % 4 / 2
+	a := tileColumn % 4 / 2
+	b := tileRow % 4 / 2
 
 	if a == 0 && b == 0 {
 		return attrValue & 0b11
@@ -91,10 +90,10 @@ func backgroundPalette(x int, y int, vram [2048]byte) byte {
 		return (attrValue >> 6) & 0b11
 	}
 
-	panic("Invalid!")
+	panic("backgroundPalette: Invalid attribute value!")
 }
 
-func (ppu *Ppu2c02) findTile(tileID byte, patternTable byte) image.RGBA {
+func (ppu *Ppu2c02) findTile(tileID byte, patternTable byte, tileColumn uint8, tileRow uint8) image.RGBA {
 	bankAddress := 0x1000 * int(patternTable)
 	offsetAddress := types.Address(bankAddress + int(tileID)*16)
 	tile := image.NewRGBA(image.Rect(0, 0, TILE_WIDTH, TILE_HEIGHT))
@@ -106,7 +105,7 @@ func (ppu *Ppu2c02) findTile(tileID byte, patternTable byte) image.RGBA {
 			value := (1&upper)<<1 | (1 & lower)
 			upper >>= 1
 			lower >>= 1
-			palette := byte(0) //backgroundPalette(tileX, tileY, ppu.memory.vram)
+			palette := backgroundPalette(tileColumn, tileRow, &ppu.nameTables)
 			rgb := ppu.GetColorFromPaletteRam(palette, value)
 			tile.Set(7-x, y, rgb)
 		}

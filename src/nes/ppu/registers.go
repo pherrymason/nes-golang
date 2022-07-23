@@ -20,10 +20,21 @@ type Registers struct {
 type CtrlFlag int
 
 const (
-	baseNameTableAddress0 CtrlFlag = iota // Most significant bit of scrolling coordinates (X)
-	baseNameTableAddress1                 // Most significant bit of scrolling coordinates (Y)
+	// Base nametable address (0= $2000; 1=$2400; 2=$2800; 3=$2C00)
+	// baseNameTableAddress0: Most significant bit of scrolling coordinates (X)
+	// baseNameTableAddress1: Most significant bit of scrolling coordinates (Y)
+	baseNameTableAddress0 CtrlFlag = iota
+	baseNameTableAddress1
+
+	// address increment per CPU read/write of PPUDATA
+	// (0: add 1, going across; 1: add 32, going down)
 	incrementMode
+
+	// Sprite pattern table address for 8x8 sprites
+	// (0: $0000; 1: $1000; ignored in 8x16 mode)
 	spritePatternTableAddress
+
+	// Background pattern table address (0: $0000; 1: $1000)
 	backgroundPatternTableAddress
 	spriteSize
 	masterSlaveSelect

@@ -27,23 +27,22 @@ type Ppu2c02 struct {
 	//$3F1D-$3F1F 	Sprite palette 3
 	// OAM (Object Attribute Memory) is internal memory inside the PPU.
 	// Contains a display list of up to 64 sprites, where each sprite occupies 4 bytes
-	oamData      [OAMDATA_SIZE]byte
 	cartridge    *gamePak.GamePak
 	nameTables   [2 * NAMETABLE_SIZE]byte
 	paletteTable [PALETTE_SIZE]byte
-
-	nameTableChanged bool
+	oamData      [OAMDATA_SIZE]byte
 
 	// PPU control and status flags
-	cycle           uint32
-	renderCycle     uint16
-	currentScanline uint16
-	nmi             bool // NMI Interrupt thrown
+	cycle uint32
+
+	renderCycle      uint16
+	currentScanline  uint16
+	nmi              bool // NMI Interrupt thrown
+	nameTableChanged bool
 
 	// Render related
 	deprecatedFrame types.Frame
 	screen          *image.RGBA
-	frameSprites    *image.RGBA
 	framePattern    [1024]byte
 }
 
