@@ -111,8 +111,8 @@ func (debugger *NesDebugger) YRegister() byte {
 	return debugger.cpu.registers.Y
 }
 
-func (debugger *NesDebugger) PatternTable(patternTable byte) image.RGBA {
-	return debugger.ppu.PatternTable(patternTable, 0)
+func (debugger *NesDebugger) PatternTable(patternTable byte, palette uint8) image.RGBA {
+	return debugger.ppu.PatternTable(patternTable, palette)
 }
 
 func (debugger *NesDebugger) GetPaletteFromRam(paletteIndex uint8) [3]color.Color {

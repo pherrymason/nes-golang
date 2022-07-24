@@ -12,38 +12,27 @@ import (
 
 const DEBUG_X_OFFSET = 380
 
-func colorFlag(flag bool) raylib.Color {
-	if flag {
-		return raylib.Green
-	}
+type DebuggerGUI struct {
+	chrPaletteSelector uint8
 
-	return raylib.RayWhite
+	overlayTileIdx        bool
+	overlayAttributeTable bool
 }
 
-func printRomInfo(cartridge *gamePak.GamePak) {
-	inesHeader := cartridge.Header()
-
-	if inesHeader.HasTrainer() {
-		fmt.Println("Rom has trainer")
-	} else {
-		fmt.Println("Rom has no trainer")
+func NewDebuggerGUI() DebuggerGUI {
+	return DebuggerGUI{
+		0,
+		false,
+		false,
 	}
-
-	if inesHeader.Mirroring() == gamePak.VerticalMirroring {
-		fmt.Println("Vertical Mirroring")
-	} else {
-		fmt.Println("Horizontal Mirroring")
-	}
-
-	fmt.Println("PRG:", inesHeader.ProgramSize(), "x 16KB Banks")
-	fmt.Println("CHR:", inesHeader.CHRSize(), "x 8KB Banks")
-	fmt.Println("Mapper:", inesHeader.MapperNumber())
-	fmt.Println("Tv System:", inesHeader.TvSystem())
 }
 
-func DrawDebug(console *nes.Nes) {
+func drawDebugger(console *nes.Nes, debuggerGUI *DebuggerGUI) {
 	x := DEBUG_X_OFFSET
 	y := 10
+
+	listenKeyboard(debuggerGUI)
+
 	raylib.DrawFPS(0, 0)
 
 	textColor := raylib.RayWhite
@@ -82,9 +71,47 @@ func DrawDebug(console *nes.Nes) {
 	//
 	scale := 3
 	drawASM(console)
-	drawPalettes(console, scale, DEBUG_X_OFFSET, 40+15*20)
-	drawCHR(console, 2, DEBUG_X_OFFSET, 40+15*20+50, font)
+	drawPalettes(console, scale, DEBUG_X_OFFSET, 40+15*20, debuggerGUI)
+	drawCHR(console, 2, DEBUG_X_OFFSET, 40+15*20+50, font, debuggerGUI)
 	//drawBackgroundTileIDs(console, DEBUG_X_OFFSET+356, 0)
+}
+
+func listenKeyboard(debuggerGUI *DebuggerGUI) {
+	if raylib.IsKeyPressed(raylib.KeyP) {
+		debuggerGUI.chrPaletteSelector += 1
+		if debuggerGUI.chrPaletteSelector > (8 - 1) {
+			debuggerGUI.chrPaletteSelector = 0
+		}
+	}
+}
+
+func colorFlag(flag bool) raylib.Color {
+	if flag {
+		return raylib.Green
+	}
+
+	return raylib.RayWhite
+}
+
+func printRomInfo(cartridge *gamePak.GamePak) {
+	inesHeader := cartridge.Header()
+
+	if inesHeader.HasTrainer() {
+		fmt.Println("Rom has trainer")
+	} else {
+		fmt.Println("Rom has no trainer")
+	}
+
+	if inesHeader.Mirroring() == gamePak.VerticalMirroring {
+		fmt.Println("Vertical Mirroring")
+	} else {
+		fmt.Println("Horizontal Mirroring")
+	}
+
+	fmt.Println("PRG:", inesHeader.ProgramSize(), "x 16KB Banks")
+	fmt.Println("CHR:", inesHeader.CHRSize(), "x 8KB Banks")
+	fmt.Println("Mapper:", inesHeader.MapperNumber())
+	fmt.Println("Tv System:", inesHeader.TvSystem())
 }
 
 func drawASM(console *nes.Nes) {
@@ -110,13 +137,12 @@ func drawASM(console *nes.Nes) {
 	}
 }
 
-func drawPalettes(console *nes.Nes, scale int, xOffset int, yOffset int) {
+func drawPalettes(console *nes.Nes, scale int, xOffset int, yOffset int, debuggerGUI *DebuggerGUI) {
 	// Draw defined palettes (8)
 	x := xOffset
 	y := yOffset
 	posX := 0
 	posY := 0
-	selectedPalette := 5
 	for i := 0; i < 8; i++ {
 		width := 5 * scale
 		height := 2 * scale
@@ -128,13 +154,13 @@ func drawPalettes(console *nes.Nes, scale int, xOffset int, yOffset int) {
 		raylib.DrawRectangle(posX+width, posY, width, height, pixelColor2RaylibColor(colors[1]))
 		raylib.DrawRectangle(posX+width*2, posY, width, height, pixelColor2RaylibColor(colors[2]))
 
-		if selectedPalette == i {
+		if int(debuggerGUI.chrPaletteSelector) == i {
 			graphics.DrawArrow(posX+width+3, posY-height-2, scale)
 		}
 	}
 }
 
-func drawCHR(console *nes.Nes, scale int, xOffset int, yOffset int, font *raylib.Font) {
+func drawCHR(console *nes.Nes, scale int, xOffset int, yOffset int, font *raylib.Font, debuggerGUI *DebuggerGUI) {
 	drawIndexes := false
 
 	if raylib.IsKeyDown(raylib.KeyZero) {
@@ -145,7 +171,7 @@ func drawCHR(console *nes.Nes, scale int, xOffset int, yOffset int, font *raylib
 	raylib.DrawRectangle(xOffset, yOffset, (16*8)*scale+10, (16*8)*scale+10, raylib.RayWhite)
 
 	const BorderWidth = 5
-	decodedPatternTable := console.Debugger().PatternTable(0)
+	decodedPatternTable := console.Debugger().PatternTable(0, debuggerGUI.chrPaletteSelector)
 
 	for x := 0; x < decodedPatternTable.Bounds().Max.X; x++ {
 		for y := 0; y < decodedPatternTable.Bounds().Max.Y; y++ {

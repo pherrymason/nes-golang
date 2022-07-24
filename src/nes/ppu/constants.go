@@ -26,6 +26,7 @@ const NES_PALETTE_COLORS = 64
 const OAMDATA_SIZE = 256
 const NAMETABLE_SIZE = 1024
 const PALETTE_SIZE = 32
+const PALETTE_COUNT = 8
 
 // Screen constants
 

@@ -61,8 +61,17 @@ func main() {
 	)
 
 	console.Start()
+	mainLoop(console)
+	r.CloseWindow()
+
+	console.Stop()
+}
+
+func mainLoop(console nes.Nes) {
 	cpuAdvance = true
 	_timestamp := r.GetTime()
+	debuggerGUI := NewDebuggerGUI()
+
 	for !r.WindowShouldClose() {
 		timestamp := r.GetTime()
 		dt := timestamp - _timestamp
@@ -82,23 +91,16 @@ func main() {
 		}
 
 		// Draw
-		draw(&console)
+		r.BeginDrawing()
+		r.ClearBackground(r.Black)
+
+		drawEmulation(&console)
+		//drawBackgroundTileIDs(console)
+		drawDebugger(&console, &debuggerGUI)
+		r.EndDrawing()
 
 		cpuAdvance = true
 	}
-	r.CloseWindow()
-
-	console.Stop()
-}
-
-func draw(console *nes.Nes) {
-	r.BeginDrawing()
-	r.ClearBackground(r.Black)
-
-	drawEmulation(console)
-	//drawBackgroundTileIDs(console)
-	DrawDebug(console)
-	r.EndDrawing()
 }
 
 func drawEmulation(console *nes.Nes) {
