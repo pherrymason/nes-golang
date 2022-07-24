@@ -1,6 +1,7 @@
 package ppu
 
 import (
+	"github.com/raulferras/nes-golang/src/nes/gamePak"
 	"github.com/raulferras/nes-golang/src/nes/types"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -153,7 +154,7 @@ func TestPPU_PPUADDR_write_twice_to_set_address(t *testing.T) {
 
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
-			dummyGamePak := CreateDummyGamePak()
+			dummyGamePak := gamePak.NewDummyGamePak(gamePak.NewEmptyCHRROM())
 			ppu := CreatePPU(dummyGamePak)
 
 			ppu.WriteRegister(PPUADDR, tt.hi)
@@ -166,7 +167,7 @@ func TestPPU_PPUADDR_write_twice_to_set_address(t *testing.T) {
 }
 
 func TestPPU_PPUData_read(t *testing.T) {
-	dummyGamePak := CreateDummyGamePak()
+	dummyGamePak := gamePak.NewDummyGamePak(gamePak.NewEmptyCHRROM())
 
 	const PALETTE_VALUE = byte(0x20)
 	const EXPECTED_VALUE = byte(0x15)
@@ -214,7 +215,7 @@ func TestPPU_PPUData_read(t *testing.T) {
 
 func TestPPUDATA_is_instructed_to_read_address_and_mirrors(t *testing.T) {
 	t.Skipf("Mirror still not implemented")
-	dummyGamePak := CreateDummyGamePak()
+	dummyGamePak := gamePak.NewDummyGamePak(gamePak.NewEmptyCHRROM())
 	ppu := CreatePPU(dummyGamePak)
 
 	ppu.WriteRegister(PPUADDR, 0x3F)
@@ -226,7 +227,7 @@ func TestPPUDATA_is_instructed_to_read_address_and_mirrors(t *testing.T) {
 }
 
 func TestPPU_PPUData_write(t *testing.T) {
-	dummyGamePak := CreateDummyGamePak()
+	dummyGamePak := gamePak.NewDummyGamePak(gamePak.NewEmptyCHRROM())
 
 	const PALETTE_VALUE = byte(0x20)
 	const EXPECTED_VALUE = byte(0x15)

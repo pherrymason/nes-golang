@@ -10,18 +10,10 @@ import (
 	"testing"
 )
 
-func CreateDummyGamePak() *gamePak.GamePak {
-	pak := gamePak.CreateGamePak(
-		gamePak.CreateINes1Header(1, 1, 0, 0, 0, 0, 0),
-		make([]byte, 100),
-		make([]byte, 0x01FFF),
-	)
-
-	return &pak
-}
-
 func aPPU() *Ppu2c02 {
-	cartridge := CreateDummyGamePak()
+	cartridge := gamePak.NewDummyGamePak(
+		gamePak.NewEmptyCHRROM(),
+	)
 	ppu := CreatePPU(cartridge)
 	return ppu
 }
@@ -116,14 +108,14 @@ func TestPPU_should_get_propper_color_for_a_given_pixel_color_and_palette(t *tes
 }
 
 func TestPPU_VBlank_should_return_true_when_current_scanline_is_above_241(t *testing.T) {
-	ppu := CreatePPU(CreateDummyGamePak())
+	ppu := CreatePPU(gamePak.NewDummyGamePak(gamePak.NewEmptyCHRROM()))
 	ppu.currentScanline = 241
 
 	assert.True(t, ppu.VBlank())
 }
 
 func TestPPU_VBlank_should_return_false_when_current_scanline_is_below_241(t *testing.T) {
-	ppu := CreatePPU(CreateDummyGamePak())
+	ppu := CreatePPU(gamePak.NewDummyGamePak((gamePak.NewEmptyCHRROM())))
 	ppu.currentScanline = 240
 
 	assert.False(t, ppu.VBlank())

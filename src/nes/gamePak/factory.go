@@ -46,3 +46,17 @@ func CreateGamePakFromROMFile(romFilePath string) GamePak {
 		chrROM,
 	)
 }
+
+func NewDummyGamePak(chrROM []byte) *GamePak {
+	pak := CreateGamePak(
+		CreateINes1Header(1, 1, 0, 0, 0, 0, 0),
+		make([]byte, 100),
+		chrROM,
+	)
+
+	return &pak
+}
+
+func NewEmptyCHRROM() []byte {
+	return make([]byte, 0x01FFF)
+}

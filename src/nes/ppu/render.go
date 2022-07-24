@@ -119,6 +119,11 @@ func (ppu *Ppu2c02) findTile(tileID byte, patternTable byte, tileColumn uint8, t
 		palette = backgroundPalette(tileColumn, tileRow, &ppu.nameTables)
 	}
 
+	if tileID == 0xA3 && tileColumn == 6 && tileRow == 4 {
+		tileID += 1
+		tileID -= 1
+	}
+
 	for y := 0; y <= 7; y++ {
 		lower := ppu.Read(offsetAddress + types.Address(y))
 		upper := ppu.Read(offsetAddress + types.Address(y+8))
