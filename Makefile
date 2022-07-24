@@ -2,6 +2,7 @@ run:
 	go run src/gui/gui.go
 
 test:
+	mkdir -p ./var >/dev/null 2>&1
 	go test ./src/...
 
 build:

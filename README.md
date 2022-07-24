@@ -20,8 +20,8 @@
   <img src="assets/visual%20evolution/02-ppu-chr/nestest-chr.png" width="30%" alt="first try rendering pattern table"/>
   <img src="assets/visual%20evolution/03-ppu-background/nestest-background-1.png" width="30%" alt="Renders background nestest"/>
   <img src="assets/visual%20evolution/03-ppu-background/nestest-background-2.png" width="30%" alt="Renders background nestest"/>
-  <img src="assets/visual%20evolution/03-ppu-background/pacman.png" width="30%" alt="Renders background nestest"/>
-  <img src="assets/visual%20evolution/03-ppu-background/supermariobros.png" width="30%" alt="Renders background super mario bros"/>
+  <img src="assets/visual%20evolution/03-ppu-background/pacman-title-1.png" width="30%" alt="Renders background nestest"/>
+  <img src="assets/visual%20evolution/03-ppu-background/supermariobros-title-1.png" width="30%" alt="Renders background super mario bros"/>
 <img src="assets/visual%20evolution/03-ppu-background/donkey-kong-title-1.png" width="30%" alt="Renders background donkey kong, title screen"/>
   <img src="assets/visual%20evolution/03-ppu-background/donkey-kong-1.png" width="30%" alt="Renders background donkey kong, optimizations allow to see demo mode"/>
   <img src="assets/visual%20evolution/03-ppu-background/donkey-kong-title-2.png" width="30%" alt="Renders background donkey kong, title screen, small fixes in colors"/>
