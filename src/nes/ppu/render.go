@@ -72,10 +72,24 @@ func (ppu *Ppu2c02) renderSprites() {
 // Finds the palette id to be used given a background Tile coordinate
 func backgroundPalette(tileColumn uint8, tileRow uint8, nameTable *[2 * NAMETABLE_SIZE]byte) byte {
 	metaTilesByRow := uint8(8)
-	attributeTableAddress := types.Address(0x03C0)
+	attributeTableAddress := types.Address(0x23C0 - 0x2000)
+
 	attributeTableIndex := (tileRow/4)*metaTilesByRow + tileColumn/4
 
 	attrValue := nameTable[attributeTableAddress+types.Address(attributeTableIndex)]
+
+	// Each byte controls the palette of a 32×32 pixel or 4×4 tile part of the nametable and is divided into four 2-bit areas
+	// 7654 3210
+	// |||| ||++- Color bits 1-0 for top left quadrant of this byte
+	// |||| ++--- Color bits 3-2 for top right quadrant of this byte
+	// ||++------ Color bits 5-4 for bottom left quadrant of this byte
+	// ++-------- Color bits 7-6 for bottom right quadrant of this byte
+	//
+	//	+-------+
+	//  | 0 | 1 |
+	//	+---+---+
+	//  | 2 | 3 |
+	//  +---+---+
 
 	a := tileColumn % 4 / 2
 	b := tileRow % 4 / 2
@@ -97,18 +111,20 @@ func (ppu *Ppu2c02) findTile(tileID byte, patternTable byte, tileColumn uint8, t
 	bankAddress := 0x1000 * int(patternTable)
 	offsetAddress := types.Address(bankAddress + int(tileID)*16)
 	tile := image.NewRGBA(image.Rect(0, 0, TILE_WIDTH, TILE_HEIGHT))
+
+	var palette byte
+	if forcedPalette != 255 {
+		palette = forcedPalette
+	} else {
+		palette = backgroundPalette(tileColumn, tileRow, &ppu.nameTables)
+	}
+
 	for y := 0; y <= 7; y++ {
-		upper := ppu.Read(offsetAddress + types.Address(y))
-		lower := ppu.Read(offsetAddress + types.Address(y+8))
+		lower := ppu.Read(offsetAddress + types.Address(y))
+		upper := ppu.Read(offsetAddress + types.Address(y+8))
 
 		for x := 0; x <= 7; x++ {
 			value := (1&upper)<<1 | (1 & lower)
-			var palette byte
-			if forcedPalette != 255 {
-				palette = forcedPalette
-			} else {
-				palette = backgroundPalette(tileColumn, tileRow, &ppu.nameTables)
-			}
 			rgb := ppu.GetColorFromPaletteRam(palette, value)
 			tile.Set(7-x, y, rgb)
 			upper >>= 1

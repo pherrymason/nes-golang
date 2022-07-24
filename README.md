@@ -21,9 +21,11 @@
   <img src="var/visual%20evolution/03-ppu-background/nestest-background-1.png" width="30%" alt="Renders background nestest"/>
   <img src="var/visual%20evolution/03-ppu-background/nestest-background-2.png" width="30%" alt="Renders background nestest"/>
   <img src="var/visual%20evolution/03-ppu-background/pacman.png" width="30%" alt="Renders background nestest"/>
-  <img src="var/visual%20evolution/03-ppu-background/donkey-kong.png" width="30%" alt="Renders background nestest"/>
   <img src="var/visual%20evolution/03-ppu-background/supermariobros.png" width="30%" alt="Renders background super mario bros"/>
-  <img src="var/visual%20evolution/03-ppu-background/donkey-kong-2.png" width="30%" alt="Renders background donkey kong, optimizations allow to see demo mode"/>
-  <img src="var/visual%20evolution/03-ppu-background/donkey-kong-3.png" width="30%" alt="Renders background donkey kong, small fixes in colors"/>
-  <img src="var/visual%20evolution/03-ppu-background/donkey-kong-4.png" width="30%" alt="Renders background donkey kong, small fixes in colors"/>
+<img src="var/visual%20evolution/03-ppu-background/donkey-kong-title-1.png" width="30%" alt="Renders background donkey kong, title screen"/>
+  <img src="var/visual%20evolution/03-ppu-background/donkey-kong-1.png" width="30%" alt="Renders background donkey kong, optimizations allow to see demo mode"/>
+  <img src="var/visual%20evolution/03-ppu-background/donkey-kong-title-2.png" width="30%" alt="Renders background donkey kong, title screen, small fixes in colors"/>
+  <img src="var/visual%20evolution/03-ppu-background/donkey-kong-2.png" width="30%" alt="Renders background donkey kong, fixes in colors"/>
+  <img src="var/visual%20evolution/03-ppu-background/donkey-kong-title-3.png" width="30%" alt="Renders donkey kong title, colors finally fixed"/>
+  <img src="var/visual%20evolution/03-ppu-background/donkey-kong-3.png" width="30%" alt="Renders donkey kong, colors finally fixed"/>
 </p>
