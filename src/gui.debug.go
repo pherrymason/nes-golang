@@ -143,21 +143,40 @@ func drawPalettes(console *nes.Nes, scale int, xOffset int, yOffset int, debugge
 	y := yOffset
 	posX := 0
 	posY := 0
+	border := 1
+	oneColorWidth := 5 * scale
+	paletteWidth := oneColorWidth * 4
+	height := 2 * scale
+	paddingX := 5
+	paddingY := 15
+
 	for i := 0; i < 8; i++ {
-		width := 5 * scale
-		height := 2 * scale
-		posX = x + (i*width*3 + (i * 5))
-		posY = y
+		m := i % 4
+		posX = x + (m * paletteWidth) + paddingX*m
+		posY = y + (height+border*2+paddingY)*(i/4)
 		colors := console.Debugger().GetPaletteFromRam(uint8(i))
 
-		raylib.DrawRectangle(posX, posY, width, height, pixelColor2RaylibColor(colors[0]))
-		raylib.DrawRectangle(posX+width, posY, width, height, pixelColor2RaylibColor(colors[1]))
-		raylib.DrawRectangle(posX+width*2, posY, width, height, pixelColor2RaylibColor(colors[2]))
+		raylib.DrawRectangle(posX-border, posY-border, oneColorWidth*4+border*2, height+border*2, raylib.White)
+
+		drawColorWatch(posX, posY, oneColorWidth, height, colors[0], uint8(i), 0, console)
+		drawColorWatch(posX+oneColorWidth, posY, oneColorWidth, height, colors[1], uint8(i), 1, console)
+		drawColorWatch(posX+oneColorWidth*2, posY, oneColorWidth, height, colors[2], uint8(i), 2, console)
+		drawColorWatch(posX+oneColorWidth*3, posY, oneColorWidth, height, colors[3], uint8(i), 3, console)
 
 		if int(debuggerGUI.chrPaletteSelector) == i {
-			graphics.DrawArrow(posX+width+3, posY-height-2, scale)
+			graphics.DrawArrow(posX+oneColorWidth+3, posY-height-2, scale)
 		}
 	}
+}
+
+func drawColorWatch(coordX int, coordY int, width int, height int, color color.Color, paletteIndex byte, colorIndex byte, console *nes.Nes) {
+	raylib.DrawText(
+		fmt.Sprintf("%0X", console.Debugger().GetPaletteColorFromPaletteRam(paletteIndex, colorIndex)),
+		coordX, coordY-10,
+		10,
+		raylib.White,
+	)
+	raylib.DrawRectangle(coordX, coordY, width, height, pixelColor2RaylibColor(color))
 }
 
 func drawCHR(console *nes.Nes, scale int, xOffset int, yOffset int, font *raylib.Font, debuggerGUI *DebuggerGUI) {
@@ -171,46 +190,52 @@ func drawCHR(console *nes.Nes, scale int, xOffset int, yOffset int, font *raylib
 	raylib.DrawRectangle(xOffset, yOffset, (16*8)*scale+10, (16*8)*scale+10, raylib.RayWhite)
 
 	const BorderWidth = 5
-	decodedPatternTable := console.Debugger().PatternTable(0, debuggerGUI.chrPaletteSelector)
+	nextOffsetY := yOffset
+	for patternTableIdx := 0; patternTableIdx < 2; patternTableIdx++ {
+		decodedPatternTable := console.Debugger().PatternTable(byte(patternTableIdx), debuggerGUI.chrPaletteSelector)
+		yOffset = nextOffsetY
 
-	for x := 0; x < decodedPatternTable.Bounds().Max.X; x++ {
-		for y := 0; y < decodedPatternTable.Bounds().Max.Y; y++ {
-			screenX := DEBUG_X_OFFSET + BorderWidth
-			screenX += x * scale
+		for x := 0; x < decodedPatternTable.Bounds().Max.X; x++ {
+			for y := 0; y < decodedPatternTable.Bounds().Max.Y; y++ {
+				screenX := DEBUG_X_OFFSET + BorderWidth
+				screenX += x * scale
 
-			screenY := yOffset + BorderWidth
-			screenY += y * scale
+				screenY := yOffset + BorderWidth
+				screenY += y * scale
 
-			raylib.DrawRectangle(
-				screenX,
-				screenY,
-				scale,
-				scale,
-				pixelColor2RaylibColor(decodedPatternTable.At(x, y)),
-			)
+				raylib.DrawRectangle(
+					screenX,
+					screenY,
+					scale,
+					scale,
+					pixelColor2RaylibColor(decodedPatternTable.At(x, y)),
+				)
+
+				nextOffsetY = screenY
+			}
 		}
-	}
 
-	if drawIndexes {
-		for i := 0; i < 16*8; i++ {
-			screenX := DEBUG_X_OFFSET + BorderWidth +
-				types.LinearToXCoordinate(i, 16)*8*scale
-			screenY := yOffset + BorderWidth + types.LinearToYCoordinate(i, 16)*8*scale
+		if drawIndexes {
+			for i := 0; i < 16*8; i++ {
+				screenX := DEBUG_X_OFFSET + BorderWidth +
+					types.LinearToXCoordinate(i, 16)*8*scale
+				screenY := yOffset + BorderWidth + types.LinearToYCoordinate(i, 16)*8*scale
 
-			raylib.DrawRectangle(
-				screenX-1,
-				screenY-1,
-				20,
-				10,
-				raylib.RayWhite,
-			)
-			raylib.DrawText(
-				fmt.Sprintf("%d", i),
-				screenX,
-				screenY,
-				10,
-				raylib.Black,
-			)
+				raylib.DrawRectangle(
+					screenX-1,
+					screenY-1,
+					20,
+					10,
+					raylib.RayWhite,
+				)
+				raylib.DrawText(
+					fmt.Sprintf("%d", i),
+					screenX,
+					screenY,
+					10,
+					raylib.Black,
+				)
+			}
 		}
 	}
 	//fmt.Printf("%d - %d\n", posX, posY)

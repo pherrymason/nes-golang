@@ -103,8 +103,6 @@ func (ppu *Ppu2c02) findTile(tileID byte, patternTable byte, tileColumn uint8, t
 
 		for x := 0; x <= 7; x++ {
 			value := (1&upper)<<1 | (1 & lower)
-			upper >>= 1
-			lower >>= 1
 			var palette byte
 			if forcedPalette != 255 {
 				palette = forcedPalette
@@ -113,6 +111,8 @@ func (ppu *Ppu2c02) findTile(tileID byte, patternTable byte, tileColumn uint8, t
 			}
 			rgb := ppu.GetColorFromPaletteRam(palette, value)
 			tile.Set(7-x, y, rgb)
+			upper >>= 1
+			lower >>= 1
 		}
 	}
 	//saveTile(int(tileID), tile)
