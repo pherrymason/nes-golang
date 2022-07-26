@@ -28,4 +28,5 @@
   <img src="assets/visual%20evolution/03-ppu-background/donkey-kong-2.png" width="30%" alt="Renders background donkey kong, fixes in colors"/>
   <img src="assets/visual%20evolution/03-ppu-background/donkey-kong-title-3.png" width="30%" alt="Renders donkey kong title, colors finally fixed"/>
   <img src="assets/visual%20evolution/03-ppu-background/donkey-kong-3.png" width="30%" alt="Renders donkey kong, colors finally fixed"/>
+  <img src="assets/visual%20evolution/03-ppu-background/supermariobros-title-4.png" width="30%" alt="Super Mario Bros title screen, colors finally fixed by implementing transparent background colors"/>
 </p>
