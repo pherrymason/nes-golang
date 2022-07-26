@@ -31,9 +31,9 @@ func TestPPU_tick_should_start_vblank_on_scanline_240(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ppu := aPPU()
 			if tt.allowNMI {
-				ppu.ppuctrlWriteFlag(generateNMIAtVBlank, 1)
+				ppu.ppuControl.generateNMIAtVBlank = true
 			} else {
-				ppu.ppuctrlWriteFlag(generateNMIAtVBlank, 0)
+				ppu.ppuControl.generateNMIAtVBlank = false
 			}
 			ppu.cycle = PPU_VBLANK_START_CYCLE
 			ppu.currentScanline = PPU_SCREEN_SPACE_SCANLINES

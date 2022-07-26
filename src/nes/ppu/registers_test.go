@@ -22,9 +22,10 @@ func Test_ppuctrlWriteFlag(t *testing.T) {
 
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
-			ppu.registers.ctrl = tt.initial
-			ppu.ppuctrlWriteFlag(incrementMode, tt.write)
-			assert.Equal(t, tt.expected, ppu.registers.ctrl)
+			ppu.ppuCtrlWrite(tt.initial)
+			//ppu.ppuctrlWriteFlag(incrementMode, tt.write)
+			ppu.ppuControl.incrementMode = tt.write
+			assert.Equal(t, tt.expected, ppu.ppuControl.value())
 		})
 	}
 }
@@ -35,7 +36,7 @@ func TestPPU_PPUCTRL_writes_are_ignored_first_30000_cycles(t *testing.T) {
 		ppu.Tick()
 		ppu.WriteRegister(PPUCTRL, 0x11)
 
-		if 0x11 == ppu.registers.ctrl {
+		if 0x11 == ppu.ppuControl.value() {
 			t.Error("writes to PPUCTRL should be ignored first 30000 cycles")
 			t.FailNow()
 		}
@@ -51,7 +52,7 @@ func TestPPU_PPUCTRL_write(t *testing.T) {
 
 	ppu.WriteRegister(PPUCTRL, 0xFF)
 
-	assert.Equal(t, byte(0xFF), ppu.registers.ctrl)
+	assert.Equal(t, byte(0xFF), ppu.ppuControl.value())
 }
 
 func TestPPU_PPUMASK_write(t *testing.T) {
@@ -193,7 +194,7 @@ func TestPPU_PPUData_read(t *testing.T) {
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
 			ppu.registers.ppuAddr = tt.addressToRead
-			ppu.ppuctrlWriteFlag(incrementMode, tt.incrementMode)
+			ppu.ppuControl.incrementMode = tt.incrementMode
 			expectedIncrement := types.Address(1)
 			if tt.incrementMode == 1 {
 				expectedIncrement = 32
@@ -249,7 +250,7 @@ func TestPPU_PPUData_write(t *testing.T) {
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
 			ppu.registers.ppuAddr = tt.addressToWrite
-			ppu.ppuctrlWriteFlag(incrementMode, tt.incrementMode)
+			ppu.ppuControl.incrementMode = tt.incrementMode
 			expectedIncrement := types.Address(1)
 			if tt.incrementMode == 1 {
 				expectedIncrement = 32

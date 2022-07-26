@@ -14,7 +14,8 @@ type PPU interface {
 }
 
 type Ppu2c02 struct {
-	registers Registers
+	registers  Registers
+	ppuControl Control
 
 	//$3F00 	    Universal background color
 	//$3F01-$3F03 	Background palette 0
@@ -81,7 +82,7 @@ func (ppu *Ppu2c02) Tick() {
 	// VBlank logic
 	if ppu.currentScanline == VBLANK_START_SCANLINE {
 		ppu.registers.status |= 1 << verticalBlankStarted // Todo refactor to a method to set Vblank
-		if (ppu.registers.ctrl & (1 << generateNMIAtVBlank)) > 0 {
+		if ppu.ppuControl.generateNMIAtVBlank {
 			if ppu.renderCycle == 0 {
 				ppu.nmi = true
 			}
@@ -147,7 +148,7 @@ func (ppu *Ppu2c02) ReadRegister(register types.Address) byte {
 			value = ppu.registers.readBuffer
 		}
 
-		if ppu.ppuctrlReadFlag(incrementMode) == 0 {
+		if ppu.ppuControl.incrementMode == 0 {
 			ppu.registers.ppuAddr++
 		} else {
 			ppu.registers.ppuAddr += 32
@@ -167,8 +168,7 @@ func (ppu *Ppu2c02) WriteRegister(register types.Address, value byte) {
 	switch register {
 	case PPUCTRL:
 		if ppu.cycle > 30000 {
-			ppu.registers.ctrl = value
-
+			ppu.ppuCtrlWrite(value)
 			// todo trigger nmi if in vblank and generateNMI transitions from 0 to 1
 		}
 		break
@@ -217,7 +217,7 @@ func (ppu *Ppu2c02) WriteRegister(register types.Address, value byte) {
 	case PPUDATA:
 		ppu.Write(ppu.registers.ppuAddr, value)
 
-		if ppu.ppuctrlReadFlag(incrementMode) == 0 {
+		if ppu.ppuControl.incrementMode == 0 {
 			ppu.registers.ppuAddr++
 		} else {
 			ppu.registers.ppuAddr += 32

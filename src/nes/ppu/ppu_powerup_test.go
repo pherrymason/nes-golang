@@ -12,7 +12,7 @@ func TestPPU_writing_to_registers_are_ignored_first_29658_CPU_clocks(t *testing.
 
 	for cpuCycles := 0; cpuCycles < 29658; cpuCycles += 3 {
 		ppu.WriteRegister(PPUCTRL, 0xFF)
-		assert.NotEqual(t, 0xFF, ppu.registers.ctrl)
+		assert.NotEqual(t, 0xFF, ppu.ppuControl.value())
 
 		ppu.WriteRegister(PPUMASK, 0xFF)
 		assert.NotEqual(t, 0xFF, ppu.registers.mask)

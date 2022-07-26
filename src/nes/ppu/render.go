@@ -19,7 +19,7 @@ func (ppu *Ppu2c02) renderBackground() {
 	nameTableStart := 0
 	nameTablesEnd := int(PPU_NAMETABLES_0_END - NameTableStartAddress)
 	tilesWidth := 32
-	backgroundPatternTable := ppu.ppuctrlReadFlag(backgroundPatternTableAddress)
+	backgroundPatternTable := ppu.ppuControl.backgroundPatternTableAddress
 	//bankAddress := 0x1000 * int(backgroundPatternTable)
 	//tilesHeight := 30
 	if !ppu.nameTableChanged {
@@ -53,7 +53,7 @@ func (ppu *Ppu2c02) renderTile(tile image.RGBA, coordX int, coordY int) {
 }
 
 func (ppu *Ppu2c02) renderSprites() {
-	spritePatternTable := ppu.ppuctrlReadFlag(spritePatternTableAddress)
+	spritePatternTable := ppu.ppuControl.spritePatterTableAddress
 	for i := 0; i < OAMDATA_SIZE; i++ {
 		yCoordinate := ppu.oamData[i]
 		xCoordinate := ppu.oamData[i+1]
@@ -130,6 +130,7 @@ func (ppu *Ppu2c02) findTile(tileID byte, patternTable byte, tileColumn uint8, t
 
 		for x := 0; x <= 7; x++ {
 			value := (1&upper)<<1 | (1 & lower)
+			// todo Should take transparency into account
 			rgb := ppu.GetColorFromPaletteRam(palette, value)
 			tile.Set(7-x, y, rgb)
 			upper >>= 1
