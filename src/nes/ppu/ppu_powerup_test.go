@@ -9,7 +9,7 @@ import (
 
 func TestPPU_writing_to_registers_are_ignored_first_29658_CPU_clocks(t *testing.T) {
 	//PPUCTRL, PPUMASK, PPUSCROLL, PPUADDR
-	ppu := aPPU()
+	ppu := newNotWarmedUpPPU()
 
 	for cpuCycles := 0; cpuCycles < 29658; cpuCycles += 3 {
 		ppu.WriteRegister(PPUCTRL, 0xFF)
@@ -47,7 +47,7 @@ func TestPPU_writing_to_registers_are_ignored_first_29658_CPU_clocks(t *testing.
 
 func TestPPU_writing_to_registers_are_ready_first_29658_CPU_clocks(t *testing.T) {
 	//PPUSTATUS, OAMADDR, OAMDATA ($2004), PPUDATA, and OAMDMA
-	ppu := aPPU()
+	ppu := newNotWarmedUpPPU()
 
 	for cpuCycles := 0; cpuCycles < 29658; cpuCycles += 3 {
 		//ppu.WriteRegister(PPUSTATUS, 0xFF)

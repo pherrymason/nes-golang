@@ -6,11 +6,23 @@ import (
 	"testing"
 )
 
+func newNotWarmedUpPPU() *Ppu2c02 {
+	cartridge := gamePak.NewDummyGamePak(
+		gamePak.NewEmptyCHRROM(),
+	)
+	ppu := CreatePPU(cartridge)
+	ppu.warmup = false
+
+	return ppu
+}
+
 func aPPU() *Ppu2c02 {
 	cartridge := gamePak.NewDummyGamePak(
 		gamePak.NewEmptyCHRROM(),
 	)
 	ppu := CreatePPU(cartridge)
+	ppu.warmup = true
+
 	return ppu
 }
 
