@@ -19,15 +19,6 @@ type Ppu2c02 struct {
 	ppuStatus  Status
 	ppuScroll  Scroll
 
-	//$3F00 	    Universal background color
-	//$3F01-$3F03 	Background palette 0
-	//$3F05-$3F07 	Background palette 1
-	//$3F09-$3F0B 	Background palette 2
-	//$3F0D-$3F0F 	Background palette 3
-	//$3F11-$3F13 	Sprite palette 0
-	//$3F15-$3F17 	Sprite palette 1
-	//$3F19-$3F1B 	Sprite palette 2
-	//$3F1D-$3F1F 	Sprite palette 3
 	// OAM (Object Attribute Memory) is internal memory inside the PPU.
 	// Contains a display list of up to 64 sprites, where each sprite occupies 4 bytes
 	cartridge    *gamePak.GamePak
@@ -44,9 +35,8 @@ type Ppu2c02 struct {
 	nameTableChanged bool
 
 	// Render related
-	deprecatedFrame types.Frame
-	screen          *image.RGBA
-	framePattern    [1024]byte
+	screen       *image.RGBA
+	framePattern [1024]byte
 }
 
 func CreatePPU(cartridge *gamePak.GamePak) *Ppu2c02 {

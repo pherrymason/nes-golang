@@ -14,6 +14,15 @@ import (
 // $2C00-$2FFF 	$0400 	Nametable 3		/
 // $3000-$3EFF 	$0F00 	Mirrors of $2000-$2EFF
 // $3F00-$3F1F 	$0020 	Palette RAM indexes		} Palette Memory
+//       $3F00 	        Universal background color
+//	     $3F01-$3F03 	Background palette 0
+//	     $3F05-$3F07 	Background palette 1
+//	     $3F09-$3F0B 	Background palette 2
+//	     $3F0D-$3F0F 	Background palette 3
+//	     $3F11-$3F13 	Sprite palette 0
+//	     $3F15-$3F17 	Sprite palette 1
+//	     $3F19-$3F1B 	Sprite palette 2
+//	     $3F1D-$3F1F 	Sprite palette 3
 const PaletteLowAddress = types.Address(0x3F00)
 const PaletteHighAddress = types.Address(0x3FFF)
 const NameTableStartAddress = types.Address(0x2000)
