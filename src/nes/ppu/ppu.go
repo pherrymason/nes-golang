@@ -236,7 +236,7 @@ func (ppu *Ppu2c02) WriteRegister(register types.Address, value byte) {
 	//$3F1D-$3F1F 	Sprite palette 3
 */
 func (ppu *Ppu2c02) GetColorFromPaletteRam(palette byte, colorIndex byte) color.Color {
-	paletteColor := ppu.GetPaletteColorFromPaletteRam(palette, colorIndex)
+	paletteColor := ppu.GetNesColorFromPaletteRam(palette, colorIndex)
 
 	return utils.NewColorRGB(
 		SystemPalette[paletteColor][0],
@@ -245,7 +245,11 @@ func (ppu *Ppu2c02) GetColorFromPaletteRam(palette byte, colorIndex byte) color.
 	)
 }
 
-func (ppu *Ppu2c02) GetPaletteColorFromPaletteRam(palette byte, colorIndex byte) byte {
+func (ppu *Ppu2c02) GetNesColorFromPaletteRam(palette byte, colorIndex byte) byte {
+	if palette > 0 && colorIndex == 0 {
+		palette = 0
+	}
+
 	paletteAddress := types.Address((palette * 4) + colorIndex)
 	return ppu.Read(PaletteLowAddress + paletteAddress)
 }

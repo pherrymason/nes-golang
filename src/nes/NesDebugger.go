@@ -127,5 +127,5 @@ func (debugger *NesDebugger) GetPaletteFromRam(paletteIndex uint8) [4]color.Colo
 }
 
 func (debugger *NesDebugger) GetPaletteColorFromPaletteRam(paletteIndex byte, colorIndex byte) byte {
-	return debugger.ppu.GetPaletteColorFromPaletteRam(paletteIndex, colorIndex)
+	return debugger.ppu.GetNesColorFromPaletteRam(paletteIndex, colorIndex)
 }
