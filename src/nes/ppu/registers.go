@@ -5,7 +5,6 @@ import "github.com/raulferras/nes-golang/src/nes/types"
 type Registers struct {
 	mask byte // Controls the rendering of sprites and backgrounds
 
-	oamAddr             byte
 	ppuDataAddr         types.Address
 	ppuDataAddressLatch byte
 	readBuffer          byte

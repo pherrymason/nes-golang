@@ -93,7 +93,7 @@ func TestPPUOAM_address_write(t *testing.T) {
 
 	ppu.WriteRegister(OAMADDR, 0xFF)
 
-	assert.Equal(t, byte(0xFF), ppu.registers.oamAddr)
+	assert.Equal(t, byte(0xFF), ppu.oamAddr)
 }
 
 func TestPPUOAM_should_be_able_to_read(t *testing.T) {
@@ -112,7 +112,7 @@ func TestPPUOAM_should_be_able_to_write(t *testing.T) {
 	ppu.WriteRegister(OAMDATA, 0xFF)
 
 	assert.Equal(t, byte(0xFF), ppu.oamData[0])
-	assert.Equal(t, byte(0x01), ppu.registers.oamAddr)
+	assert.Equal(t, byte(0x01), ppu.oamAddr)
 }
 
 func TestPPUOAM_should_decay_if_not_refreshed_for_3000_cycles(t *testing.T) {

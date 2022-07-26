@@ -36,7 +36,7 @@ func TestPPU_writing_to_registers_are_ready_first_29658_CPU_clocks(t *testing.T)
 		//assert.NotEqual(t, 0xFF, ppu.registers.status)
 
 		ppu.WriteRegister(OAMADDR, 0xFF)
-		assert.NotEqual(t, 0xFF, ppu.registers.oamAddr, fmt.Sprintf("OAMAddr was not 0xFF at cycle %d", cpuCycles))
+		assert.NotEqual(t, 0xFF, ppu.oamAddr, fmt.Sprintf("OAMAddr was not 0xFF at cycle %d", cpuCycles))
 
 		ppu.WriteRegister(OAMDATA, 0xFF)
 		assert.NotEqual(t, 0xFF, ppu.ReadRegister(OAMDATA), fmt.Sprintf("OAMData was not 0xFF at cycle %d", cpuCycles))

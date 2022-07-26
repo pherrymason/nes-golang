@@ -19,6 +19,8 @@ type Ppu2c02 struct {
 	ppuStatus  Status
 	ppuScroll  Scroll
 
+	oamAddr byte
+
 	// OAM (Object Attribute Memory) is internal memory inside the PPU.
 	// Contains a display list of up to 64 sprites, where each sprite occupies 4 bytes
 	cartridge    *gamePak.GamePak
@@ -125,7 +127,7 @@ func (ppu *Ppu2c02) ReadRegister(register types.Address) byte {
 		break
 
 	case OAMDATA:
-		value = ppu.oamData[ppu.registers.oamAddr]
+		value = ppu.oamData[ppu.oamAddr]
 		break
 
 	case PPUSCROLL:
@@ -177,12 +179,12 @@ func (ppu *Ppu2c02) WriteRegister(register types.Address, value byte) {
 		panic("tried to write @PPUSTATUS")
 
 	case OAMADDR:
-		ppu.registers.oamAddr = value
+		ppu.oamAddr = value
 		break
 
 	case OAMDATA:
-		ppu.oamData[ppu.registers.oamAddr] = value
-		ppu.registers.oamAddr = (ppu.registers.oamAddr + 1) & 0xFF
+		ppu.oamData[ppu.oamAddr] = value
+		ppu.oamAddr = (ppu.oamAddr + 1) & 0xFF
 		break
 
 	case PPUSCROLL:
