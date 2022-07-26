@@ -215,3 +215,21 @@ func TestPPU_should_get_propper_color_for_a_given_pixel_color_and_palette(t *tes
 		})
 	}
 }
+
+func TestPpu2c02_GetNesColorFromPaletteRam_should_gets_background_color(t *testing.T) {
+	ppu := aPPU()
+	backgroundColor := byte(0x10)
+	ppu.Write(PaletteLowAddress, backgroundColor)
+
+	color := ppu.GetNesColorFromPaletteRam(0, 0)
+	assert.Equal(t, backgroundColor, color)
+
+	color = ppu.GetNesColorFromPaletteRam(1, 0)
+	assert.Equal(t, backgroundColor, color)
+
+	color = ppu.GetNesColorFromPaletteRam(2, 0)
+	assert.Equal(t, backgroundColor, color)
+
+	color = ppu.GetNesColorFromPaletteRam(3, 0)
+	assert.Equal(t, backgroundColor, color)
+}
