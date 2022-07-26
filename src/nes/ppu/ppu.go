@@ -63,25 +63,16 @@ func (ppu *Ppu2c02) FramePattern() *[1024]byte {
 }
 
 func (ppu *Ppu2c02) Tick() {
-	// 341 PPU clock cycles have passed
-	if ppu.renderCycle%PPU_CYCLES_BY_SCANLINE == 0 {
-		ppu.currentScanline++
-		ppu.renderCycle = 0
-	}
-
 	// VBlank logic
 	if ppu.currentScanline == VBLANK_START_SCANLINE {
 		ppu.ppuStatus.verticalBlankStarted = true // Todo refactor to a method to set Vblank
-		//ppu.registers.status |= 1 << verticalBlankStarted
 		if ppu.ppuControl.generateNMIAtVBlank {
 			if ppu.renderCycle == 0 {
 				ppu.nmi = true
 			}
 		}
-	} else if ppu.currentScanline == VBLANK_END_SCNALINE && ppu.renderCycle == PPU_CYCLES_BY_SCANLINE-1 {
-		//ppu.registers.status &= ^byte(1 << verticalBlankStarted)
+	} else if ppu.currentScanline == VBLANK_END_SCNALINE && ppu.renderCycle == PPU_CYCLES_BY_SCANLINE {
 		ppu.ppuStatus.verticalBlankStarted = false
-		ppu.currentScanline = 0
 	}
 
 	// ------------------------------
@@ -89,14 +80,24 @@ func (ppu *Ppu2c02) Tick() {
 
 	//bit := ppu.registers.scrollX
 	// Load new data into registers
-	if ppu.cycle%8 == 0 {
-
-	}
+	//if ppu.cycle%8 == 0 {
+	//
+	//}
 
 	// Render logic end
 	// ------------------------------
 
-	ppu.renderCycle++
+	// 341 PPU clock cycles have passed
+	if ppu.renderCycle == PPU_CYCLES_BY_SCANLINE {
+		if ppu.currentScanline == 261 {
+			ppu.currentScanline = 0
+		} else {
+			ppu.currentScanline++
+		}
+		ppu.renderCycle = 0
+	} else {
+		ppu.renderCycle++
+	}
 
 	if ppu.cycle >= PPU_CYCLES_TO_WARMUP {
 		ppu.warmup = true

@@ -11,6 +11,8 @@ import (
 func (ppu *Ppu2c02) Render() {
 	ppu.renderBackground()
 	//ppu.renderSprites()
+
+	ppu.nameTableChanged = false
 }
 
 func (ppu *Ppu2c02) renderBackground() {
@@ -36,7 +38,6 @@ func (ppu *Ppu2c02) renderBackground() {
 		//ppu.renderTile(tile, tileX, tileY)
 		//ppu.framePatternIDs[addr] = tileID
 	}
-	ppu.nameTableChanged = false
 }
 
 func (ppu *Ppu2c02) renderTile(tile image.RGBA, coordX int, coordY int) {
