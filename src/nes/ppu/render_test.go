@@ -6,6 +6,7 @@ import (
 	"github.com/raulferras/nes-golang/src/utils"
 	"github.com/stretchr/testify/assert"
 	"image"
+	"image/color"
 	"testing"
 )
 
@@ -179,5 +180,38 @@ func Test_gets_attribute_table_address_from_tile(t *testing.T) {
 			palette := backgroundPalette(x, y, &vram)
 			assert.Equal(t, byte(0b11), palette, fmt.Sprintf("Second meta tile (%d,%d) should use palette 0b10", x, y))
 		}
+	}
+}
+
+func TestPPU_should_get_propper_color_for_a_given_pixel_color_and_palette(t *testing.T) {
+	ppu := aPPU()
+	backgroundColor := utils.NewColorRGB(236, 88, 180)
+	cases := []struct {
+		name          string
+		palette       byte
+		colorIndex    byte
+		expectedColor color.Color
+	}{
+		{"", 0, 0, backgroundColor},
+		{"", 0, 1, utils.NewColorRGB(0, 30, 116)},
+		{"", 0, 2, utils.NewColorRGB(8, 16, 144)},
+		{"", 0, 3, utils.NewColorRGB(48, 0, 136)},
+		//{"mirroring $0x3F10", 4, 0, backgroundColor},
+		//{"mirroring $0x3F14", 5, 0, graphics.Color{68, 0, 100}},
+		//{"mirroring $0x3F18", 6, 0, graphics.Color{32, 42, 0}},
+		//{"mirroring $0x3F1C", 7, 0, graphics.Color{0, 50, 60}},
+	}
+
+	// 0x3F00
+	ppu.Write(PaletteLowAddress+0, 0x25) // light blue
+	ppu.Write(PaletteLowAddress+1, 0x01) // Dark Blue
+	ppu.Write(PaletteLowAddress+2, 0x02) // Blue-Purple
+	ppu.Write(PaletteLowAddress+3, 0x03) // Dark Purple
+
+	for _, tt := range cases {
+		t.Run("", func(t *testing.T) {
+			paletteColor := ppu.GetColorFromPaletteRam(tt.palette, tt.colorIndex)
+			assert.Equal(t, tt.expectedColor, paletteColor)
+		})
 	}
 }

@@ -8,7 +8,24 @@ import (
 	"testing"
 )
 
-func TestPPUMemory_read_nametables(t *testing.T) {
+func TestPPU_writes_and_reads_into_palette(t *testing.T) {
+	ppu := aPPU()
+
+	for i := 0; i < 32; i++ {
+		colorIndex := byte(i + 1)
+		address := PaletteLowAddress + types.Address(i)
+		ppu.Write(address, colorIndex)
+		readValue := ppu.Read(address)
+		assert.Equal(
+			t,
+			colorIndex,
+			readValue,
+			fmt.Sprintf("@%X has unexpected value", address),
+		)
+	}
+}
+
+func TestPPU_read_nametables(t *testing.T) {
 	type expectedMirroring struct {
 		address         types.Address
 		addressMirrored types.Address

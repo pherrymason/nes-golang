@@ -61,13 +61,6 @@ func (ppu *Ppu2c02) FramePattern() *[1024]byte {
 }
 
 func (ppu *Ppu2c02) Tick() {
-	//bit := ppu.registers.scrollX
-
-	// Load new data into registers
-	if ppu.cycle%8 == 0 {
-
-	}
-
 	// 341 PPU clock cycles have passed
 	if ppu.renderCycle%PPU_CYCLES_BY_SCANLINE == 0 {
 		ppu.currentScanline++
@@ -88,6 +81,19 @@ func (ppu *Ppu2c02) Tick() {
 		ppu.ppuStatus.verticalBlankStarted = false
 		ppu.currentScanline = 0
 	}
+
+	// ------------------------------
+	// Render logic
+
+	//bit := ppu.registers.scrollX
+	// Load new data into registers
+	if ppu.cycle%8 == 0 {
+
+	}
+
+	// Render logic end
+	// ------------------------------
+
 	ppu.cycle++
 	ppu.renderCycle++
 }
