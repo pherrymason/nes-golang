@@ -23,23 +23,9 @@ func Test_ppuctrlWriteFlag(t *testing.T) {
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
 			ppu.ppuCtrlWrite(tt.initial)
-			//ppu.ppuctrlWriteFlag(incrementMode, tt.write)
 			ppu.ppuControl.incrementMode = tt.write
 			assert.Equal(t, tt.expected, ppu.ppuControl.value())
 		})
-	}
-}
-
-func TestPPU_PPUCTRL_writes_are_ignored_first_30000_cycles(t *testing.T) {
-	ppu := aPPU()
-	for i := 0; i < 30000; i++ {
-		ppu.Tick()
-		ppu.WriteRegister(PPUCTRL, 0x11)
-
-		if 0x11 == ppu.ppuControl.value() {
-			t.Error("writes to PPUCTRL should be ignored first 30000 cycles")
-			t.FailNow()
-		}
 	}
 }
 
@@ -94,7 +80,7 @@ func TestPPU_PPUSTATUS_reading_status_clears_bit7_and_the_address_latch(t *testi
 	ppu.ReadRegister(PPUSTATUS)
 
 	assert.False(t, ppu.ppuStatus.verticalBlankStarted, "vblank flag should be cleared after reading PPUSTATUS")
-	assert.Equal(t, byte(0), ppu.registers.ppuDataAddressLatch, "unexpected address latch")
+	assert.Equal(t, byte(0), ppu.registers.ppuDataAddressLatch, "PPUDATA address latch should have reset")
 }
 
 // Reading PPUSTATUS within two cycles of the start of vertical blank will return 0 in bit 7 but clear the latch anyway, causing NMI to not occur that deprecatedFrame.

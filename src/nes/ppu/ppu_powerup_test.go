@@ -12,17 +12,18 @@ func TestPPU_writing_to_registers_are_ignored_first_29658_CPU_clocks(t *testing.
 
 	for cpuCycles := 0; cpuCycles < 29658; cpuCycles += 3 {
 		ppu.WriteRegister(PPUCTRL, 0xFF)
-		assert.NotEqual(t, 0xFF, ppu.ppuControl.value())
+		assert.NotEqual(t, 0xFF, ppu.ppuControl.value(), "Writes to PPUCTRL should be ignored first 30000 cycles")
 
 		ppu.WriteRegister(PPUMASK, 0xFF)
-		assert.NotEqual(t, 0xFF, ppu.registers.mask)
+		assert.NotEqual(t, 0xFF, ppu.registers.mask, "Writes to PPUMASK should be ignored first 30000 cycles")
 
 		ppu.WriteRegister(PPUSCROLL, 0xFF)
-		assert.NotEqual(t, 0xFF, ppu.ppuScroll.scrollX)
-		assert.NotEqual(t, 0xFF, ppu.ppuScroll.scrollY)
+		assert.NotEqual(t, 0xFF, ppu.ppuScroll.scrollX, "Writes to PPUSCROLL should be ignored first 30000 cycles, scrollX was modified")
+		assert.NotEqual(t, 0xFF, ppu.ppuScroll.scrollY, "Writes to PPUSCROLL should be ignored first 30000 cycles, scrollY was modified")
+		assert.NotEqual(t, 0x00, ppu.ppuScroll.latch, "Writes to PPUSCROLL should be ignored first 30000 cycles, scroll latch was modified")
 
 		ppu.WriteRegister(PPUADDR, 0xFF)
-		assert.NotEqual(t, 0xFF, ppu.registers.ppuDataAddr)
+		assert.NotEqual(t, 0xFF, ppu.registers.ppuDataAddr, "Writes to PPUADDR should be ignored first 30000 cycles")
 	}
 }
 
