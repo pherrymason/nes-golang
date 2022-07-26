@@ -2,14 +2,6 @@ package ppu
 
 import "github.com/raulferras/nes-golang/src/nes/types"
 
-type Registers struct {
-	mask byte // Controls the rendering of sprites and backgrounds
-
-	ppuDataAddr         types.Address
-	ppuDataAddressLatch byte
-	readBuffer          byte
-}
-
 type Control struct {
 	baseNameTableAddress0         byte // Most significant bit of scrolling coordinates (X)
 	baseNameTableAddress1         byte // Most significant bit of scrolling coordinates (Y)
@@ -82,6 +74,44 @@ func (status *Status) value() byte {
 	}
 
 	return value
+}
+
+type DataAddress struct {
+	address    types.Address
+	readBuffer byte
+	latch      byte
+}
+
+func (register *DataAddress) at() types.Address {
+	return register.address
+}
+
+func (register *DataAddress) increment(incrementMode byte) {
+	if incrementMode == 0 {
+		register.address++
+	} else {
+		register.address += 32
+	}
+	register.address &= 0x3FFF
+}
+
+func (register *DataAddress) set(value byte) {
+	if register.latch == 0 {
+		register.address = types.Address(value) << 8
+	} else {
+		register.address |= types.Address(value)
+	}
+
+	register.latch++
+	register.latch &= 0b1
+
+	if register.latch == 0 {
+		register.address &= 0x3FFF
+	}
+}
+
+func (register *DataAddress) resetLatch() {
+	register.latch = 0
 }
 
 func (ppu *Ppu2c02) ppuCtrlWrite(value byte) {

@@ -15,7 +15,7 @@ func TestPPU_writing_to_registers_are_ignored_first_29658_CPU_clocks(t *testing.
 		assert.NotEqual(t, 0xFF, ppu.ppuControl.value(), "Writes to PPUCTRL should be ignored first 30000 cycles")
 
 		ppu.WriteRegister(PPUMASK, 0xFF)
-		assert.NotEqual(t, 0xFF, ppu.registers.mask, "Writes to PPUMASK should be ignored first 30000 cycles")
+		assert.NotEqual(t, 0xFF, ppu.ppuMask, "Writes to PPUMASK should be ignored first 30000 cycles")
 
 		ppu.WriteRegister(PPUSCROLL, 0xFF)
 		assert.NotEqual(t, 0xFF, ppu.ppuScroll.scrollX, "Writes to PPUSCROLL should be ignored first 30000 cycles, scrollX was modified")
@@ -23,7 +23,8 @@ func TestPPU_writing_to_registers_are_ignored_first_29658_CPU_clocks(t *testing.
 		assert.NotEqual(t, 0x00, ppu.ppuScroll.latch, "Writes to PPUSCROLL should be ignored first 30000 cycles, scroll latch was modified")
 
 		ppu.WriteRegister(PPUADDR, 0xFF)
-		assert.NotEqual(t, 0xFF, ppu.registers.ppuDataAddr, "Writes to PPUADDR should be ignored first 30000 cycles")
+		assert.NotEqual(t, 0xFF, ppu.ppuDataAddress.address, "Writes to PPUADDR should be ignored first 30000 cycles, address changed")
+		assert.NotEqual(t, 0xFF, ppu.ppuDataAddress.latch, "Writes to PPUADDR should be ignored first 30000 cycles, latch changed")
 	}
 }
 
@@ -41,11 +42,12 @@ func TestPPU_writing_to_registers_are_ready_first_29658_CPU_clocks(t *testing.T)
 		ppu.WriteRegister(OAMDATA, 0xFF)
 		assert.NotEqual(t, 0xFF, ppu.ReadRegister(OAMDATA), fmt.Sprintf("OAMData was not 0xFF at cycle %d", cpuCycles))
 
-		ppu.registers.ppuDataAddr = 0x2000
+		ppu.ppuDataAddress.address = 0x2000
 		ppu.WriteRegister(PPUDATA, 0xFF)
 		assert.NotEqual(t, 0xFF, ppu.Read(0x00), fmt.Sprintf("PPUDATA was not 0xFF at cycle %d", cpuCycles))
 
-		ppu.WriteRegister(OAMDMA, 0xFF)
-		assert.NotEqual(t, 0xFF, ppu.registers.ppuDataAddr, fmt.Sprintf("OAMDMA was not 0xFF at cycle %d", cpuCycles))
+		// Not implemented!
+		//ppu.WriteRegister(OAMDMA, 0xFF)
+		//assert.NotEqual(t, 0xFF, ppu.oamAddr, fmt.Sprintf("OAMDMA was not 0xFF at cycle %d", cpuCycles))
 	}
 }

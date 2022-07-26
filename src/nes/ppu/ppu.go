@@ -14,10 +14,11 @@ type PPU interface {
 }
 
 type Ppu2c02 struct {
-	registers  Registers
-	ppuControl Control
-	ppuStatus  Status
-	ppuScroll  Scroll
+	ppuControl     Control
+	ppuStatus      Status
+	ppuScroll      Scroll
+	ppuMask        byte // Controls the rendering of sprites and backgrounds
+	ppuDataAddress DataAddress
 
 	oamAddr byte
 
@@ -120,7 +121,7 @@ func (ppu *Ppu2c02) ReadRegister(register types.Address) byte {
 		// Reading from status register alters it
 		ppu.ppuStatus.verticalBlankStarted = false // Reading from status, clears VBlank flag.
 		//ppu.registers.status &= 0x7F
-		ppu.registers.ppuDataAddressLatch = 0
+		ppu.ppuDataAddress.resetLatch()
 		break
 
 	case OAMADDR:
@@ -137,20 +138,16 @@ func (ppu *Ppu2c02) ReadRegister(register types.Address) byte {
 		break
 
 	case PPUDATA:
-		value = ppu.registers.readBuffer
-		ppu.registers.readBuffer = ppu.Read(ppu.registers.ppuDataAddr)
+		// Todo test delay and not delay from palette
+		value = ppu.ppuDataAddress.readBuffer
+		ppu.ppuDataAddress.readBuffer = ppu.Read(ppu.ppuDataAddress.at())
 
 		// If reading from Palette, there is no delay
-		if ppu.registers.ppuDataAddr >= 0x3F00 && ppu.registers.ppuDataAddr <= 0x3FFF {
-			value = ppu.registers.readBuffer
+		if isPaletteAddress(ppu.ppuDataAddress.at()) {
+			value = ppu.ppuDataAddress.readBuffer
 		}
 
-		if ppu.ppuControl.incrementMode == 0 {
-			ppu.registers.ppuDataAddr++
-		} else {
-			ppu.registers.ppuDataAddr += 32
-		}
-		ppu.registers.ppuDataAddr &= 0x3FFF
+		ppu.ppuDataAddress.increment(ppu.ppuControl.incrementMode)
 		break
 
 	case OAMDMA:
@@ -171,7 +168,7 @@ func (ppu *Ppu2c02) WriteRegister(register types.Address, value byte) {
 		break
 
 	case PPUMASK:
-		ppu.registers.mask = value
+		ppu.ppuMask = value
 		break
 
 	case PPUSTATUS:
@@ -192,28 +189,32 @@ func (ppu *Ppu2c02) WriteRegister(register types.Address, value byte) {
 		break
 
 	case PPUADDR:
-		if ppu.registers.ppuDataAddressLatch == 0 {
-			ppu.registers.ppuDataAddr = types.Address(value) << 8
-		} else {
-			ppu.registers.ppuDataAddr |= types.Address(value)
-		}
+		ppu.ppuDataAddress.set(value)
+		/*
+			if ppu.registers.ppuDataAddressLatch == 0 {
+				ppu.registers.ppuDataAddr = types.Address(value) << 8
+			} else {
+				ppu.registers.ppuDataAddr |= types.Address(value)
+			}
 
-		ppu.registers.ppuDataAddressLatch++
-		ppu.registers.ppuDataAddressLatch &= 0b1
+			ppu.registers.ppuDataAddressLatch++
+			ppu.registers.ppuDataAddressLatch &= 0b1
 
-		if ppu.registers.ppuDataAddressLatch == 0 {
-			ppu.registers.ppuDataAddr &= 0x3FFF
-		}
+			if ppu.registers.ppuDataAddressLatch == 0 {
+				ppu.registers.ppuDataAddr &= 0x3FFF
+			}*/
 		break
 	case PPUDATA:
-		ppu.Write(ppu.registers.ppuDataAddr, value)
-
-		if ppu.ppuControl.incrementMode == 0 {
-			ppu.registers.ppuDataAddr++
-		} else {
-			ppu.registers.ppuDataAddr += 32
-		}
-		ppu.registers.ppuDataAddr &= 0x3FFF
+		ppu.Write(ppu.ppuDataAddress.at(), value)
+		ppu.ppuDataAddress.increment(ppu.ppuControl.incrementMode)
+		//ppu.Write(ppu.registers.ppuDataAddr, value)
+		/*
+			if ppu.ppuControl.incrementMode == 0 {
+				ppu.registers.ppuDataAddr++
+			} else {
+				ppu.registers.ppuDataAddr += 32
+			}
+			ppu.registers.ppuDataAddr &= 0x3FFF*/
 		break
 	case OAMDMA:
 		break
