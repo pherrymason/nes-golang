@@ -16,6 +16,8 @@ type PPU interface {
 type Ppu2c02 struct {
 	registers  Registers
 	ppuControl Control
+	ppuStatus  Status
+	ppuScroll  Scroll
 
 	//$3F00 	    Universal background color
 	//$3F01-$3F03 	Background palette 0
@@ -81,14 +83,16 @@ func (ppu *Ppu2c02) Tick() {
 
 	// VBlank logic
 	if ppu.currentScanline == VBLANK_START_SCANLINE {
-		ppu.registers.status |= 1 << verticalBlankStarted // Todo refactor to a method to set Vblank
+		ppu.ppuStatus.verticalBlankStarted = true // Todo refactor to a method to set Vblank
+		//ppu.registers.status |= 1 << verticalBlankStarted
 		if ppu.ppuControl.generateNMIAtVBlank {
 			if ppu.renderCycle == 0 {
 				ppu.nmi = true
 			}
 		}
 	} else if ppu.currentScanline == VBLANK_END_SCNALINE && ppu.renderCycle == PPU_CYCLES_BY_SCANLINE-1 {
-		ppu.registers.status &= ^byte(1 << verticalBlankStarted)
+		//ppu.registers.status &= ^byte(1 << verticalBlankStarted)
+		ppu.ppuStatus.verticalBlankStarted = false
 		ppu.currentScanline = 0
 	}
 	ppu.cycle++
@@ -119,11 +123,12 @@ func (ppu *Ppu2c02) ReadRegister(register types.Address) byte {
 
 	case PPUSTATUS:
 		// Source: javid9x reading from status only get top 3 bits. The rest tends to be filled with noise, or more likely what was last in data buffer.
-		value = ppu.registers.status
+		value = ppu.ppuStatus.value()
 
 		// Reading from status register alters it
-		ppu.registers.status &= 0x7F // Reading from status, clears VBlank flag.
-		ppu.registers.addressLatch = 0
+		ppu.ppuStatus.verticalBlankStarted = false // Reading from status, clears VBlank flag.
+		//ppu.registers.status &= 0x7F
+		ppu.registers.ppuDataAddressLatch = 0
 		break
 
 	case OAMADDR:
@@ -141,19 +146,19 @@ func (ppu *Ppu2c02) ReadRegister(register types.Address) byte {
 
 	case PPUDATA:
 		value = ppu.registers.readBuffer
-		ppu.registers.readBuffer = ppu.Read(ppu.registers.ppuAddr)
+		ppu.registers.readBuffer = ppu.Read(ppu.registers.ppuDataAddr)
 
 		// If reading from Palette, there is no delay
-		if ppu.registers.ppuAddr >= 0x3F00 && ppu.registers.ppuAddr <= 0x3FFF {
+		if ppu.registers.ppuDataAddr >= 0x3F00 && ppu.registers.ppuDataAddr <= 0x3FFF {
 			value = ppu.registers.readBuffer
 		}
 
 		if ppu.ppuControl.incrementMode == 0 {
-			ppu.registers.ppuAddr++
+			ppu.registers.ppuDataAddr++
 		} else {
-			ppu.registers.ppuAddr += 32
+			ppu.registers.ppuDataAddr += 32
 		}
-		ppu.registers.ppuAddr &= 0x3FFF
+		ppu.registers.ppuDataAddr &= 0x3FFF
 		break
 
 	case OAMDMA:
@@ -191,38 +196,32 @@ func (ppu *Ppu2c02) WriteRegister(register types.Address, value byte) {
 		break
 
 	case PPUSCROLL:
-		if ppu.registers.scrollLatch == 0 {
-			ppu.registers.scrollX = value
-		} else {
-			ppu.registers.scrollY = value
-		}
-
-		ppu.registers.scrollLatch = (ppu.registers.scrollLatch + 1) & 0x01
+		ppu.ppuScroll.write(value)
 		break
 
 	case PPUADDR:
-		if ppu.registers.addressLatch == 0 {
-			ppu.registers.ppuAddr = types.Address(value) << 8
+		if ppu.registers.ppuDataAddressLatch == 0 {
+			ppu.registers.ppuDataAddr = types.Address(value) << 8
 		} else {
-			ppu.registers.ppuAddr |= types.Address(value)
+			ppu.registers.ppuDataAddr |= types.Address(value)
 		}
 
-		ppu.registers.addressLatch++
-		ppu.registers.addressLatch &= 0b1
+		ppu.registers.ppuDataAddressLatch++
+		ppu.registers.ppuDataAddressLatch &= 0b1
 
-		if ppu.registers.addressLatch == 0 {
-			ppu.registers.ppuAddr &= 0x3FFF
+		if ppu.registers.ppuDataAddressLatch == 0 {
+			ppu.registers.ppuDataAddr &= 0x3FFF
 		}
 		break
 	case PPUDATA:
-		ppu.Write(ppu.registers.ppuAddr, value)
+		ppu.Write(ppu.registers.ppuDataAddr, value)
 
 		if ppu.ppuControl.incrementMode == 0 {
-			ppu.registers.ppuAddr++
+			ppu.registers.ppuDataAddr++
 		} else {
-			ppu.registers.ppuAddr += 32
+			ppu.registers.ppuDataAddr += 32
 		}
-		ppu.registers.ppuAddr &= 0x3FFF
+		ppu.registers.ppuDataAddr &= 0x3FFF
 		break
 	case OAMDMA:
 		break

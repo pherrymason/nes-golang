@@ -3,18 +3,12 @@ package ppu
 import "github.com/raulferras/nes-golang/src/nes/types"
 
 type Registers struct {
-	//ctrl   byte // Controls PPU operation
-	mask   byte // Controls the rendering of sprites and backgrounds
-	status byte // Reflects state of various functions inside PPU
+	mask byte // Controls the rendering of sprites and backgrounds
 
-	scrollX     byte // Changes scroll position
-	scrollY     byte // Changes scroll position
-	scrollLatch byte // Controls which scroll needs to be written
-
-	oamAddr      byte
-	ppuAddr      types.Address
-	addressLatch byte
-	readBuffer   byte
+	oamAddr             byte
+	ppuDataAddr         types.Address
+	ppuDataAddressLatch byte
+	readBuffer          byte
 }
 
 type Control struct {
@@ -44,6 +38,23 @@ func (control *Control) value() byte {
 	return ctrl
 }
 
+type Scroll struct {
+	scrollX byte
+	scrollY byte
+	latch   byte
+}
+
+func (scroll *Scroll) write(value byte) {
+	if scroll.latch == 0 {
+		scroll.scrollX = value
+	} else {
+		scroll.scrollY = value
+	}
+
+	// flip latch
+	scroll.latch = (scroll.latch + 1) & 0x01
+}
+
 type MASKFlag int
 
 const (
@@ -57,13 +68,22 @@ const (
 	emphasizeBlue
 )
 
-type STATUSFlag int
+type Status struct {
+	spriteOverflow       byte
+	sprite0Hit           byte
+	verticalBlankStarted bool
+}
 
-const (
-	spriteOverflow       = 5
-	sprite0Hit           = 6
-	verticalBlankStarted = 7
-)
+func (status *Status) value() byte {
+	value := byte(0)
+	value |= status.spriteOverflow << 5
+	value |= status.sprite0Hit << 6
+	if status.verticalBlankStarted {
+		value |= 1 << 7
+	}
+
+	return value
+}
 
 func (ppu *Ppu2c02) ppuCtrlWrite(value byte) {
 	ppu.ppuControl.baseNameTableAddress0 = value & 0x01

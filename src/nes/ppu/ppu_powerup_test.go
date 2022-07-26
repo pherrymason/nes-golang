@@ -18,11 +18,11 @@ func TestPPU_writing_to_registers_are_ignored_first_29658_CPU_clocks(t *testing.
 		assert.NotEqual(t, 0xFF, ppu.registers.mask)
 
 		ppu.WriteRegister(PPUSCROLL, 0xFF)
-		assert.NotEqual(t, 0xFF, ppu.registers.scrollX)
-		assert.NotEqual(t, 0xFF, ppu.registers.scrollY)
+		assert.NotEqual(t, 0xFF, ppu.ppuScroll.scrollX)
+		assert.NotEqual(t, 0xFF, ppu.ppuScroll.scrollY)
 
 		ppu.WriteRegister(PPUADDR, 0xFF)
-		assert.NotEqual(t, 0xFF, ppu.registers.ppuAddr)
+		assert.NotEqual(t, 0xFF, ppu.registers.ppuDataAddr)
 	}
 }
 
@@ -40,11 +40,11 @@ func TestPPU_writing_to_registers_are_ready_first_29658_CPU_clocks(t *testing.T)
 		ppu.WriteRegister(OAMDATA, 0xFF)
 		assert.NotEqual(t, 0xFF, ppu.ReadRegister(OAMDATA), fmt.Sprintf("OAMData was not 0xFF at cycle %d", cpuCycles))
 
-		ppu.registers.ppuAddr = 0x2000
+		ppu.registers.ppuDataAddr = 0x2000
 		ppu.WriteRegister(PPUDATA, 0xFF)
 		assert.NotEqual(t, 0xFF, ppu.Read(0x00), fmt.Sprintf("PPUDATA was not 0xFF at cycle %d", cpuCycles))
 
 		ppu.WriteRegister(OAMDMA, 0xFF)
-		assert.NotEqual(t, 0xFF, ppu.registers.ppuAddr, fmt.Sprintf("OAMDMA was not 0xFF at cycle %d", cpuCycles))
+		assert.NotEqual(t, 0xFF, ppu.registers.ppuDataAddr, fmt.Sprintf("OAMDMA was not 0xFF at cycle %d", cpuCycles))
 	}
 }

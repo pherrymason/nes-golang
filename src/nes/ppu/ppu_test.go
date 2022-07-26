@@ -40,7 +40,7 @@ func TestPPU_tick_should_start_vblank_on_scanline_240(t *testing.T) {
 
 			ppu.Tick()
 
-			assert.Equal(t, byte(1), (ppu.registers.status>>verticalBlankStarted)&0x01)
+			assert.True(t, ppu.ppuStatus.verticalBlankStarted)
 			assert.Equal(t, tt.allowNMI, ppu.nmi, "Unexpected NMI behaviour")
 		})
 	}
@@ -50,11 +50,11 @@ func TestPPU_tick_should_end_vblank_on_end_of_scanline_261(t *testing.T) {
 	ppu := aPPU()
 	ppu.renderCycle = PPU_CYCLES_BY_SCANLINE - 1
 	ppu.currentScanline = VBLANK_END_SCNALINE
-	ppu.registers.status |= 1 << verticalBlankStarted
+	ppu.ppuStatus.verticalBlankStarted = true
 
 	ppu.Tick()
 
-	assert.Equal(t, byte(0), (ppu.registers.status>>verticalBlankStarted)&0x01)
+	assert.False(t, ppu.ppuStatus.verticalBlankStarted)
 }
 
 func TestPPU_writes_and_reads_into_palette(t *testing.T) {

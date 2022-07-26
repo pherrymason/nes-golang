@@ -78,7 +78,9 @@ func TestPPU_PPUMASK_write(t *testing.T) {
 
 func TestPPU_PPUSTATUS_read(t *testing.T) {
 	ppu := aPPU()
-	ppu.registers.status = 0b11100000
+	ppu.ppuStatus.spriteOverflow = 1
+	ppu.ppuStatus.sprite0Hit = 1
+	ppu.ppuStatus.verticalBlankStarted = true
 
 	status := ppu.ReadRegister(PPUSTATUS)
 
@@ -87,12 +89,12 @@ func TestPPU_PPUSTATUS_read(t *testing.T) {
 
 func TestPPU_PPUSTATUS_reading_status_clears_bit7_and_the_address_latch(t *testing.T) {
 	ppu := aPPU()
-	ppu.registers.status = 0x80
+	ppu.ppuStatus.verticalBlankStarted = true
 
 	ppu.ReadRegister(PPUSTATUS)
 
-	assert.Equal(t, byte(0), ppu.registers.status&0x80, "vblank flag should be cleared after reading PPUSTATUS")
-	assert.Equal(t, byte(0), ppu.registers.addressLatch, "unexpected address latch")
+	assert.False(t, ppu.ppuStatus.verticalBlankStarted, "vblank flag should be cleared after reading PPUSTATUS")
+	assert.Equal(t, byte(0), ppu.registers.ppuDataAddressLatch, "unexpected address latch")
 }
 
 // Reading PPUSTATUS within two cycles of the start of vertical blank will return 0 in bit 7 but clear the latch anyway, causing NMI to not occur that deprecatedFrame.
@@ -136,10 +138,12 @@ func TestPPUSCROLL_writes_twice(t *testing.T) {
 	scrollX := byte(0xFF)
 	scrollY := byte(0xFF)
 	ppu.WriteRegister(PPUSCROLL, scrollX)
-	ppu.WriteRegister(PPUSCROLL, scrollY)
+	assert.Equal(t, scrollX, ppu.ppuScroll.scrollX)
+	assert.Equal(t, byte(1), ppu.ppuScroll.latch, "scroll latch did not flip")
 
-	assert.Equal(t, scrollX, ppu.registers.scrollX)
-	assert.Equal(t, scrollY, ppu.registers.scrollY)
+	ppu.WriteRegister(PPUSCROLL, scrollY)
+	assert.Equal(t, scrollY, ppu.ppuScroll.scrollY)
+	assert.Equal(t, byte(0), ppu.ppuScroll.latch, "scroll latch did not flip")
 }
 
 func TestPPU_PPUADDR_write_twice_to_set_address(t *testing.T) {
@@ -159,10 +163,10 @@ func TestPPU_PPUADDR_write_twice_to_set_address(t *testing.T) {
 			ppu := CreatePPU(dummyGamePak)
 
 			ppu.WriteRegister(PPUADDR, tt.hi)
-			assert.Equal(t, types.Address(tt.hi)<<8, ppu.registers.ppuAddr)
+			assert.Equal(t, types.Address(tt.hi)<<8, ppu.registers.ppuDataAddr)
 
 			ppu.WriteRegister(PPUADDR, tt.lo)
-			assert.Equal(t, tt.expected, ppu.registers.ppuAddr)
+			assert.Equal(t, tt.expected, ppu.registers.ppuDataAddr)
 		})
 	}
 }
@@ -193,7 +197,7 @@ func TestPPU_PPUData_read(t *testing.T) {
 
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
-			ppu.registers.ppuAddr = tt.addressToRead
+			ppu.registers.ppuDataAddr = tt.addressToRead
 			ppu.ppuControl.incrementMode = tt.incrementMode
 			expectedIncrement := types.Address(1)
 			if tt.incrementMode == 1 {
@@ -203,13 +207,13 @@ func TestPPU_PPUData_read(t *testing.T) {
 			// Dummy Read
 			firstRead := ppu.ReadRegister(PPUDATA)
 			assert.Equal(t, tt.firstRead, firstRead, "unexpected first read value")
-			assert.Equal(t, (tt.addressToRead+expectedIncrement)&0x3FFF, ppu.registers.ppuAddr, "unexpected first read ppuAddr increment")
+			assert.Equal(t, (tt.addressToRead+expectedIncrement)&0x3FFF, ppu.registers.ppuDataAddr, "unexpected first read ppuDataAddr increment")
 
 			secondRead := ppu.ReadRegister(PPUDATA)
 
 			assert.Equal(t, tt.secondRead, secondRead, "unexpected second read value")
 
-			assert.Equal(t, (tt.addressToRead+expectedIncrement*2)&0x3FFF, ppu.registers.ppuAddr, "unexpected second read ppuAddr increment")
+			assert.Equal(t, (tt.addressToRead+expectedIncrement*2)&0x3FFF, ppu.registers.ppuDataAddr, "unexpected second read ppuDataAddr increment")
 		})
 	}
 }
@@ -224,7 +228,7 @@ func TestPPUDATA_is_instructed_to_read_address_and_mirrors(t *testing.T) {
 
 	// Dummy Read
 	ppu.ReadRegister(PPUDATA)
-	assert.Equal(t, types.Address(0x0000), ppu.registers.ppuAddr, "ppuAddr(cpu@0x2006) must increment on each read to cpu@0x2007")
+	assert.Equal(t, types.Address(0x0000), ppu.registers.ppuDataAddr, "ppuDataAddr(cpu@0x2006) must increment on each read to cpu@0x2007")
 }
 
 func TestPPU_PPUData_write(t *testing.T) {
@@ -249,7 +253,7 @@ func TestPPU_PPUData_write(t *testing.T) {
 
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
-			ppu.registers.ppuAddr = tt.addressToWrite
+			ppu.registers.ppuDataAddr = tt.addressToWrite
 			ppu.ppuControl.incrementMode = tt.incrementMode
 			expectedIncrement := types.Address(1)
 			if tt.incrementMode == 1 {
@@ -260,7 +264,7 @@ func TestPPU_PPUData_write(t *testing.T) {
 
 			writtenValue := ppu.Read(tt.addressToWrite)
 			assert.Equal(t, tt.valueToWrite, writtenValue, "unexpected value written")
-			assert.Equal(t, (tt.addressToWrite+expectedIncrement)&0x3FFF, ppu.registers.ppuAddr, "unexpected first read ppuAddr increment")
+			assert.Equal(t, (tt.addressToWrite+expectedIncrement)&0x3FFF, ppu.registers.ppuDataAddr, "unexpected first read ppuDataAddr increment")
 		})
 	}
 }
