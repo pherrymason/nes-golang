@@ -2,6 +2,7 @@ package ppu
 
 import (
 	"fmt"
+	"github.com/raulferras/nes-golang/src/nes/types"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -12,19 +13,35 @@ func TestPPU_writing_to_registers_are_ignored_first_29658_CPU_clocks(t *testing.
 
 	for cpuCycles := 0; cpuCycles < 29658; cpuCycles += 3 {
 		ppu.WriteRegister(PPUCTRL, 0xFF)
-		assert.NotEqual(t, 0xFF, ppu.ppuControl.value(), "Writes to PPUCTRL should be ignored first 30000 cycles")
+		if byte(0xFF) == ppu.ppuControl.value() {
+			assert.FailNowf(t, "ppuctrl write was not ignored", "Writes to PPUCTRL should be ignored first 30000 cycles. (Cycle :%d)", cpuCycles)
+		}
 
 		ppu.WriteRegister(PPUMASK, 0xFF)
-		assert.NotEqual(t, 0xFF, ppu.ppuMask, "Writes to PPUMASK should be ignored first 30000 cycles")
+		if byte(0xFF) == ppu.ppuMask {
+			assert.FailNowf(t, "", "Writes to PPUMASK should be ignored first 30000 cycles. (Cycle :%d)", cpuCycles)
+		}
 
 		ppu.WriteRegister(PPUSCROLL, 0xFF)
-		assert.NotEqual(t, 0xFF, ppu.ppuScroll.scrollX, "Writes to PPUSCROLL should be ignored first 30000 cycles, scrollX was modified")
-		assert.NotEqual(t, 0xFF, ppu.ppuScroll.scrollY, "Writes to PPUSCROLL should be ignored first 30000 cycles, scrollY was modified")
-		assert.NotEqual(t, 0x00, ppu.ppuScroll.latch, "Writes to PPUSCROLL should be ignored first 30000 cycles, scroll latch was modified")
+		if byte(0xFF) == ppu.ppuScroll.scrollX {
+			assert.FailNowf(t, "", "Writes to PPUSCROLL should be ignored first 30000 cycles, scrollX was modified (Cycle :%d)", cpuCycles)
+		}
+		if byte(0xFF) == ppu.ppuScroll.scrollY {
+			assert.FailNowf(t, "", "Writes to PPUSCROLL should be ignored first 30000 cycles, scrollY was modified. (Cycle :%d)", cpuCycles)
+		}
+		if byte(0) != ppu.ppuScroll.latch {
+			assert.FailNowf(t, "", "Writes to PPUSCROLL should be ignored first 30000 cycles, scroll latch was modified. (Cycle :%d)", cpuCycles)
+		}
 
 		ppu.WriteRegister(PPUADDR, 0xFF)
-		assert.NotEqual(t, 0xFF, ppu.ppuDataAddress.address, "Writes to PPUADDR should be ignored first 30000 cycles, address changed")
-		assert.NotEqual(t, 0xFF, ppu.ppuDataAddress.latch, "Writes to PPUADDR should be ignored first 30000 cycles, latch changed")
+		if types.Address(0xFF) == ppu.ppuDataAddress.address {
+			assert.FailNowf(t, "", "Writes to PPUADDR should be ignored first 30000 cycles, address changed. (Cycle :%d)", cpuCycles)
+		}
+		if byte(0x0) != ppu.ppuDataAddress.latch {
+			assert.FailNowf(t, "", "rites to PPUADDR should be ignored first 30000 cycles, latch changed. (Cycle :%d)", cpuCycles)
+		}
+
+		ppu.Tick()
 	}
 }
 

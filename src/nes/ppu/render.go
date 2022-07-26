@@ -34,7 +34,7 @@ func (ppu *Ppu2c02) renderBackground() {
 		insertImageAt(ppu.screen, &tile, tileX*8, tileY*8)
 
 		//ppu.renderTile(tile, tileX, tileY)
-		//ppu.framePattern[addr] = tileID
+		//ppu.framePatternIDs[addr] = tileID
 	}
 	ppu.nameTableChanged = false
 }

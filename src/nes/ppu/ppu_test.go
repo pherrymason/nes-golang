@@ -14,6 +14,20 @@ func aPPU() *Ppu2c02 {
 	return ppu
 }
 
+func TestPPU_VBlank_should_return_true_when_current_scanline_is_above_241(t *testing.T) {
+	ppu := CreatePPU(gamePak.NewDummyGamePak(gamePak.NewEmptyCHRROM()))
+	ppu.currentScanline = 241
+
+	assert.True(t, ppu.VBlank())
+}
+
+func TestPPU_VBlank_should_return_false_when_current_scanline_is_below_241(t *testing.T) {
+	ppu := CreatePPU(gamePak.NewDummyGamePak(gamePak.NewEmptyCHRROM()))
+	ppu.currentScanline = 240
+
+	assert.False(t, ppu.VBlank())
+}
+
 func Test_should_trigger_vBlank_on_scanline_240(t *testing.T) {
 	cases := []struct {
 		name     string
@@ -51,18 +65,4 @@ func TestPPU_should_end_vblank_on_end_of_scanline_261(t *testing.T) {
 	ppu.Tick()
 
 	assert.False(t, ppu.ppuStatus.verticalBlankStarted)
-}
-
-func TestPPU_VBlank_should_return_true_when_current_scanline_is_above_241(t *testing.T) {
-	ppu := CreatePPU(gamePak.NewDummyGamePak(gamePak.NewEmptyCHRROM()))
-	ppu.currentScanline = 241
-
-	assert.True(t, ppu.VBlank())
-}
-
-func TestPPU_VBlank_should_return_false_when_current_scanline_is_below_241(t *testing.T) {
-	ppu := CreatePPU(gamePak.NewDummyGamePak(gamePak.NewEmptyCHRROM()))
-	ppu.currentScanline = 240
-
-	assert.False(t, ppu.VBlank())
 }

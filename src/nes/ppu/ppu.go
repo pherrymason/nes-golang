@@ -29,23 +29,25 @@ type Ppu2c02 struct {
 	paletteTable [PALETTE_SIZE]byte
 	oamData      [OAMDATA_SIZE]byte
 
-	// PPU control and status flags
-	cycle uint32
+	cycle  uint32 // Current lifetime PPU Cycle. After warmup, ignored.
+	warmup bool   // Indicates ppu is already warmed up (cycles went above 30000)
 
-	renderCycle      uint16
-	currentScanline  uint16
-	nmi              bool // NMI Interrupt thrown
+	renderCycle      uint16 // Current cycle inside a scanline. From 0 to PPU_CYCLES_BY_SCANLINE
+	currentScanline  uint16 // Current vertical scanline being rendered
+	nmi              bool   // NMI Interrupt thrown
 	nameTableChanged bool
 
 	// Render related
-	screen       *image.RGBA
-	framePattern [1024]byte
+	screen          *image.RGBA
+	framePatternIDs [1024]byte // Screen representation with pattern ids and its position in screen. For debugging purposes.
 }
 
 func CreatePPU(cartridge *gamePak.GamePak) *Ppu2c02 {
 	ppu := &Ppu2c02{
 		cartridge:       cartridge,
 		currentScanline: 0,
+		cycle:           0,
+		warmup:          false,
 		screen:          image.NewRGBA(image.Rect(0, 0, types.SCREEN_WIDTH, types.SCREEN_HEIGHT)),
 	}
 
@@ -57,7 +59,7 @@ func (ppu *Ppu2c02) Frame() *image.RGBA {
 }
 
 func (ppu *Ppu2c02) FramePattern() *[1024]byte {
-	return &ppu.framePattern
+	return &ppu.framePatternIDs
 }
 
 func (ppu *Ppu2c02) Tick() {
@@ -94,8 +96,13 @@ func (ppu *Ppu2c02) Tick() {
 	// Render logic end
 	// ------------------------------
 
-	ppu.cycle++
 	ppu.renderCycle++
+
+	if ppu.cycle >= PPU_CYCLES_TO_WARMUP {
+		ppu.warmup = true
+	} else {
+		ppu.cycle++
+	}
 }
 
 func (ppu *Ppu2c02) Nmi() bool {
@@ -165,12 +172,14 @@ func (ppu *Ppu2c02) ReadRegister(register types.Address) byte {
 
 // Write made by CPU
 func (ppu *Ppu2c02) WriteRegister(register types.Address, value byte) {
+	if !ppu.warmup {
+		return
+	}
+
 	switch register {
 	case PPUCTRL:
-		if ppu.cycle > 30000 {
-			ppu.ppuCtrlWrite(value)
-			// todo trigger nmi if in vblank and generateNMI transitions from 0 to 1
-		}
+		ppu.ppuCtrlWrite(value)
+		// todo trigger nmi if in vblank and generateNMI transitions from 0 to 1
 		break
 
 	case PPUMASK:
@@ -196,19 +205,6 @@ func (ppu *Ppu2c02) WriteRegister(register types.Address, value byte) {
 
 	case PPUADDR:
 		ppu.ppuDataAddress.set(value)
-		/*
-			if ppu.registers.ppuDataAddressLatch == 0 {
-				ppu.registers.ppuDataAddr = types.Address(value) << 8
-			} else {
-				ppu.registers.ppuDataAddr |= types.Address(value)
-			}
-
-			ppu.registers.ppuDataAddressLatch++
-			ppu.registers.ppuDataAddressLatch &= 0b1
-
-			if ppu.registers.ppuDataAddressLatch == 0 {
-				ppu.registers.ppuDataAddr &= 0x3FFF
-			}*/
 		break
 	case PPUDATA:
 		ppu.Write(ppu.ppuDataAddress.at(), value)
