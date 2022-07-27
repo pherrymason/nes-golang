@@ -32,9 +32,11 @@ type Ppu2c02 struct {
 	cycle  uint32 // Current lifetime PPU Cycle. After warmup, ignored.
 	warmup bool   // Indicates ppu is already warmed up (cycles went above 30000)
 
-	renderCycle      uint16 // Current cycle inside a scanline. From 0 to PPU_CYCLES_BY_SCANLINE
-	currentScanline  uint16 // Current vertical scanline being rendered
-	nmi              bool   // NMI Interrupt thrown
+	renderCycle     uint16 // Current cycle inside a scanline. From 0 to PPU_CYCLES_BY_SCANLINE
+	currentScanline int16  // Current vertical scanline being rendered
+	evenFrame       bool   // Is current frame even?
+
+	nmi              bool // NMI Interrupt thrown
 	nameTableChanged bool
 
 	// Render related
@@ -45,6 +47,7 @@ type Ppu2c02 struct {
 func CreatePPU(cartridge *gamePak.GamePak) *Ppu2c02 {
 	ppu := &Ppu2c02{
 		cartridge:       cartridge,
+		renderCycle:     0,
 		currentScanline: 0,
 		cycle:           0,
 		warmup:          false,
@@ -65,18 +68,22 @@ func (ppu *Ppu2c02) FramePattern() *[1024]byte {
 func (ppu *Ppu2c02) Tick() {
 	// VBlank logic
 	if ppu.currentScanline == VBLANK_START_SCANLINE {
-		ppu.ppuStatus.verticalBlankStarted = true // Todo refactor to a method to set Vblank
-		if ppu.ppuControl.generateNMIAtVBlank {
-			if ppu.renderCycle == 0 {
+		if ppu.renderCycle == 1 {
+			ppu.ppuStatus.verticalBlankStarted = true // Todo refactor to a method to set Vblank
+
+			if ppu.ppuControl.generateNMIAtVBlank {
+				//if ppu.renderCycle == 0 {
 				ppu.nmi = true
+				//}
 			}
 		}
-	} else if ppu.currentScanline == VBLANK_END_SCNALINE && ppu.renderCycle == PPU_CYCLES_BY_SCANLINE {
+	} else if ppu.currentScanline == VBLANK_END_SCNALINE && ppu.renderCycle == 1 {
 		ppu.ppuStatus.verticalBlankStarted = false
 	}
 
 	// ------------------------------
 	// Render logic
+	ppu.renderLogic()
 
 	//bit := ppu.registers.scrollX
 	// Load new data into registers
@@ -88,7 +95,7 @@ func (ppu *Ppu2c02) Tick() {
 	// ------------------------------
 
 	// 341 PPU clock cycles have passed
-	if ppu.renderCycle == PPU_CYCLES_BY_SCANLINE {
+	if ppu.renderCycle == PPU_CYCLES_BY_SCANLINE-1 {
 		if ppu.currentScanline == 261 {
 			ppu.currentScanline = 0
 		} else {
@@ -103,6 +110,15 @@ func (ppu *Ppu2c02) Tick() {
 		ppu.warmup = true
 	} else {
 		ppu.cycle++
+	}
+}
+
+func (ppu *Ppu2c02) renderLogic() {
+	if ppu.renderCycle == 0 {
+		// Idle
+	}
+	if ppu.renderCycle%1 == 0 {
+		// Read 1 byte nametable
 	}
 }
 
