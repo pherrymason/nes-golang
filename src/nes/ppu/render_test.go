@@ -210,7 +210,7 @@ func TestPPU_should_get_propper_color_for_a_given_pixel_color_and_palette(t *tes
 
 	for _, tt := range cases {
 		t.Run("", func(t *testing.T) {
-			paletteColor := ppu.GetColorFromPaletteRam(tt.palette, tt.colorIndex)
+			paletteColor := ppu.GetRGBColor(tt.palette, tt.colorIndex)
 			assert.Equal(t, tt.expectedColor, paletteColor)
 		})
 	}
@@ -221,15 +221,15 @@ func TestPpu2c02_GetNesColorFromPaletteRam_should_gets_background_color(t *testi
 	backgroundColor := byte(0x10)
 	ppu.Write(PaletteLowAddress, backgroundColor)
 
-	color := ppu.GetNesColorFromPaletteRam(0, 0)
+	color := ppu.GetPaletteColor(0, 0)
 	assert.Equal(t, backgroundColor, color)
 
-	color = ppu.GetNesColorFromPaletteRam(1, 0)
+	color = ppu.GetPaletteColor(1, 0)
 	assert.Equal(t, backgroundColor, color)
 
-	color = ppu.GetNesColorFromPaletteRam(2, 0)
+	color = ppu.GetPaletteColor(2, 0)
 	assert.Equal(t, backgroundColor, color)
 
-	color = ppu.GetNesColorFromPaletteRam(3, 0)
+	color = ppu.GetPaletteColor(3, 0)
 	assert.Equal(t, backgroundColor, color)
 }

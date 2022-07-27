@@ -76,13 +76,6 @@ func TestPPU_Render_Cycles_should_trigger_vblank_from_scanline_241_to_261(t *tes
 	}
 }
 
-func TestPPU_VBlank_should_return_true_when_current_scanline_is_above_241(t *testing.T) {
-	ppu := aPPU()
-	ppu.currentScanline = 241
-
-	assert.True(t, ppu.VBlank())
-}
-
 func TestPPU_VBlank_should_return_false_when_current_scanline_is_below_241(t *testing.T) {
 	ppu := CreatePPU(gamePak.NewDummyGamePak(gamePak.NewEmptyCHRROM()))
 	ppu.currentScanline = 240

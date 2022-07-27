@@ -132,7 +132,7 @@ func (ppu *Ppu2c02) findTile(tileID byte, patternTable byte, tileColumn uint8, t
 		for x := 0; x <= 7; x++ {
 			value := (1&upper)<<1 | (1 & lower)
 			// todo Should take transparency into account
-			rgb := ppu.GetColorFromPaletteRam(palette, value)
+			rgb := ppu.GetRGBColor(palette, value)
 			tile.Set(7-x, y, rgb)
 			upper >>= 1
 			lower >>= 1

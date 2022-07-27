@@ -1,10 +1,13 @@
 package ppu
 
-import "github.com/raulferras/nes-golang/src/nes/types"
+import (
+	"fmt"
+	"github.com/raulferras/nes-golang/src/nes/types"
+)
 
 type Control struct {
-	baseNameTableAddress0         byte // Most significant bit of scrolling coordinates (X)
-	baseNameTableAddress1         byte // Most significant bit of scrolling coordinates (Y)
+	nameTableX                    byte // Most significant bit of scrolling coordinates (X)
+	nameTableY                    byte // Most significant bit of scrolling coordinates (Y)
 	incrementMode                 byte // Address increment per CPU IO of PPUDATA. (0: add 1, going across; 1: add 32, going down)
 	spritePatterTableAddress      byte // Sprite pattern table address for 8x8 sprites. (0: $0000; 1: $1000; ignored in 8x16 mode)
 	backgroundPatternTableAddress byte // Background pattern table address (0: $0000; 1: $1000)
@@ -15,8 +18,8 @@ type Control struct {
 
 func (control *Control) value() byte {
 	ctrl := byte(0)
-	ctrl |= control.baseNameTableAddress0
-	ctrl |= control.baseNameTableAddress1 << 1
+	ctrl |= control.nameTableX
+	ctrl |= control.nameTableY << 1
 	ctrl |= control.incrementMode << 2
 	ctrl |= control.spritePatterTableAddress << 3
 	ctrl |= control.backgroundPatternTableAddress << 4
@@ -76,17 +79,80 @@ func (status *Status) value() byte {
 	return value
 }
 
-type DataAddress struct {
-	address    types.Address
-	readBuffer byte
-	latch      byte
+/*
+loopyRegister Internal PPU Register
+The 15 bit registers t and v are composed this way during rendering:
+	yyy NN YYYYY XXXXX
+	||| || ||||| +++++-- coarse X scroll
+	||| || +++++-------- coarse Y scroll
+	||| ++-------------- nametable select
+	+++----------------- fine Y scroll
+*/
+type loopyRegister struct {
+	/*
+		coarseX    byte // 5 bits
+		coarseY    byte // 5 bits
+		nameTableX byte // 1 bit
+		nameTableY byte // 1 bit
+		fineY      byte // 3 bits
+	*/
+	latch   byte
+	address types.Address
 }
 
-func (register *DataAddress) at() types.Address {
-	return register.address
+func (register *loopyRegister) setNameTableX(nameTableX byte) {
+	register.address &= 0b111101111111111
+	register.address |= types.Address(nameTableX) << 10
 }
 
-func (register *DataAddress) increment(incrementMode byte) {
+func (register *loopyRegister) setNameTableY(nameTableY byte) {
+	register.address &= 0b111101111111111
+	register.address |= types.Address(nameTableY) << 11
+}
+
+func (register *loopyRegister) setAddress(address types.Address) {
+	fmt.Printf("%X\n", address)
+
+	register.address = address & 0x3FFF
+	/*
+		address &= 0x3FFF
+		register.coarseX = byte(address & 0b11111)
+		register.coarseY = byte(address&0b11111) >> 5
+		register.nameTableX = byte(address>>10) & 1
+		register.nameTableY = byte(address>>11) & 1
+		register.fineY = byte(address>>12) & 0b111
+	*/
+}
+
+func (register *loopyRegister) push(value byte) {
+	if register.latch == 0 {
+		register.address =
+			types.Address(value&0x3F)<<8 |
+				(register.address & 0x00FF)
+	} else {
+		register.address = register.address&0xFF00 | types.Address(value)
+	}
+
+	register.latch++
+	register.latch &= 0b1
+
+	/*
+		if register.latch == 0 {
+			register.address &= 0x3FFF
+		}*/
+}
+
+/*
+func (register *loopyRegister) addr() types.Address {
+	address := types.Address(register.coarseX)
+	address |= types.Address(register.coarseY << 5)
+	address |= types.Address(register.nameTableX) << 10
+	address |= types.Address(register.nameTableY) << 11
+	address |= types.Address(register.fineY) << 12
+	return address
+}*/
+
+func (register *loopyRegister) increment(incrementMode byte) {
 	if incrementMode == 0 {
 		register.address++
 	} else {
@@ -95,28 +161,13 @@ func (register *DataAddress) increment(incrementMode byte) {
 	register.address &= 0x3FFF
 }
 
-func (register *DataAddress) set(value byte) {
-	if register.latch == 0 {
-		register.address = types.Address(value) << 8
-	} else {
-		register.address |= types.Address(value)
-	}
-
-	register.latch++
-	register.latch &= 0b1
-
-	if register.latch == 0 {
-		register.address &= 0x3FFF
-	}
-}
-
-func (register *DataAddress) resetLatch() {
+func (register *loopyRegister) resetLatch() {
 	register.latch = 0
 }
 
 func (ppu *Ppu2c02) ppuCtrlWrite(value byte) {
-	ppu.ppuControl.baseNameTableAddress0 = value & 0x01
-	ppu.ppuControl.baseNameTableAddress1 = (value >> 1) & 1
+	ppu.ppuControl.nameTableX = value & 0x01
+	ppu.ppuControl.nameTableY = (value >> 1) & 1
 	ppu.ppuControl.incrementMode = (value >> 2) & 1
 	ppu.ppuControl.spritePatterTableAddress = (value >> 3) & 1
 	ppu.ppuControl.backgroundPatternTableAddress = (value >> 4) & 1
@@ -130,5 +181,5 @@ func (ppu *Ppu2c02) ppuCtrlWrite(value byte) {
 }
 
 func (ppu *Ppu2c02) VBlank() bool {
-	return ppu.currentScanline >= 241
+	return ppu.ppuStatus.verticalBlankStarted
 }

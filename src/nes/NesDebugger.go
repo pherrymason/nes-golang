@@ -118,14 +118,14 @@ func (debugger *NesDebugger) PatternTable(patternTable byte, palette uint8) imag
 func (debugger *NesDebugger) GetPaletteFromRam(paletteIndex uint8) [4]color.Color {
 	var colors [4]color.Color
 
-	colors[0] = debugger.ppu.GetColorFromPaletteRam(paletteIndex, 0)
-	colors[1] = debugger.ppu.GetColorFromPaletteRam(paletteIndex, 1)
-	colors[2] = debugger.ppu.GetColorFromPaletteRam(paletteIndex, 2)
-	colors[3] = debugger.ppu.GetColorFromPaletteRam(paletteIndex, 3)
+	colors[0] = debugger.ppu.GetRGBColor(paletteIndex, 0)
+	colors[1] = debugger.ppu.GetRGBColor(paletteIndex, 1)
+	colors[2] = debugger.ppu.GetRGBColor(paletteIndex, 2)
+	colors[3] = debugger.ppu.GetRGBColor(paletteIndex, 3)
 
 	return colors
 }
 
 func (debugger *NesDebugger) GetPaletteColorFromPaletteRam(paletteIndex byte, colorIndex byte) byte {
-	return debugger.ppu.GetNesColorFromPaletteRam(paletteIndex, colorIndex)
+	return debugger.ppu.GetPaletteColor(paletteIndex, colorIndex)
 }

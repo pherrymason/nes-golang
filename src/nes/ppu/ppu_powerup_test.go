@@ -1,7 +1,6 @@
 package ppu
 
 import (
-	"fmt"
 	"github.com/raulferras/nes-golang/src/nes/types"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -34,10 +33,10 @@ func TestPPU_writing_to_registers_are_ignored_first_29658_CPU_clocks(t *testing.
 		}
 
 		ppu.WriteRegister(PPUADDR, 0xFF)
-		if types.Address(0xFF) == ppu.ppuDataAddress.address {
+		if types.Address(0xFF) == ppu.tRam.address {
 			assert.FailNowf(t, "", "Writes to PPUADDR should be ignored first 30000 cycles, address changed. (Cycle :%d)", cpuCycles)
 		}
-		if byte(0x0) != ppu.ppuDataAddress.latch {
+		if byte(0x0) != ppu.tRam.latch {
 			assert.FailNowf(t, "", "rites to PPUADDR should be ignored first 30000 cycles, latch changed. (Cycle :%d)", cpuCycles)
 		}
 
@@ -48,23 +47,22 @@ func TestPPU_writing_to_registers_are_ignored_first_29658_CPU_clocks(t *testing.
 func TestPPU_writing_to_registers_are_ready_first_29658_CPU_clocks(t *testing.T) {
 	//PPUSTATUS, OAMADDR, OAMDATA ($2004), PPUDATA, and OAMDMA
 	ppu := newNotWarmedUpPPU()
+	ppu.cycle = 29658
 
-	for cpuCycles := 0; cpuCycles < 29658; cpuCycles += 3 {
-		//ppu.WriteRegister(PPUSTATUS, 0xFF)
-		//assert.NotEqual(t, 0xFF, ppu.registers.status)
+	//ppu.WriteRegister(PPUSTATUS, 0xFF)
+	//assert.NotEqual(t, 0xFF, ppu.registers.status)
 
-		ppu.WriteRegister(OAMADDR, 0xFF)
-		assert.NotEqual(t, 0xFF, ppu.oamAddr, fmt.Sprintf("OAMAddr was not 0xFF at cycle %d", cpuCycles))
+	ppu.WriteRegister(OAMADDR, 0xFF)
+	assert.NotEqual(t, 0xFF, ppu.oamAddr, "OAMAddr was not 0xFF")
 
-		ppu.WriteRegister(OAMDATA, 0xFF)
-		assert.NotEqual(t, 0xFF, ppu.ReadRegister(OAMDATA), fmt.Sprintf("OAMData was not 0xFF at cycle %d", cpuCycles))
+	ppu.WriteRegister(OAMDATA, 0xFF)
+	assert.NotEqual(t, 0xFF, ppu.ReadRegister(OAMDATA), "OAMData was not 0xFF")
 
-		ppu.ppuDataAddress.address = 0x2000
-		ppu.WriteRegister(PPUDATA, 0xFF)
-		assert.NotEqual(t, 0xFF, ppu.Read(0x00), fmt.Sprintf("PPUDATA was not 0xFF at cycle %d", cpuCycles))
+	ppu.vRam.address = 0x2000
+	ppu.WriteRegister(PPUDATA, 0xFF)
+	assert.NotEqual(t, 0xFF, ppu.Read(0x00), "PPUDATA was not 0xFF")
 
-		// Not implemented!
-		//ppu.WriteRegister(OAMDMA, 0xFF)
-		//assert.NotEqual(t, 0xFF, ppu.oamAddr, fmt.Sprintf("OAMDMA was not 0xFF at cycle %d", cpuCycles))
-	}
+	// Not implemented!
+	//ppu.WriteRegister(OAMDMA, 0xFF)
+	//assert.NotEqual(t, 0xFF, ppu.oamAddr, fmt.Sprintf("OAMDMA was not 0xFF at cycle %d", cpuCycles))
 }

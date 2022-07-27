@@ -65,7 +65,7 @@ func (nes *Nes) Tick() byte {
 	}
 
 	if nes.ppu.VBlank() {
-		if nes.vBlankCount == 60 {
+		if nes.vBlankCount == 20 {
 			nes.ppu.Render()
 		}
 		nes.vBlankCount++

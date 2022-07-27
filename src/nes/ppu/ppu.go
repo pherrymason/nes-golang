@@ -14,11 +14,14 @@ type PPU interface {
 }
 
 type Ppu2c02 struct {
-	ppuControl     Control
-	ppuStatus      Status
-	ppuScroll      Scroll
-	ppuMask        byte // Controls the rendering of sprites and backgrounds
-	ppuDataAddress DataAddress
+	ppuControl Control
+	ppuStatus  Status
+	ppuScroll  Scroll
+	ppuMask    byte // Controls the rendering of sprites and backgrounds
+	vRam       loopyRegister
+	tRam       loopyRegister
+	fineX      uint8
+	readBuffer byte
 
 	oamAddr byte
 
@@ -50,6 +53,9 @@ func CreatePPU(cartridge *gamePak.GamePak) *Ppu2c02 {
 		renderCycle:     0,
 		currentScanline: 0,
 		cycle:           0,
+		vRam:            loopyRegister{0, 0},
+		tRam:            loopyRegister{0, 0},
+		fineX:           0,
 		warmup:          false,
 		screen:          image.NewRGBA(image.Rect(0, 0, types.SCREEN_WIDTH, types.SCREEN_HEIGHT)),
 	}
@@ -119,6 +125,14 @@ func (ppu *Ppu2c02) renderLogic() {
 	}
 	if ppu.renderCycle%1 == 0 {
 		// Read 1 byte nametable
+	} else if ppu.renderCycle%3 == 0 {
+		// Read Attribute table byte
+	} else if ppu.renderCycle%5 == 0 {
+		// Read Low Background tile byte
+	} else if ppu.renderCycle%7 == 0 {
+		// Read High Background tile byte
+	} else if ppu.renderCycle%8 == 0 {
+		// Increment hori(v) ¿?
 	}
 }
 
@@ -151,7 +165,7 @@ func (ppu *Ppu2c02) ReadRegister(register types.Address) byte {
 		// Reading from status register alters it
 		ppu.ppuStatus.verticalBlankStarted = false // Reading from status, clears VBlank flag.
 		//ppu.registers.status &= 0x7F
-		ppu.ppuDataAddress.resetLatch()
+		ppu.tRam.resetLatch()
 		break
 
 	case OAMADDR:
@@ -169,15 +183,15 @@ func (ppu *Ppu2c02) ReadRegister(register types.Address) byte {
 
 	case PPUDATA:
 		// Todo test delay and not delay from palette
-		value = ppu.ppuDataAddress.readBuffer
-		ppu.ppuDataAddress.readBuffer = ppu.Read(ppu.ppuDataAddress.at())
+		value = ppu.readBuffer
+		ppu.readBuffer = ppu.Read(ppu.vRam.address)
 
 		// If reading from Palette, there is no delay
-		if isPaletteAddress(ppu.ppuDataAddress.at()) {
-			value = ppu.ppuDataAddress.readBuffer
+		if isPaletteAddress(ppu.vRam.address) {
+			value = ppu.readBuffer
 		}
 
-		ppu.ppuDataAddress.increment(ppu.ppuControl.incrementMode)
+		ppu.vRam.increment(ppu.ppuControl.incrementMode)
 		break
 
 	case OAMDMA:
@@ -196,6 +210,8 @@ func (ppu *Ppu2c02) WriteRegister(register types.Address, value byte) {
 	switch register {
 	case PPUCTRL:
 		ppu.ppuCtrlWrite(value)
+		ppu.tRam.setNameTableX(ppu.ppuControl.nameTableX)
+		ppu.tRam.setNameTableY(ppu.ppuControl.nameTableY)
 		// todo trigger nmi if in vblank and generateNMI transitions from 0 to 1
 		break
 
@@ -221,19 +237,14 @@ func (ppu *Ppu2c02) WriteRegister(register types.Address, value byte) {
 		break
 
 	case PPUADDR:
-		ppu.ppuDataAddress.set(value)
+		ppu.tRam.push(value)
+		if ppu.tRam.latch == 0 {
+			ppu.vRam = ppu.tRam
+		}
 		break
 	case PPUDATA:
-		ppu.Write(ppu.ppuDataAddress.at(), value)
-		ppu.ppuDataAddress.increment(ppu.ppuControl.incrementMode)
-		//ppu.Write(ppu.registers.ppuDataAddr, value)
-		/*
-			if ppu.ppuControl.incrementMode == 0 {
-				ppu.registers.ppuDataAddr++
-			} else {
-				ppu.registers.ppuDataAddr += 32
-			}
-			ppu.registers.ppuDataAddr &= 0x3FFF*/
+		ppu.Write(ppu.vRam.address, value)
+		ppu.vRam.increment(ppu.ppuControl.incrementMode)
 		break
 	case OAMDMA:
 		break
@@ -251,8 +262,8 @@ func (ppu *Ppu2c02) WriteRegister(register types.Address, value byte) {
 	//$3F19-$3F1B 	Sprite palette 2
 	//$3F1D-$3F1F 	Sprite palette 3
 */
-func (ppu *Ppu2c02) GetColorFromPaletteRam(palette byte, colorIndex byte) color.Color {
-	paletteColor := ppu.GetNesColorFromPaletteRam(palette, colorIndex)
+func (ppu *Ppu2c02) GetRGBColor(palette byte, colorIndex byte) color.Color {
+	paletteColor := ppu.GetPaletteColor(palette, colorIndex)
 
 	return utils.NewColorRGB(
 		SystemPalette[paletteColor][0],
@@ -261,7 +272,7 @@ func (ppu *Ppu2c02) GetColorFromPaletteRam(palette byte, colorIndex byte) color.
 	)
 }
 
-func (ppu *Ppu2c02) GetNesColorFromPaletteRam(palette byte, colorIndex byte) byte {
+func (ppu *Ppu2c02) GetPaletteColor(palette byte, colorIndex byte) byte {
 	if palette > 0 && colorIndex == 0 {
 		palette = 0
 	}
