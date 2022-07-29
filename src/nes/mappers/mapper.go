@@ -21,5 +21,5 @@ func CreateMapper(gamePak *gamePak.GamePak) Mapper {
 		return CreateMapper000(gamePak)
 	}
 
-	panic(fmt.Sprintf("mapper %d not implemented", header.MapperNumber()))
+	panic(fmt.Sprintf("mapper %d not supported", header.MapperNumber()))
 }

@@ -17,11 +17,21 @@ type Ppu2c02 struct {
 	ppuControl Control
 	ppuStatus  Status
 	ppuScroll  Scroll
-	ppuMask    byte // Controls the rendering of sprites and backgrounds
+	ppuMask    Mask // Controls the rendering of sprites and backgrounds
 	vRam       loopyRegister
 	tRam       loopyRegister
 	fineX      uint8
 	readBuffer byte
+
+	nextTileId    byte
+	nextAttribute byte
+	nextLowTile   byte
+	nextHighTile  byte
+
+	shifterTileLow       uint16
+	shifterTileHigh      uint16
+	shifterAttributeLow  uint16
+	shifterAttributeHigh uint16
 
 	oamAddr byte
 
@@ -56,8 +66,14 @@ func CreatePPU(cartridge *gamePak.GamePak) *Ppu2c02 {
 		vRam:            loopyRegister{0, 0},
 		tRam:            loopyRegister{0, 0},
 		fineX:           0,
-		warmup:          false,
-		screen:          image.NewRGBA(image.Rect(0, 0, types.SCREEN_WIDTH, types.SCREEN_HEIGHT)),
+
+		shifterTileLow:       0,
+		shifterTileHigh:      0,
+		shifterAttributeLow:  0,
+		shifterAttributeHigh: 0,
+
+		warmup: false,
+		screen: image.NewRGBA(image.Rect(0, 0, types.SCREEN_WIDTH, types.SCREEN_HEIGHT)),
 	}
 
 	return ppu
@@ -75,12 +91,12 @@ func (ppu *Ppu2c02) Tick() {
 	// VBlank logic
 	if ppu.currentScanline == VBLANK_START_SCANLINE {
 		if ppu.renderCycle == 1 {
-			ppu.ppuStatus.verticalBlankStarted = true // Todo refactor to a method to set Vblank
+			// TODO refactor to a method to set Vblank
+			// TODO enabling VBlank only on ==1 and not on >=1 makes it difficult to start emulation inside a VBlank cycle. If changed, nmi triggering should be worked though.
+			ppu.ppuStatus.verticalBlankStarted = true
 
 			if ppu.ppuControl.generateNMIAtVBlank {
-				//if ppu.renderCycle == 0 {
 				ppu.nmi = true
-				//}
 			}
 		}
 	} else if ppu.currentScanline == VBLANK_END_SCNALINE && ppu.renderCycle == 1 {
@@ -120,19 +136,171 @@ func (ppu *Ppu2c02) Tick() {
 }
 
 func (ppu *Ppu2c02) renderLogic() {
-	if ppu.renderCycle == 0 {
-		// Idle
+	//renderingEnabled := ppu.ppuMask.showBackground || ppu.ppuMask.showSprites
+	preRenderScanline := ppu.currentScanline == 261
+	scanlineVisible := ppu.currentScanline >= 0 && ppu.currentScanline < 240
+
+	// We are in a cycle which falls inside the visible horizontal region
+	cycleIsVisible := ppu.renderCycle >= 1 && ppu.renderCycle <= 256
+
+	// On these cycles, we fetch data that will be used in next scanline
+	preFetchCycle := ppu.renderCycle >= 321 && ppu.renderCycle <= 336
+
+	//if ppu.ppuMask.
+	//if !renderingEnabled {
+	//	return
+	//}
+
+	if scanlineVisible {
+		if ppu.renderCycle == 0 {
+			// Idle cycle
+		}
+		if cycleIsVisible || preFetchCycle {
+			ppu.updateShifters()
+
+			switch ppu.renderCycle % 8 {
+			case 0:
+				// TODO feed appropiate shift registers
+				ppu.loadShifters()
+				ppu.incrementX()
+			case 1:
+				// fetch NameTable byte
+				ppu.nextTileId = ppu.Read(ppu.vRam.address & 0xFFFF)
+			case 3:
+				// fetch attribute table byte
+				address := types.Address(0x23C0)
+				address |= types.Address(ppu.vRam.nameTableY()) << 11
+				address |= types.Address(ppu.vRam.nameTableX()) << 10
+				address |= types.Address(ppu.vRam.coarseX()>>2) << 3
+				address |= types.Address(ppu.vRam.coarseY() >> 2)
+				ppu.nextAttribute = ppu.Read(address)
+
+				// I need to understand this
+				if ppu.vRam.coarseY()&0x02 == 0x02 {
+					ppu.nextAttribute >>= 4
+				}
+				if ppu.vRam.coarseX()&0x02 == 0x02 {
+					ppu.nextAttribute >>= 2
+				}
+			case 5:
+				// fetch low tile byte
+				address := types.Address(0)
+				address |= types.Address(ppu.ppuControl.backgroundPatternTableAddress) << 12
+				address |= types.Address(ppu.nextTileId << 4)
+				address |= types.Address(ppu.vRam.fineY())
+				address |= types.Address(0)
+
+				ppu.nextLowTile = ppu.Read(address)
+			case 7:
+				// fetch high tile byte
+				address := types.Address(0)
+				address |= types.Address(ppu.ppuControl.backgroundPatternTableAddress) << 12
+				address |= types.Address(ppu.nextTileId << 4)
+				address |= types.Address(ppu.vRam.fineY())
+				address |= types.Address(8)
+
+				ppu.nextLowTile = ppu.Read(address)
+			}
+
+			if ppu.renderCycle == 257 {
+				ppu.incrementY()
+			}
+		}
+
+		// When every pixel of a scanline has been rendered,
+		// we need to reset the X coordinate
+		if ppu.renderCycle == 258 {
+			ppu.transferX()
+		}
+
+		if preRenderScanline && ppu.renderCycle >= 280 && ppu.renderCycle < 305 {
+			ppu.transferY()
+		}
 	}
-	if ppu.renderCycle%1 == 0 {
-		// Read 1 byte nametable
-	} else if ppu.renderCycle%3 == 0 {
-		// Read Attribute table byte
-	} else if ppu.renderCycle%5 == 0 {
-		// Read Low Background tile byte
-	} else if ppu.renderCycle%7 == 0 {
-		// Read High Background tile byte
-	} else if ppu.renderCycle%8 == 0 {
-		// Increment hori(v) ¿?
+
+	if ppu.currentScanline == 240 {
+		// idle PPU does nothing here
+	}
+
+	var bgPixel byte = 0x00
+	var bgPalette byte = 0x00
+	if ppu.ppuMask.showBackgroundEnabled() {
+		bitSelector := uint16(0x8000) >> ppu.fineX
+		pixel0 := byte(0)
+		pixel1 := byte(0)
+		if ppu.shifterTileLow&bitSelector > 0 {
+			pixel0 = 1
+		} else {
+			pixel0 = 0
+		}
+		if ppu.shifterTileHigh&bitSelector > 0 {
+			pixel1 = 1
+		} else {
+			pixel1 = 0
+		}
+		bgPixel = pixel1<<1 | pixel0
+
+		palette0 := byte(0)
+		palette1 := byte(0)
+		if ppu.shifterAttributeLow&bitSelector > 0 {
+			palette0 = 1
+		} else {
+			palette0 = 0
+		}
+		if ppu.shifterAttributeHigh&bitSelector > 0 {
+			palette1 = 1
+		} else {
+			palette1 = 0
+		}
+		bgPalette = palette1<<1 | palette0
+	}
+	//fmt.Printf("Render %d,%d: %X %X\n", ppu.renderCycle, ppu.currentScanline, bgPalette, bgPixel)
+	ppu.screen.Set(int(ppu.renderCycle), int(ppu.currentScanline), ppu.GetRGBColor(bgPalette, bgPixel))
+}
+
+func (ppu *Ppu2c02) incrementX() {
+	if ppu.ppuMask.renderingEnabled() {
+		if ppu.vRam.address&0x001F == 31 { // if coarseX == 31
+			ppu.vRam.address &= 0b111111111100000 // coarseX = 0
+			ppu.vRam.address ^= 0x0400            // switch horizontal nametable
+		} else {
+			ppu.vRam.address += 1 // coarseX++
+		}
+	}
+}
+
+func (ppu *Ppu2c02) incrementY() {
+	if ppu.ppuMask.renderingEnabled() {
+		if ppu.vRam.fineY() < 7 {
+			ppu.vRam.address += 0x1000 // fineY++
+		} else {
+			ppu.vRam.address &= 0b000111111111111 // fineY=0
+			y := ppu.vRam.coarseY()
+			if y == 29 {
+				y = 0
+				ppu.vRam.address ^= 0x0800 // Switch vertical NameTable
+			} else if y == 31 {
+				y = 0 // coarseY = 0, NameTable not switched
+			} else {
+				y += 1
+			}
+			resetCoarseY := ^0x3e0
+			ppu.vRam.address = (ppu.vRam.address & types.Address(resetCoarseY)) | types.Address(y)<<5
+		}
+	}
+}
+
+func (ppu *Ppu2c02) transferX() {
+	if ppu.ppuMask.renderingEnabled() {
+		ppu.vRam.setCoarseX(ppu.tRam.coarseX())
+		ppu.vRam.setNameTableX(ppu.tRam.nameTableX())
+	}
+}
+
+func (ppu *Ppu2c02) transferY() {
+	if ppu.ppuMask.renderingEnabled() {
+		ppu.vRam.setCoarseY(ppu.tRam.coarseY())
+		ppu.vRam.setNameTableY(ppu.tRam.nameTableY())
 	}
 }
 
@@ -156,7 +324,7 @@ func (ppu *Ppu2c02) ReadRegister(register types.Address) byte {
 		panic("trying to read PPUCTRL")
 
 	case PPUMASK:
-		break
+		panic("trying to read PPMASK")
 
 	case PPUSTATUS:
 		// Source: javid9x reading from status only get top 3 bits. The rest tends to be filled with noise, or more likely what was last in data buffer.
@@ -216,7 +384,7 @@ func (ppu *Ppu2c02) WriteRegister(register types.Address, value byte) {
 		break
 
 	case PPUMASK:
-		ppu.ppuMask = value
+		ppu.ppuMask.write(value)
 		break
 
 	case PPUSTATUS:

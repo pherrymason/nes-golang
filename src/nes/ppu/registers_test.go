@@ -50,14 +50,15 @@ func TestPPU_PPUMASK_write(t *testing.T) {
 		write    byte
 		expected byte
 	}{
-		{"writes on blank", 0x00, 0x10, 0x10},
-		{"writes reset bits", 0xFF, 0x01, 0x01},
+		{"writes on blank", 0x00, 0xFF, 0x7F},
+		{"writes reset bits", 0xFF, 0x00, 0x00},
 	}
 
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
-			ppu.WriteRegister(PPUMASK, 0xFF)
-			assert.Equal(t, byte(0xFF), ppu.ppuMask)
+			ppu.ppuMask.write(tt.initial)
+			ppu.WriteRegister(PPUMASK, tt.write)
+			assert.Equal(t, tt.expected, ppu.ppuMask.value())
 		})
 	}
 }

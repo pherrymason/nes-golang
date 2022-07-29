@@ -110,6 +110,16 @@ func (register *loopyRegister) setNameTableY(nameTableY byte) {
 	register.address |= types.Address(nameTableY) << 11
 }
 
+func (register *loopyRegister) setCoarseX(coarseX byte) {
+	register.address &= 0b111111111100000
+	register.address |= types.Address(coarseX)
+}
+
+func (register *loopyRegister) setCoarseY(coarseY byte) {
+	register.address &= 0b111110000011111
+	register.address |= types.Address(coarseY) << 5
+}
+
 func (register *loopyRegister) setAddress(address types.Address) {
 	fmt.Printf("%X\n", address)
 
@@ -163,6 +173,26 @@ func (register *loopyRegister) increment(incrementMode byte) {
 
 func (register *loopyRegister) resetLatch() {
 	register.latch = 0
+}
+
+func (register *loopyRegister) nameTableY() byte {
+	return byte((register.address >> 11) & 1)
+}
+
+func (register *loopyRegister) nameTableX() byte {
+	return byte((register.address >> 10) & 1)
+}
+
+func (register *loopyRegister) coarseX() byte {
+	return byte(register.address) & 0b11111
+}
+
+func (register *loopyRegister) coarseY() byte {
+	return byte(register.address>>5) & 0b11111
+}
+
+func (register *loopyRegister) fineY() byte {
+	return byte(register.address>>12) & 0b111
 }
 
 func (ppu *Ppu2c02) ppuCtrlWrite(value byte) {

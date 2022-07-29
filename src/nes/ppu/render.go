@@ -15,6 +15,42 @@ func (ppu *Ppu2c02) Render() {
 	ppu.nameTableChanged = false
 }
 
+// updateShifters
+// This method shifts one bit to the left the contents of the shifter registers.
+// This, together with the fineX register allows to get the pixel information
+// to be rendered together with a smooth per pixel scrolling
+func (ppu *Ppu2c02) updateShifters() {
+	if ppu.ppuMask.renderingEnabled() {
+		ppu.shifterTileLow <<= 1
+		ppu.shifterTileHigh <<= 1
+		ppu.shifterAttributeLow <<= 1
+		ppu.shifterAttributeHigh <<= 1
+	}
+}
+
+// loadShifters
+// This prepares shifters with the next tile to be rendered
+func (ppu *Ppu2c02) loadShifters() {
+	ppu.shifterTileLow = (ppu.shifterTileLow & 0xFF00) | uint16(ppu.nextLowTile)
+	ppu.shifterTileHigh = (ppu.shifterTileHigh & 0xFF00) | uint16(ppu.nextHighTile)
+
+	// As only two bits are required for the color index,
+	// we will use the strategy of shifting bits from a 16bit value.
+	// In this case, we will repeat low bit through 16 bits
+	// and the same with high bit
+	if ppu.nextAttribute&0b01 == 1 {
+		ppu.shifterAttributeLow = (ppu.shifterAttributeLow & 0xFF00) | 0xFF
+	} else {
+		ppu.shifterAttributeLow = (ppu.shifterAttributeLow & 0xFF00) | 0x00
+	}
+
+	if ppu.nextAttribute&0b10 == 2 {
+		ppu.shifterAttributeHigh = (ppu.shifterAttributeHigh & 0xFF00) | 0xFF
+	} else {
+		ppu.shifterAttributeHigh = (ppu.shifterAttributeHigh & 0xFF00) | 0x00
+	}
+}
+
 func (ppu *Ppu2c02) renderBackground() {
 	// Render first name table
 	//bankAddress := types.Address(1 * 0x1000)

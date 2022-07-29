@@ -1,6 +1,7 @@
 package ppu
 
 import (
+	"fmt"
 	"github.com/raulferras/nes-golang/src/nes/gamePak"
 	"github.com/raulferras/nes-golang/src/nes/types"
 )
@@ -74,7 +75,14 @@ func (ppu *Ppu2c02) Write(address types.Address, value byte) {
 	} else if isPaletteAddress(address) {
 		ppu.writePalette(address, value)
 	} else {
-		panic("Unhandled ppu address")
+		var vblank string
+		if ppu.ppuStatus.verticalBlankStarted {
+			vblank = "yes"
+		} else {
+			vblank = "no"
+		}
+		err := fmt.Sprintf("Unhandled ppu address: 0x%X, ppu cycle: %d, scanline: %d, vBlank: %s", address, ppu.renderCycle, ppu.currentScanline, vblank)
+		panic(err)
 	}
 }
 

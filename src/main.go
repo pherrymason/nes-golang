@@ -36,7 +36,7 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 
 	// Init Window System
-	r.InitWindow(800, 800, "NES golang")
+	r.InitWindow(800, 700, "NES golang")
 	r.SetTraceLogLevel(r.LogWarning)
 	//r.SetTargetFPS(60)
 	font = r.LoadFont("./assets/Pixel_NES.otf")
@@ -44,8 +44,6 @@ func main() {
 	graphics.InitDrawer()
 
 	fmt.Printf("Nes Emulator\n")
-	//path := "./assets/roms/nestest/nestest.nes"
-	//path := "./assets/roms/full_palette/full_palette.nes"
 	//path := "./assets/roms/snake.nes"
 	//path := "./assets/roms/Pac-Man (USA) (Namco).nes"
 	//path := "./assets/roms/Donkey Kong (World) (Rev A).nes"
