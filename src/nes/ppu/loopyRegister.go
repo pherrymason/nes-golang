@@ -20,8 +20,7 @@ type loopyRegister struct {
 	_nameTableY byte // 1 bit
 	_fineY      byte // 3 bits
 
-	latch    byte
-	_address types.Address
+	latch byte
 }
 
 func (register *loopyRegister) address() types.Address {

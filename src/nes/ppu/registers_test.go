@@ -149,11 +149,11 @@ func TestPPU_PPUADDR_write_twice_to_set_address(t *testing.T) {
 			ppu := aPPU()
 
 			ppu.WriteRegister(PPUADDR, tt.hi)
-			assert.Equal(t, types.Address(tt.hi&0x3F)<<8, ppu.tRam.address)
+			assert.Equal(t, types.Address(tt.hi&0x3F)<<8, ppu.tRam.address())
 
 			ppu.WriteRegister(PPUADDR, tt.lo)
-			assert.Equal(t, tt.expected, ppu.tRam.address)
-			assert.Equal(t, tt.expected, ppu.vRam.address, "tram was not copied to vram")
+			assert.Equal(t, tt.expected, ppu.tRam.address())
+			assert.Equal(t, tt.expected, ppu.vRam.address(), "tram was not copied to vram")
 		})
 	}
 }
@@ -192,13 +192,13 @@ func TestPPU_PPUData_read(t *testing.T) {
 			// Dummy Read
 			firstRead := ppu.ReadRegister(PPUDATA)
 			assert.Equal(t, tt.firstRead, firstRead, "unexpected first read value")
-			assert.Equal(t, (tt.addressToRead+expectedIncrement)&0x3FFF, ppu.vRam.address, "unexpected first read ppuDataAddr increment")
+			assert.Equal(t, (tt.addressToRead+expectedIncrement)&0x3FFF, ppu.vRam.address(), "unexpected first read ppuDataAddr increment")
 
 			secondRead := ppu.ReadRegister(PPUDATA)
 
 			assert.Equal(t, tt.secondRead, secondRead, "unexpected second read value")
 
-			assert.Equal(t, (tt.addressToRead+expectedIncrement*2)&0x3FFF, ppu.vRam.address, "unexpected second read ppuDataAddr increment")
+			assert.Equal(t, (tt.addressToRead+expectedIncrement*2)&0x3FFF, ppu.vRam.address(), "unexpected second read ppuDataAddr increment")
 		})
 	}
 }
@@ -247,7 +247,7 @@ func TestPPU_PPUData_write(t *testing.T) {
 
 			writtenValue := ppu.Read(tt.addressToWrite)
 			assert.Equal(t, tt.valueToWrite, writtenValue, "unexpected value written")
-			assert.Equal(t, (tt.addressToWrite+expectedIncrement)&0x3FFF, ppu.vRam.address, "unexpected first read ppuDataAddr increment")
+			assert.Equal(t, (tt.addressToWrite+expectedIncrement)&0x3FFF, ppu.vRam.address(), "unexpected first read ppuDataAddr increment")
 		})
 	}
 }

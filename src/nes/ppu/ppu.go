@@ -67,8 +67,8 @@ func CreatePPU(cartridge *gamePak.GamePak, debug bool, logPath string) *Ppu2c02 
 		renderCycle:     0,
 		currentScanline: 0,
 		cycle:           0,
-		vRam:            loopyRegister{0, 0, 0, 0, 0, 0, 0},
-		tRam:            loopyRegister{0, 0, 0, 0, 0, 0, 0},
+		vRam:            loopyRegister{0, 0, 0, 0, 0, 0},
+		tRam:            loopyRegister{0, 0, 0, 0, 0, 0},
 		fineX:           0,
 
 		shifterTileLow:       0,
@@ -78,6 +78,7 @@ func CreatePPU(cartridge *gamePak.GamePak, debug bool, logPath string) *Ppu2c02 
 
 		warmup:        false,
 		renderByPixel: true,
+		evenFrame:     true,
 		screen:        image.NewRGBA(image.Rect(0, 0, types.SCREEN_WIDTH, types.SCREEN_HEIGHT)),
 
 		logger: nil,
@@ -135,6 +136,7 @@ func (ppu *Ppu2c02) Tick() {
 	// 341 PPU clock cycles have passed
 	if ppu.renderCycle == PPU_CYCLES_BY_SCANLINE-1 {
 		if ppu.currentScanline == 261 {
+			ppu.evenFrame = !ppu.evenFrame
 			ppu.currentScanline = 0
 		} else {
 			ppu.currentScanline++
