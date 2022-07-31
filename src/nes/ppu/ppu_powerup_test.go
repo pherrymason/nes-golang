@@ -33,7 +33,7 @@ func TestPPU_writing_to_registers_are_ignored_first_29658_CPU_clocks(t *testing.
 		}
 
 		ppu.WriteRegister(PPUADDR, 0xFF)
-		if types.Address(0xFF) == ppu.tRam.address {
+		if types.Address(0xFF) == ppu.tRam.address() {
 			assert.FailNowf(t, "", "Writes to PPUADDR should be ignored first 30000 cycles, address changed. (Cycle :%d)", cpuCycles)
 		}
 		if byte(0x0) != ppu.tRam.latch {
@@ -58,7 +58,7 @@ func TestPPU_writing_to_registers_are_ready_first_29658_CPU_clocks(t *testing.T)
 	ppu.WriteRegister(OAMDATA, 0xFF)
 	assert.NotEqual(t, 0xFF, ppu.ReadRegister(OAMDATA), "OAMData was not 0xFF")
 
-	ppu.vRam.address = 0x2000
+	ppu.vRam.setValue(0x2000)
 	ppu.WriteRegister(PPUDATA, 0xFF)
 	assert.NotEqual(t, 0xFF, ppu.Read(0x00), "PPUDATA was not 0xFF")
 

@@ -87,6 +87,7 @@ func (ppu *Ppu2c02) Write(address types.Address, value byte) {
 }
 
 func isNameTableAddress(address types.Address) bool {
+	// $3000-$3EFF nametable mirrors!
 	return address >= NameTableStartAddress && address <= NameTableEndAddress
 }
 

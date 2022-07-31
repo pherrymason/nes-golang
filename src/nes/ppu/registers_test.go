@@ -182,7 +182,7 @@ func TestPPU_PPUData_read(t *testing.T) {
 
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
-			ppu.vRam.address = tt.addressToRead
+			ppu.vRam.setValue(tt.addressToRead)
 			ppu.ppuControl.incrementMode = tt.incrementMode
 			expectedIncrement := types.Address(1)
 			if tt.incrementMode == 1 {
@@ -206,7 +206,7 @@ func TestPPU_PPUData_read(t *testing.T) {
 func TestPPUDATA_is_instructed_to_read_address_and_mirrors(t *testing.T) {
 	t.Skipf("Mirror still not implemented")
 	dummyGamePak := gamePak.NewDummyGamePak(gamePak.NewEmptyCHRROM())
-	ppu := CreatePPU(dummyGamePak)
+	ppu := CreatePPU(dummyGamePak, false, "")
 
 	ppu.WriteRegister(PPUADDR, 0x3F)
 	ppu.WriteRegister(PPUADDR, 0xFF)
@@ -236,7 +236,7 @@ func TestPPU_PPUData_write(t *testing.T) {
 
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
-			ppu.vRam.address = tt.addressToWrite
+			ppu.vRam.setValue(tt.addressToWrite)
 			ppu.ppuControl.incrementMode = tt.incrementMode
 			expectedIncrement := types.Address(1)
 			if tt.incrementMode == 1 {

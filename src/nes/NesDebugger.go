@@ -10,21 +10,25 @@ import (
 // NesDebugger offers an api to interact externally with
 // stuff from Nes
 type NesDebugger struct {
-	debug         bool
-	cpu           *Cpu6502
-	ppu           *ppu.Ppu2c02
-	outputLogPath string
+	debug       bool
+	cpu         *Cpu6502
+	ppu         *ppu.Ppu2c02
+	logPath     string
+	maxCPUCycle int64
 
 	disassembled map[types.Address]string
+	DebugPPU     bool
 }
 
-func CreateNesDebugger(logPath string, debug bool) *NesDebugger {
+func CreateNesDebugger(logPath string, debug bool, debugPPU bool, maxCPUCycle int64) *NesDebugger {
 	return &NesDebugger{
-		debug,
-		nil,
-		nil,
-		logPath,
-		nil,
+		debug:        debug,
+		cpu:          nil,
+		ppu:          nil,
+		logPath:      logPath,
+		maxCPUCycle:  maxCPUCycle,
+		disassembled: nil,
+		DebugPPU:     debugPPU,
 	}
 }
 

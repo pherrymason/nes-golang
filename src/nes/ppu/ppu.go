@@ -53,18 +53,22 @@ type Ppu2c02 struct {
 	nameTableChanged bool
 
 	// Render related
+	renderByPixel   bool
 	screen          *image.RGBA
 	framePatternIDs [1024]byte // Screen representation with pattern ids and its position in screen. For debugging purposes.
+	logger          *logger2c02
+	debug           bool
 }
 
-func CreatePPU(cartridge *gamePak.GamePak) *Ppu2c02 {
+func CreatePPU(cartridge *gamePak.GamePak, debug bool, logPath string) *Ppu2c02 {
+	debug = false
 	ppu := &Ppu2c02{
 		cartridge:       cartridge,
 		renderCycle:     0,
 		currentScanline: 0,
 		cycle:           0,
-		vRam:            loopyRegister{0, 0},
-		tRam:            loopyRegister{0, 0},
+		vRam:            loopyRegister{0, 0, 0, 0, 0, 0, 0},
+		tRam:            loopyRegister{0, 0, 0, 0, 0, 0, 0},
 		fineX:           0,
 
 		shifterTileLow:       0,
@@ -72,8 +76,16 @@ func CreatePPU(cartridge *gamePak.GamePak) *Ppu2c02 {
 		shifterAttributeLow:  0,
 		shifterAttributeHigh: 0,
 
-		warmup: false,
-		screen: image.NewRGBA(image.Rect(0, 0, types.SCREEN_WIDTH, types.SCREEN_HEIGHT)),
+		warmup:        false,
+		renderByPixel: true,
+		screen:        image.NewRGBA(image.Rect(0, 0, types.SCREEN_WIDTH, types.SCREEN_HEIGHT)),
+
+		logger: nil,
+		debug:  debug,
+	}
+
+	if debug {
+		ppu.logger = NewLogger2c02(debug, logPath)
 	}
 
 	return ppu
@@ -83,11 +95,15 @@ func (ppu *Ppu2c02) Frame() *image.RGBA {
 	return ppu.screen
 }
 
-func (ppu *Ppu2c02) FramePattern() *[1024]byte {
-	return &ppu.framePatternIDs
+func (ppu *Ppu2c02) FramePattern() []byte {
+	return ppu.nameTables[0:1024]
 }
 
 func (ppu *Ppu2c02) Tick() {
+	if ppu.debug && ppu.warmup == true {
+		ppu.logger.log(ppu)
+	}
+
 	// VBlank logic
 	if ppu.currentScanline == VBLANK_START_SCANLINE {
 		if ppu.renderCycle == 1 {
@@ -135,136 +151,13 @@ func (ppu *Ppu2c02) Tick() {
 	}
 }
 
-func (ppu *Ppu2c02) renderLogic() {
-	//renderingEnabled := ppu.ppuMask.showBackground || ppu.ppuMask.showSprites
-	preRenderScanline := ppu.currentScanline == 261
-	scanlineVisible := ppu.currentScanline >= 0 && ppu.currentScanline < 240
-
-	// We are in a cycle which falls inside the visible horizontal region
-	cycleIsVisible := ppu.renderCycle >= 1 && ppu.renderCycle <= 256
-
-	// On these cycles, we fetch data that will be used in next scanline
-	preFetchCycle := ppu.renderCycle >= 321 && ppu.renderCycle <= 336
-
-	//if ppu.ppuMask.
-	//if !renderingEnabled {
-	//	return
-	//}
-
-	if scanlineVisible {
-		if ppu.renderCycle == 0 {
-			// Idle cycle
-		}
-		if cycleIsVisible || preFetchCycle {
-			ppu.updateShifters()
-
-			switch ppu.renderCycle % 8 {
-			case 0:
-				// TODO feed appropiate shift registers
-				ppu.loadShifters()
-				ppu.incrementX()
-			case 1:
-				// fetch NameTable byte
-				ppu.nextTileId = ppu.Read(ppu.vRam.address & 0xFFFF)
-			case 3:
-				// fetch attribute table byte
-				address := types.Address(0x23C0)
-				address |= types.Address(ppu.vRam.nameTableY()) << 11
-				address |= types.Address(ppu.vRam.nameTableX()) << 10
-				address |= types.Address(ppu.vRam.coarseX()>>2) << 3
-				address |= types.Address(ppu.vRam.coarseY() >> 2)
-				ppu.nextAttribute = ppu.Read(address)
-
-				// I need to understand this
-				if ppu.vRam.coarseY()&0x02 == 0x02 {
-					ppu.nextAttribute >>= 4
-				}
-				if ppu.vRam.coarseX()&0x02 == 0x02 {
-					ppu.nextAttribute >>= 2
-				}
-			case 5:
-				// fetch low tile byte
-				address := types.Address(0)
-				address |= types.Address(ppu.ppuControl.backgroundPatternTableAddress) << 12
-				address |= types.Address(ppu.nextTileId << 4)
-				address |= types.Address(ppu.vRam.fineY())
-				address |= types.Address(0)
-
-				ppu.nextLowTile = ppu.Read(address)
-			case 7:
-				// fetch high tile byte
-				address := types.Address(0)
-				address |= types.Address(ppu.ppuControl.backgroundPatternTableAddress) << 12
-				address |= types.Address(ppu.nextTileId << 4)
-				address |= types.Address(ppu.vRam.fineY())
-				address |= types.Address(8)
-
-				ppu.nextLowTile = ppu.Read(address)
-			}
-
-			if ppu.renderCycle == 257 {
-				ppu.incrementY()
-			}
-		}
-
-		// When every pixel of a scanline has been rendered,
-		// we need to reset the X coordinate
-		if ppu.renderCycle == 258 {
-			ppu.transferX()
-		}
-
-		if preRenderScanline && ppu.renderCycle >= 280 && ppu.renderCycle < 305 {
-			ppu.transferY()
-		}
-	}
-
-	if ppu.currentScanline == 240 {
-		// idle PPU does nothing here
-	}
-
-	var bgPixel byte = 0x00
-	var bgPalette byte = 0x00
-	if ppu.ppuMask.showBackgroundEnabled() {
-		bitSelector := uint16(0x8000) >> ppu.fineX
-		pixel0 := byte(0)
-		pixel1 := byte(0)
-		if ppu.shifterTileLow&bitSelector > 0 {
-			pixel0 = 1
-		} else {
-			pixel0 = 0
-		}
-		if ppu.shifterTileHigh&bitSelector > 0 {
-			pixel1 = 1
-		} else {
-			pixel1 = 0
-		}
-		bgPixel = pixel1<<1 | pixel0
-
-		palette0 := byte(0)
-		palette1 := byte(0)
-		if ppu.shifterAttributeLow&bitSelector > 0 {
-			palette0 = 1
-		} else {
-			palette0 = 0
-		}
-		if ppu.shifterAttributeHigh&bitSelector > 0 {
-			palette1 = 1
-		} else {
-			palette1 = 0
-		}
-		bgPalette = palette1<<1 | palette0
-	}
-	//fmt.Printf("Render %d,%d: %X %X\n", ppu.renderCycle, ppu.currentScanline, bgPalette, bgPixel)
-	ppu.screen.Set(int(ppu.renderCycle), int(ppu.currentScanline), ppu.GetRGBColor(bgPalette, bgPixel))
-}
-
 func (ppu *Ppu2c02) incrementX() {
 	if ppu.ppuMask.renderingEnabled() {
-		if ppu.vRam.address&0x001F == 31 { // if coarseX == 31
-			ppu.vRam.address &= 0b111111111100000 // coarseX = 0
-			ppu.vRam.address ^= 0x0400            // switch horizontal nametable
+		if ppu.vRam.coarseX() == 31 { // if coarseX == 31
+			ppu.vRam._coarseX = 0     // coarseX = 0
+			ppu.vRam._nameTableX ^= 1 // switch horizontal nametable
 		} else {
-			ppu.vRam.address += 1 // coarseX++
+			ppu.vRam._coarseX += 1 // coarseX++
 		}
 	}
 }
@@ -272,28 +165,28 @@ func (ppu *Ppu2c02) incrementX() {
 func (ppu *Ppu2c02) incrementY() {
 	if ppu.ppuMask.renderingEnabled() {
 		if ppu.vRam.fineY() < 7 {
-			ppu.vRam.address += 0x1000 // fineY++
+			ppu.vRam._fineY++
 		} else {
-			ppu.vRam.address &= 0b000111111111111 // fineY=0
+			ppu.vRam.resetFineY()
 			y := ppu.vRam.coarseY()
-			if y == 29 {
-				y = 0
-				ppu.vRam.address ^= 0x0800 // Switch vertical NameTable
+			if y == 29 { // last row of tiles in a nametable
+				ppu.vRam._coarseY = 0
+				// Switch vertical NameTable
+				ppu.vRam._nameTableY ^= 1
 			} else if y == 31 {
-				y = 0 // coarseY = 0, NameTable not switched
+				// pointer is in the attribute memory, we skip it
+				ppu.vRam._coarseY = 0
 			} else {
-				y += 1
+				ppu.vRam._coarseY++
 			}
-			resetCoarseY := ^0x3e0
-			ppu.vRam.address = (ppu.vRam.address & types.Address(resetCoarseY)) | types.Address(y)<<5
 		}
 	}
 }
 
 func (ppu *Ppu2c02) transferX() {
 	if ppu.ppuMask.renderingEnabled() {
-		ppu.vRam.setCoarseX(ppu.tRam.coarseX())
-		ppu.vRam.setNameTableX(ppu.tRam.nameTableX())
+		ppu.vRam._coarseX = ppu.tRam._coarseX
+		ppu.vRam._nameTableY = ppu.tRam._nameTableX
 	}
 }
 
@@ -350,12 +243,12 @@ func (ppu *Ppu2c02) ReadRegister(register types.Address) byte {
 		break
 
 	case PPUDATA:
-		// Todo test delay and not delay from palette
+		// TODO test delay and not delay from palette
 		value = ppu.readBuffer
-		ppu.readBuffer = ppu.Read(ppu.vRam.address)
+		ppu.readBuffer = ppu.Read(ppu.vRam.address())
 
 		// If reading from Palette, there is no delay
-		if isPaletteAddress(ppu.vRam.address) {
+		if isPaletteAddress(ppu.vRam.address()) {
 			value = ppu.readBuffer
 		}
 
@@ -411,7 +304,8 @@ func (ppu *Ppu2c02) WriteRegister(register types.Address, value byte) {
 		}
 		break
 	case PPUDATA:
-		ppu.Write(ppu.vRam.address, value)
+		address := ppu.vRam.address()
+		ppu.Write(address, value)
 		ppu.vRam.increment(ppu.ppuControl.incrementMode)
 		break
 	case OAMDMA:
@@ -447,4 +341,10 @@ func (ppu *Ppu2c02) GetPaletteColor(palette byte, colorIndex byte) byte {
 
 	paletteAddress := types.Address((palette * 4) + colorIndex)
 	return ppu.Read(PaletteLowAddress + paletteAddress)
+}
+
+func (ppu *Ppu2c02) Stop() {
+	if ppu.debug {
+		ppu.logger.Close()
+	}
 }

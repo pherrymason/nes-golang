@@ -10,7 +10,7 @@ func newNotWarmedUpPPU() *Ppu2c02 {
 	cartridge := gamePak.NewDummyGamePak(
 		gamePak.NewEmptyCHRROM(),
 	)
-	ppu := CreatePPU(cartridge)
+	ppu := CreatePPU(cartridge, false, "")
 	ppu.warmup = false
 
 	return ppu
@@ -20,7 +20,7 @@ func aPPU() *Ppu2c02 {
 	cartridge := gamePak.NewDummyGamePak(
 		gamePak.NewEmptyCHRROM(),
 	)
-	ppu := CreatePPU(cartridge)
+	ppu := CreatePPU(cartridge, false, "")
 	ppu.warmup = true
 
 	return ppu
@@ -98,3 +98,9 @@ func Test_should_trigger_NMI_on_vBlank(t *testing.T) {
 		})
 	}
 }
+
+// Testing Render lifecycle
+//func Test_should_load_next_tileId(t *testing.T) {
+//	ppu := aPPU()
+//
+//}

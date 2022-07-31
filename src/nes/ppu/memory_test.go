@@ -84,7 +84,7 @@ func TestPPU_read_nametables(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			pak := gamePak.NewGamePakWithINes(tt.mirrorMode, 0, 0, 0, 0, []byte{0}, []byte{0})
-			ppu := CreatePPU(&pak)
+			ppu := CreatePPU(&pak, false, "")
 
 			ppu.nameTables[tt.mirrorA.realVRAM] = 0xFF
 			assert.Equal(t, byte(0xFF), ppu.Read(tt.mirrorA.address))
@@ -143,7 +143,7 @@ func TestPPUMemory_write_nametables(t *testing.T) {
 			}
 			header := gamePak.CreateINes1Header(10, 10, mirrorMode, 0, 0, 0, 0)
 			pak := gamePak.CreateGamePak(header, []byte{0}, []byte{0})
-			ppu := CreatePPU(&pak)
+			ppu := CreatePPU(&pak, false, "")
 
 			ppu.Write(tt.mirrorA.address, 0xFF)
 			assert.Equal(t, byte(0xFF), ppu.nameTables[tt.mirrorA.realVRAM])

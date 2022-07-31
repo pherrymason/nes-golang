@@ -15,16 +15,17 @@ type Nes struct {
 	systemClockCounter byte // Controls how many times to call each processor
 	debug              *NesDebugger
 	vBlankCount        byte
+	stopped            bool
 }
 
 func CreateNes(gamePak *gamePak.GamePak, debugger *NesDebugger) Nes {
 	hexit.BuildTable()
-	thePPU := ppu.CreatePPU(gamePak)
+	thePPU := ppu.CreatePPU(gamePak, debugger.DebugPPU, debugger.logPath+"/ppu.log")
 
 	cpuBus := newNESCPUMemory(thePPU, gamePak)
 	cpu := CreateCPU(
 		cpuBus,
-		Cpu6502DebugOptions{debugger.debug, debugger.outputLogPath},
+		Cpu6502DebugOptions{debugger.debug, debugger.logPath + "/cpu.log"},
 	)
 	debugger.cpu = cpu
 	debugger.ppu = thePPU
@@ -65,13 +66,16 @@ func (nes *Nes) Tick() byte {
 	}
 
 	if nes.ppu.VBlank() {
-		//if nes.vBlankCount == 20 {
-		//nes.ppu.Render()
-		//}
+		if nes.vBlankCount == 20 {
+			nes.ppu.Render()
+		}
 		nes.vBlankCount++
 	}
 
 	nes.systemClockCounter++
+	if nes.debug.maxCPUCycle != -1 && nes.debug.maxCPUCycle <= int64(nes.cpu.cycle) {
+		nes.Stop()
+	}
 
 	return cpuCycles
 }
@@ -80,24 +84,33 @@ func (nes *Nes) TickForTime(seconds float64) {
 	cycles := int(1789773 * seconds)
 	for cycles > 0 {
 		cycles -= int(nes.Tick())
+		if nes.Stopped() {
+			break
+		}
 	}
 }
 
 func (nes *Nes) Stop() {
 	nes.cpu.Stop()
+	nes.ppu.Stop()
+	nes.stopped = true
+}
+
+func (nes *Nes) Stopped() bool {
+	return nes.stopped
 }
 
 func (nes *Nes) Debugger() *NesDebugger {
 	return nes.debug
 }
 
-func (nes Nes) SystemClockCounter() byte {
+func (nes *Nes) SystemClockCounter() byte {
 	return nes.systemClockCounter
 }
 
-func (nes Nes) Frame() *image.RGBA {
+func (nes *Nes) Frame() *image.RGBA {
 	return nes.ppu.Frame()
 }
-func (nes Nes) FramePattern() *[1024]byte {
+func (nes *Nes) FramePattern() []byte {
 	return nes.ppu.FramePattern()
 }

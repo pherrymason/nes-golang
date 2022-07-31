@@ -21,11 +21,14 @@ var font *r.Font
 var cpuAdvance bool
 
 func main() {
-	var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
-	var romPath = flag.String("rom", "", "path to rom")
-	flag.Parse()
-	if *cpuprofile != "" {
-		f, err := os.Create(*cpuprofile)
+	/*
+		var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+		var romPath = flag.String("rom", "", "path to rom")
+		var debugPPU = flag.Bool("debugPPU", false, "Displays PPU debug information")
+		flag.Parse()*/
+	cpuprofile, romPath, debugPPU, maxCPUCycle := cmdLineArguments()
+	if cpuprofile != "" {
+		f, err := os.Create(cpuprofile)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -36,7 +39,12 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 
 	// Init Window System
-	r.InitWindow(800, 700, "NES golang")
+	var windowWidth int
+	windowWidth = 800
+	if debugPPU {
+		windowWidth += 400
+	}
+	r.InitWindow(windowWidth, 700, "NES golang")
 	r.SetTraceLogLevel(r.LogWarning)
 	//r.SetTargetFPS(60)
 	font = r.LoadFont("./assets/Pixel_NES.otf")
@@ -49,13 +57,18 @@ func main() {
 	//path := "./assets/roms/Donkey Kong (World) (Rev A).nes"
 	//path := "./assets/roms/Super Mario Bros. (World).nes"
 	//path := "./assets/roms/Mega Man 2 (Europe).nes"
-	cartridge := gamePak.CreateGamePakFromROMFile(*romPath)
+	cartridge := gamePak.CreateGamePakFromROMFile(romPath)
 
 	printRomInfo(&cartridge)
 
 	console := nes.CreateNes(
 		&cartridge,
-		nes.CreateNesDebugger("./var/run.log", true),
+		nes.CreateNesDebugger(
+			"./var",
+			true,
+			debugPPU,
+			maxCPUCycle,
+		),
 	)
 
 	console.Start()
@@ -71,6 +84,10 @@ func mainLoop(console nes.Nes) {
 	debuggerGUI := NewDebuggerGUI()
 
 	for !r.WindowShouldClose() {
+		if console.Stopped() {
+			break
+		}
+
 		timestamp := r.GetTime()
 		dt := timestamp - _timestamp
 		_timestamp = timestamp
@@ -125,4 +142,14 @@ func drawEmulation(console *nes.Nes) {
 			r.DrawPixel(padding+x, paddingY+y, color)
 		}
 	}
+}
+
+func cmdLineArguments() (string, string, bool, int64) {
+	var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+	var romPath = flag.String("rom", "", "path to rom")
+	var debugPPU = flag.Bool("debugPPU", false, "Displays PPU debug information")
+	var stopAtCpuCycle = flag.Int64("maxCpuCycle", -1, "stops emulation at given cpu cycle")
+	flag.Parse()
+
+	return *cpuprofile, *romPath, *debugPPU, *stopAtCpuCycle
 }

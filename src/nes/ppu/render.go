@@ -9,10 +9,155 @@ import (
 )
 
 func (ppu *Ppu2c02) Render() {
-	ppu.renderBackground()
-	//ppu.renderSprites()
+	if ppu.renderByPixel == false {
+		ppu.renderBackground()
+		//ppu.renderSprites()
 
-	ppu.nameTableChanged = false
+		ppu.nameTableChanged = false
+	}
+}
+
+func (ppu *Ppu2c02) renderLogic() {
+	//renderingEnabled := ppu.ppuMask.showBackground || ppu.ppuMask.showSprites
+	preRenderScanline := ppu.currentScanline == 261
+	scanlineVisible := ppu.currentScanline >= 0 && ppu.currentScanline < 240
+
+	// We are in a cycle which falls inside the visible horizontal region
+	cycleIsVisible := ppu.renderCycle >= 1 && ppu.renderCycle <= 256
+
+	// On these cycles, we fetch data that will be used in next scanline
+	preFetchCycle := ppu.renderCycle >= 321 && ppu.renderCycle <= 336
+
+	if scanlineVisible || preRenderScanline {
+		if ppu.renderCycle == 0 {
+			// Idle cycle
+			ppu.renderCycle = 0
+		}
+
+		// Horizontally...
+		if cycleIsVisible || preFetchCycle {
+			ppu.updateShifters()
+
+			switch ppu.renderCycle % 8 {
+			case 0:
+				ppu.loadShifters()
+				ppu.incrementX()
+			case 1:
+				// fetch NameTable byte
+				address := 0x2000 | ppu.vRam.nameTableAddress()
+				ppu.nextTileId = ppu.Read(address)
+				if ppu.nextTileId == 0x2A {
+					ppu.nextTileId += 0
+				}
+			case 3:
+				// fetch attribute table byte
+				// "(vram_addr.coarse_x >> 2)"        : integer divide coarse x by 4,
+				//                                      from 5 bits to 3 bits
+				// "((vram_addr.coarse_y >> 2) << 3)" : integer divide coarse y by 4,
+				//                                      from 5 bits to 3 bits,
+				//                                      shift to make room for coarse x
+
+				address := types.Address(0x23C0)
+				address |= types.Address(ppu.vRam.nameTableY()) << 11
+				address |= types.Address(ppu.vRam.nameTableX()) << 10
+				address |= types.Address(ppu.vRam.coarseX() >> 2)    // Divide coarse by 4
+				address |= types.Address(ppu.vRam.coarseY()>>2) << 3 // Divide coarse by 4, shift to make space to coarseX
+				ppu.nextAttribute = ppu.Read(address)
+
+				// We got the right attribute byte, but we need to find the right 2bit section corresponding
+				// to the tile we are processing
+				if ppu.vRam.coarseY()&0x02 == 0x02 {
+					ppu.nextAttribute >>= 4
+				}
+				if ppu.vRam.coarseX()&0x02 == 0x02 {
+					ppu.nextAttribute >>= 2
+				}
+				ppu.nextAttribute &= 0x03
+			case 5:
+				// fetch low tile byte
+				// "(ppu.ppuControl.backgroundPatternTableAddress << 12)"  : the pattern memory selector
+				//                                         from control register, either 0K
+				//                                         or 4K offset
+				// "(ppu.nextTileId << 4)"    : the tile id multiplied by 16, as
+				//                                         2 lots of 8 rows of 8 bit pixels
+				// "(ppu.vRam.fineY)"                  : Offset into which row based on
+				//                                         vertical scroll offset
+				// "+ 0"                                 : Mental clarity for plane offset
+				address := types.Address(ppu.ppuControl.backgroundPatternTableAddress) << 12
+				address |= types.Address(ppu.nextTileId) << 4
+				address |= types.Address(ppu.vRam.fineY())
+				address |= types.Address(0)
+
+				ppu.nextLowTile = ppu.Read(address)
+			case 7:
+				// fetch high tile byte
+				address := types.Address(ppu.ppuControl.backgroundPatternTableAddress) << 12
+				address |= types.Address(ppu.nextTileId) << 4
+				address |= types.Address(ppu.vRam.fineY())
+				address |= types.Address(8)
+
+				ppu.nextHighTile = ppu.Read(address)
+			}
+		} // horizontal cycle visible|prefecth check
+
+		if ppu.renderCycle == 256 {
+			ppu.incrementY()
+		}
+
+		// When every pixel of a scanline has been rendered,
+		// we need to reset the X coordinate
+		if ppu.renderCycle == 257 {
+			ppu.transferX()
+		}
+
+		if preRenderScanline && ppu.renderCycle >= 280 && ppu.renderCycle < 305 {
+			ppu.transferY()
+		}
+	}
+
+	if ppu.currentScanline == 240 {
+		// idle PPU does nothing here
+	}
+
+	var bgPixel byte = 0x00
+	var bgPalette byte = 0x00
+	if ppu.ppuMask.showBackgroundEnabled() {
+		bitSelector := uint16(0x8000) >> ppu.fineX
+		pixel0 := byte(0)
+		pixel1 := byte(0)
+		if ppu.shifterTileLow&bitSelector > 0 {
+			pixel0 = 1
+		} else {
+			pixel0 = 0
+		}
+		if ppu.shifterTileHigh&bitSelector > 0 {
+			pixel1 = 1
+		} else {
+			pixel1 = 0
+		}
+		bgPixel = pixel1<<1 | pixel0
+
+		palette0 := byte(0)
+		palette1 := byte(0)
+		if ppu.shifterAttributeLow&bitSelector > 0 {
+			palette0 = 1
+		} else {
+			palette0 = 0
+		}
+		if ppu.shifterAttributeHigh&bitSelector > 0 {
+			palette1 = 1
+		} else {
+			palette1 = 0
+		}
+		bgPalette = palette1<<1 | palette0
+
+		if ppu.renderByPixel {
+			ppu.screen.Set(
+				int(ppu.renderCycle-1),
+				int(ppu.currentScanline),
+				ppu.GetRGBColor(bgPalette, bgPixel))
+		}
+	}
 }
 
 // updateShifters
@@ -70,7 +215,7 @@ func (ppu *Ppu2c02) renderBackground() {
 		tile := ppu.findTile(tileID, backgroundPatternTable, uint8(tileX), uint8(tileY), 255)
 
 		insertImageAt(ppu.screen, &tile, tileX*8, tileY*8)
-
+		//SaveTile(999+addr, ppu.screen)
 		//ppu.renderTile(tile, tileX, tileY)
 		//ppu.framePatternIDs[addr] = tileID
 	}
@@ -156,11 +301,6 @@ func (ppu *Ppu2c02) findTile(tileID byte, patternTable byte, tileColumn uint8, t
 		palette = backgroundPalette(tileColumn, tileRow, &ppu.nameTables)
 	}
 
-	if tileID == 0xA3 && tileColumn == 6 && tileRow == 4 {
-		tileID += 1
-		tileID -= 1
-	}
-
 	for y := 0; y <= 7; y++ {
 		lower := ppu.Read(offsetAddress + types.Address(y))
 		upper := ppu.Read(offsetAddress + types.Address(y+8))
@@ -174,7 +314,7 @@ func (ppu *Ppu2c02) findTile(tileID byte, patternTable byte, tileColumn uint8, t
 			lower >>= 1
 		}
 	}
-	//saveTile(int(tileID), tile)
+	//SaveTile(int(tileID), tile)
 	return *tile
 }
 

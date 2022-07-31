@@ -11,7 +11,7 @@ func InitDrawer() {
 	r.SetTextureFilter(font.Texture, r.FilterPoint)
 }
 
-func DrawText(text string, x int, y int, color r.Color) {
+func DrawText(text string, x int, y int, color r.Color, fontSize float32) {
 	r.DrawTextEx(*font, text, r.Vector2{X: float32(x), Y: float32(y)}, fontSize, fontSpacing, color)
 }
 

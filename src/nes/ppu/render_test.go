@@ -87,7 +87,7 @@ func Test_getsTile(t *testing.T) {
 	chrROM[15] = 0b11111111
 
 	cartridge := gamePak.NewDummyGamePak(chrROM)
-	ppu := CreatePPU(cartridge)
+	ppu := CreatePPU(cartridge, false, "")
 	ppu.nameTables[0] = 0
 	ppu.paletteTable[0] = 0x0F
 	ppu.paletteTable[1] = 0x30

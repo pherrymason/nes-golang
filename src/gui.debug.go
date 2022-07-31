@@ -10,7 +10,7 @@ import (
 	"image/color"
 )
 
-const DEBUG_X_OFFSET = 380
+const DEBUG_X_OFFSET = 300
 
 type DebuggerGUI struct {
 	chrPaletteSelector uint8
@@ -36,34 +36,35 @@ func drawDebugger(console *nes.Nes, debuggerGUI *DebuggerGUI) {
 	raylib.DrawFPS(0, 0)
 
 	textColor := raylib.RayWhite
+	fontSize := float32(16)
 
 	raylib.SetTextureFilter(font.Texture, raylib.FilterPoint)
 
 	// Status Register
-	graphics.DrawText("STATUS:", x, y, textColor)
+	graphics.DrawText("STATUS:", x, y, textColor, fontSize)
 
-	graphics.DrawText("N", x+70, y, colorFlag(console.Debugger().N()))
-	graphics.DrawText("O", x+90, y, colorFlag(console.Debugger().O()))
-	graphics.DrawText("-", x+110, y, raylib.RayWhite)
-	graphics.DrawText("B", x+130, y, colorFlag(console.Debugger().B()))
-	graphics.DrawText("D", x+150, y, colorFlag(console.Debugger().D()))
-	graphics.DrawText("I", x+170, y, colorFlag(console.Debugger().I()))
-	graphics.DrawText("Z", x+190, y, colorFlag(console.Debugger().Z()))
-	graphics.DrawText("C", x+210, y, colorFlag(console.Debugger().C()))
+	graphics.DrawText("N", x+70, y, colorFlag(console.Debugger().N()), fontSize)
+	graphics.DrawText("O", x+90, y, colorFlag(console.Debugger().O()), fontSize)
+	graphics.DrawText("-", x+110, y, raylib.RayWhite, fontSize)
+	graphics.DrawText("B", x+130, y, colorFlag(console.Debugger().B()), fontSize)
+	graphics.DrawText("D", x+150, y, colorFlag(console.Debugger().D()), fontSize)
+	graphics.DrawText("I", x+170, y, colorFlag(console.Debugger().I()), fontSize)
+	graphics.DrawText("Z", x+190, y, colorFlag(console.Debugger().Z()), fontSize)
+	graphics.DrawText("C", x+210, y, colorFlag(console.Debugger().C()), fontSize)
 
 	// Program counter
 	msg := fmt.Sprintf("PC: 0x%X", console.Debugger().ProgramCounter())
-	graphics.DrawText(msg, x, y+15, textColor)
+	graphics.DrawText(msg, x, y+15, textColor, fontSize)
 
 	// A, X, Y Registers
 	msg = fmt.Sprintf("A:0x%X", console.Debugger().ARegister())
-	graphics.DrawText(msg, x+130, y+15, textColor)
+	graphics.DrawText(msg, x+130, y+15, textColor, fontSize)
 
 	msg = fmt.Sprintf("X:0x%X", console.Debugger().XRegister())
-	graphics.DrawText(msg, x+200, y+15, textColor)
+	graphics.DrawText(msg, x+200, y+15, textColor, fontSize)
 
 	msg = fmt.Sprintf("Y: 0x%X", console.Debugger().YRegister())
-	graphics.DrawText(msg, x+270, y+15, textColor)
+	graphics.DrawText(msg, x+270, y+15, textColor, fontSize)
 
 	//registers := fmt.Sprintf("A:0x%0X X:0x%X Y:0x%X P:0x%X SP:0x%X", 0, 0, 0, 0, 0)
 	//position := raylib.Vector2{X: 380, Y: 20}
@@ -72,8 +73,11 @@ func drawDebugger(console *nes.Nes, debuggerGUI *DebuggerGUI) {
 	scale := 3
 	drawASM(console)
 	drawPalettes(console, scale, DEBUG_X_OFFSET, 40+15*20, debuggerGUI)
-	drawCHR(console, 2, DEBUG_X_OFFSET, 40+15*20+50, font, debuggerGUI)
-	//drawBackgroundTileIDs(console, DEBUG_X_OFFSET+356, 0)
+	drawCHR(console, 1, DEBUG_X_OFFSET, 40+15*20+50, font, debuggerGUI)
+
+	if console.Debugger().DebugPPU {
+		drawPPUDebugger(console)
+	}
 }
 
 func listenKeyboard(debuggerGUI *DebuggerGUI) {
@@ -131,7 +135,7 @@ func drawASM(console *nes.Nes) {
 
 		code := disassembled[currentAddress]
 		if len(code) > 0 {
-			graphics.DrawText(code, 380, yOffset+(yIteration*ySeparation), textColor)
+			graphics.DrawText(code, 380, yOffset+(yIteration*ySeparation), textColor, 16)
 			yIteration++
 		}
 	}
@@ -243,8 +247,12 @@ func drawCHR(console *nes.Nes, scale int, xOffset int, yOffset int, font *raylib
 	//r.DrawRectangle(x, y, 16*8, 16*8, r.RayWhite)
 }
 
-func drawBackgroundTileIDs(console nes.Nes, xOffset int, yOffset int) {
-	padding := 20 + xOffset
+func drawPPUDebugger(console *nes.Nes) {
+	drawBackgroundTileIDs(console, 600, 10)
+}
+
+func drawBackgroundTileIDs(console *nes.Nes, xOffset int, yOffset int) {
+	padding := 10 + xOffset
 	//paddingY := 100 + yOffset
 	// Debug background tiles IDS
 	//offsetY := paddingY + types.SCREEN_HEIGHT + 10
@@ -252,15 +260,15 @@ func drawBackgroundTileIDs(console nes.Nes, xOffset int, yOffset int) {
 	framePattern := console.FramePattern()
 	tilesWidth := 32
 	//tilesHeight := 30
-	for i := 0; i < tilesWidth*30; i++ {
+	for i := 0; i < tilesWidth*32; i++ {
 		x := i % tilesWidth * 17
 		y := (i / tilesWidth) * 17
-		raylib.DrawText(
+		graphics.DrawText(
 			fmt.Sprintf("%X", framePattern[i]),
 			padding+x,
 			offsetY+y,
-			8,
-			raylib.Violet,
+			raylib.White,
+			10,
 		)
 	}
 }
