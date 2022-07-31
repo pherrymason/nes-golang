@@ -29,6 +29,10 @@ func (ppu *Ppu2c02) renderLogic() {
 	preFetchCycle := ppu.renderCycle >= 321 && ppu.renderCycle <= 336
 
 	if scanlineVisible || preRenderScanline {
+		if ppu.evenFrame == false && ppu.currentScanline == 0 && ppu.renderCycle == 0 {
+			ppu.renderCycle = 1
+		}
+
 		if ppu.renderCycle == 0 {
 			// Idle cycle
 			ppu.renderCycle = 0
