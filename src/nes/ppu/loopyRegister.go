@@ -39,7 +39,6 @@ func (register *loopyRegister) nameTableAddress() types.Address {
 	address |= uint16(register._coarseY&0b11111) << 5
 	address |= uint16(register._nameTableX&1) << 10
 	address |= uint16(register._nameTableY&1) << 11
-	//address |= uint16(register._fineY&0b111) << 12
 	return types.Address(address) & 0x3FFF
 }
 

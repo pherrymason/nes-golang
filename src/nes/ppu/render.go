@@ -1,7 +1,6 @@
 package ppu
 
 import (
-	"fmt"
 	"github.com/raulferras/nes-golang/src/nes/types"
 	"image"
 	"image/png"
@@ -27,6 +26,11 @@ func (ppu *Ppu2c02) renderLogic() {
 
 	// On these cycles, we fetch data that will be used in next scanline
 	preFetchCycle := ppu.renderCycle >= 321 && ppu.renderCycle <= 336
+	scanlineFinished := false
+
+	if ppu.ppuMask.renderingEnabled() {
+		scanlineFinished = false
+	}
 
 	if scanlineVisible || preRenderScanline {
 		if ppu.evenFrame == false && ppu.currentScanline == 0 && ppu.renderCycle == 0 {
@@ -50,7 +54,7 @@ func (ppu *Ppu2c02) renderLogic() {
 				// fetch NameTable byte
 				address := 0x2000 | ppu.vRam.nameTableAddress()
 				ppu.nextTileId = ppu.Read(address)
-				if ppu.nextTileId == 0x2A {
+				if ppu.nextTileId != 0x24 && ppu.nextTileId != 0x00 {
 					ppu.nextTileId += 0
 				}
 			case 3:
@@ -106,6 +110,7 @@ func (ppu *Ppu2c02) renderLogic() {
 
 		if ppu.renderCycle == 256 {
 			ppu.incrementY()
+			scanlineFinished = true
 		}
 
 		// When every pixel of a scanline has been rendered,
@@ -160,6 +165,10 @@ func (ppu *Ppu2c02) renderLogic() {
 				int(ppu.renderCycle-1),
 				int(ppu.currentScanline),
 				ppu.GetRGBColor(bgPalette, bgPixel))
+		}
+
+		if scanlineFinished {
+			//SaveTile(fmt.Sprintf("%d", ppu.currentScanline), ppu.screen)
 		}
 	}
 }
@@ -322,9 +331,9 @@ func (ppu *Ppu2c02) findTile(tileID byte, patternTable byte, tileColumn uint8, t
 	return *tile
 }
 
-func SaveTile(tileID int, tile *image.RGBA) {
+func SaveTile(fileName string, tile *image.RGBA) {
 	// outputFile is a File type which satisfies Writer interface
-	outputFile, err := os.Create(fmt.Sprintf("%d.png", tileID))
+	outputFile, err := os.Create(fileName)
 	if err != nil {
 		// Handle error
 	}
