@@ -99,8 +99,8 @@ func Test_getsTile(t *testing.T) {
 	expectedRenderedTile := expectedTile()
 
 	if assert.Equal(t, *expectedRenderedTile, renderedTile, "generated tile is wrong. Check src/ppu/0.png & src/ppu/1.png") == false {
-		SaveTile(0, expectedRenderedTile)
-		SaveTile(1, &renderedTile)
+		SaveTile("0", expectedRenderedTile)
+		SaveTile("1", &renderedTile)
 	}
 }
 

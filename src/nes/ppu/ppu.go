@@ -296,14 +296,13 @@ func (ppu *Ppu2c02) WriteRegister(register types.Address, value byte) {
 		break
 
 	case PPUSCROLL:
-		//ppu.ppuScroll.write(value)
 		if ppu.tRam.latch == 0 {
-			ppu.tRam._coarseX = value & 0b11111
-			ppu.fineX = value >> 5
+			ppu.tRam._coarseX = value >> 3
+			ppu.fineX = value & 0x07
 			ppu.tRam.latch = 1
 		} else {
-			ppu.tRam._coarseY = value & 0b11111
-			ppu.tRam._fineY = (value >> 3) & 0b111
+			ppu.tRam._coarseY = value >> 3
+			ppu.tRam._fineY = value & 0b111
 			ppu.tRam.latch = 0
 		}
 		break

@@ -98,7 +98,7 @@ func (register *loopyRegister) push(value byte) {
 		register._nameTableX = (value & 0x04) >> 2
 		// bit 3 goes into nameTableY
 		register._nameTableY = (value & 0x08) >> 3
-		// bit 5,6 and 7 goes into fineY
+		// bit 5,6 and 7 goes into fineY. bit 7 is cleared
 		register._fineY = (value >> 4) & 0b011
 		//register.address =
 		//	types.Address(value&0x3F)<<8 | (register.address & 0x00FF)
