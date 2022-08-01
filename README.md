@@ -3,7 +3,7 @@
 # Status
 
 - CPU: 100% of "legal" opcodes implemented
-- PPU: Implementing direct rendering. 
+- PPU: Implementing ~~direct~~ scanline rendering. 
   - Renders contents of CHR ROM
   - Renders background.
 - APU: 0%
