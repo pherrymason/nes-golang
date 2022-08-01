@@ -10,7 +10,7 @@ import (
 
 func TestNestest(t *testing.T) {
 	gamePak := gamePak2.CreateGamePakFromROMFile("./../../assets/roms/nestest/nestest.nes")
-	outputLogPath := "./../../var/nestest/"
+	outputLogPath := "./../../var/nestest"
 
 	var limitCycles uint32 = 5004
 
