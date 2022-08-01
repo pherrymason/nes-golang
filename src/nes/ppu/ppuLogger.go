@@ -14,7 +14,6 @@ const PPU_LOG_BUFFER_MAXSIZE = 120000
 type PPUState struct {
 	ppuControl Control
 	ppuStatus  Status
-	ppuScroll  Scroll
 	ppuMask    Mask // Controls the rendering of sprites and backgrounds
 	vRam       loopyRegister
 	tRam       loopyRegister
@@ -96,7 +95,6 @@ func (logger *logger2c02) log(ppu *Ppu2c02) {
 	state := PPUState{
 		ppuControl:           ppu.ppuControl,
 		ppuStatus:            ppu.ppuStatus,
-		ppuScroll:            ppu.ppuScroll,
 		ppuMask:              ppu.ppuMask,
 		vRam:                 ppu.vRam,
 		tRam:                 ppu.tRam,

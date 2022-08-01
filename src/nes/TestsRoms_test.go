@@ -10,13 +10,13 @@ import (
 
 func TestNestest(t *testing.T) {
 	gamePak := gamePak2.CreateGamePakFromROMFile("./../../assets/roms/nestest/nestest.nes")
-	outputLogPath := "./../../var/nestest.log"
+	outputLogPath := "./../../var/nestest/"
 
 	var limitCycles uint32 = 5004
 
 	nes := CreateNes(
 		&gamePak,
-		&NesDebugger{true, nil, nil, outputLogPath, nil},
+		CreateNesDebugger(outputLogPath, true, false, -1),
 	)
 
 	nes.StartAt(0xC000)

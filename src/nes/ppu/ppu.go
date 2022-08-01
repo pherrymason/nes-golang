@@ -16,7 +16,6 @@ type PPU interface {
 type Ppu2c02 struct {
 	ppuControl Control
 	ppuStatus  Status
-	ppuScroll  Scroll
 	ppuMask    Mask // Controls the rendering of sprites and backgrounds
 	vRam       loopyRegister
 	tRam       loopyRegister
@@ -188,12 +187,13 @@ func (ppu *Ppu2c02) incrementY() {
 func (ppu *Ppu2c02) transferX() {
 	if ppu.ppuMask.renderingEnabled() {
 		ppu.vRam._coarseX = ppu.tRam._coarseX
-		ppu.vRam._nameTableY = ppu.tRam._nameTableX
+		ppu.vRam._nameTableX = ppu.tRam._nameTableX
 	}
 }
 
 func (ppu *Ppu2c02) transferY() {
 	if ppu.ppuMask.renderingEnabled() {
+		ppu.vRam._fineY = ppu.tRam._fineY
 		ppu.vRam.setCoarseY(ppu.tRam.coarseY())
 		ppu.vRam.setNameTableY(ppu.tRam.nameTableY())
 	}

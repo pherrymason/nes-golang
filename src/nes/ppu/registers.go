@@ -27,23 +27,6 @@ func (control *Control) value() byte {
 	return ctrl
 }
 
-type Scroll struct {
-	scrollX byte
-	scrollY byte
-	latch   byte
-}
-
-func (scroll *Scroll) write(value byte) {
-	if scroll.latch == 0 {
-		scroll.scrollX = value
-	} else {
-		scroll.scrollY = value
-	}
-
-	// flip latch
-	scroll.latch = (scroll.latch + 1) & 0x01
-}
-
 type MASKFlag int
 
 const (

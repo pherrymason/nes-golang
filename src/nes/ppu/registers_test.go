@@ -125,12 +125,13 @@ func TestPPUSCROLL_writes_twice(t *testing.T) {
 	scrollX := byte(0xFF)
 	scrollY := byte(0xFF)
 	ppu.WriteRegister(PPUSCROLL, scrollX)
-	assert.Equal(t, scrollX, ppu.ppuScroll.scrollX)
-	assert.Equal(t, byte(1), ppu.ppuScroll.latch, "scroll latch did not flip")
+	assert.Equal(t, byte(0xFF>>3), ppu.tRam._coarseX)
+	assert.Equal(t, byte(0xFF&0x07), ppu.fineX, "scroll latch did not flip")
 
 	ppu.WriteRegister(PPUSCROLL, scrollY)
-	assert.Equal(t, scrollY, ppu.ppuScroll.scrollY)
-	assert.Equal(t, byte(0), ppu.ppuScroll.latch, "scroll latch did not flip")
+	assert.Equal(t, byte(0xFF>>3), ppu.tRam._coarseY)
+	assert.Equal(t, byte(0xFF&0x07), ppu.tRam._fineY)
+	assert.Equal(t, byte(0), ppu.tRam.latch, "scroll latch did not flip")
 }
 
 func TestPPU_PPUADDR_write_twice_to_set_address(t *testing.T) {
