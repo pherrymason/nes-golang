@@ -48,6 +48,16 @@ type Memory interface {
 	Peek(types.Address) byte
 	Read(types.Address) byte
 	Write(types.Address, byte)
+
+	IsDMAWaiting() bool
+	IsDMATransfer() bool
+	DisableDMWaiting()
+	GetDMAPage() byte
+	GetDMAAddress() byte
+	GetDMAReadBuffer() byte
+	SetDMAReadBuffer(value byte)
+	IncrementDMAAddress()
+	ResetDMA()
 }
 
 type CPUMemory struct {
@@ -63,7 +73,11 @@ type CPUMemory struct {
 }
 
 func newCPUMemory(ppu ppu.PPU, gamePak *gamePak.GamePak, mapper mappers.Mapper) *CPUMemory {
-	return &CPUMemory{gamePak: gamePak, mapper: mapper, ppu: ppu}
+	return &CPUMemory{
+		gamePak: gamePak,
+		mapper:  mapper,
+		ppu:     ppu,
+	}
 }
 
 func newNESCPUMemory(ppu ppu.PPU, gamePak *gamePak.GamePak) *CPUMemory {
@@ -109,4 +123,40 @@ func (cm *CPUMemory) Write(address types.Address, value byte) {
 	} else if address >= gamePak.GAMEPAK_ROM_LOWER_BANK_START {
 		cm.mapper.Write(address, value)
 	}
+}
+
+func (cm *CPUMemory) IsDMAWaiting() bool {
+	return cm.DmaWaiting
+}
+
+func (cm *CPUMemory) IsDMATransfer() bool {
+	return cm.DmaTransfer
+}
+
+func (cm *CPUMemory) DisableDMWaiting() {
+	cm.DmaWaiting = false
+}
+
+func (cm *CPUMemory) GetDMAPage() byte {
+	return cm.DmaPage
+}
+
+func (cm *CPUMemory) GetDMAAddress() byte {
+	return cm.DmaAddress
+}
+
+func (cm *CPUMemory) GetDMAReadBuffer() byte {
+	return cm.DmaReadBuffer
+}
+
+func (cm *CPUMemory) SetDMAReadBuffer(value byte) {
+	cm.DmaReadBuffer = value
+}
+
+func (cm *CPUMemory) IncrementDMAAddress() {
+	cm.DmaAddress++
+}
+
+func (cm *CPUMemory) ResetDMA() {
+	cm.DmaTransfer = false
 }
