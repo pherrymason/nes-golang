@@ -51,10 +51,15 @@ type Memory interface {
 }
 
 type CPUMemory struct {
-	ram     [0xFFFF + 1]byte
-	gamePak *gamePak.GamePak
-	mapper  mappers.Mapper
-	ppu     ppu.PPU
+	ram           [0xFFFF + 1]byte
+	gamePak       *gamePak.GamePak
+	mapper        mappers.Mapper
+	ppu           ppu.PPU
+	DmaTransfer   bool
+	DmaPage       byte
+	DmaWaiting    bool
+	DmaAddress    byte
+	DmaReadBuffer byte
 }
 
 func newCPUMemory(ppu ppu.PPU, gamePak *gamePak.GamePak, mapper mappers.Mapper) *CPUMemory {
@@ -96,6 +101,11 @@ func (cm *CPUMemory) Write(address types.Address, value byte) {
 		cm.ram[address&RAM_LAST_REAL_ADDRESS] = value
 	} else if address <= 0x3FFF {
 		cm.ppu.WriteRegister(address&0x2007, value)
+	} else if address == 0x4014 {
+		cm.DmaTransfer = true
+		cm.DmaWaiting = true
+		cm.DmaPage = value
+		cm.DmaAddress = 0
 	} else if address >= gamePak.GAMEPAK_ROM_LOWER_BANK_START {
 		cm.mapper.Write(address, value)
 	}

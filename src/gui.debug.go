@@ -78,6 +78,8 @@ func drawDebugger(console *nes.Nes, debuggerGUI *DebuggerGUI) {
 	if console.Debugger().DebugPPU {
 		drawPPUDebugger(console)
 	}
+
+	drawObjectAttributeEntries(console)
 }
 
 func listenKeyboard(debuggerGUI *DebuggerGUI) {
@@ -249,6 +251,25 @@ func drawCHR(console *nes.Nes, scale int, xOffset int, yOffset int, font *raylib
 
 func drawPPUDebugger(console *nes.Nes) {
 	drawBackgroundTileIDs(console, 600, 10)
+
+}
+
+func drawObjectAttributeEntries(console *nes.Nes) {
+	for i := 0; i < 20; i++ {
+		oae := console.Debugger().OAM(byte(i))
+		graphics.DrawText(
+			fmt.Sprintf("[%d] x:%d y:%d tileId: %x",
+				i,
+				oae[3],
+				oae[0],
+				oae[1],
+			),
+			50,
+			300+i*16,
+			raylib.White,
+			10,
+		)
+	}
 }
 
 func drawBackgroundTileIDs(console *nes.Nes, xOffset int, yOffset int) {

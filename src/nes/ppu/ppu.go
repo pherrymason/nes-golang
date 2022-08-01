@@ -1,6 +1,7 @@
 package ppu
 
 import (
+	"fmt"
 	"github.com/raulferras/nes-golang/src/nes/gamePak"
 	"github.com/raulferras/nes-golang/src/nes/types"
 	"github.com/raulferras/nes-golang/src/utils"
@@ -34,12 +35,12 @@ type Ppu2c02 struct {
 
 	oamAddr byte
 
-	// OAM (Object Attribute Memory) is internal memory inside the PPU.
-	// Contains a display list of up to 64 sprites, where each sprite occupies 4 bytes
 	cartridge    *gamePak.GamePak
 	nameTables   [2 * NAMETABLE_SIZE]byte
 	paletteTable [PALETTE_SIZE]byte
-	oamData      [OAMDATA_SIZE]byte
+	// OAM (Object Attribute Memory) is internal memory inside the PPU.
+	// Contains a display list of up to 64 sprites, where each sprite occupies 4 bytes
+	oamData [OAMDATA_SIZE]byte
 
 	cycle  uint32 // Current lifetime PPU Cycle. After warmup, ignored.
 	warmup bool   // Indicates ppu is already warmed up (cycles went above 30000)
@@ -322,6 +323,7 @@ func (ppu *Ppu2c02) WriteRegister(register types.Address, value byte) {
 		ppu.vRam.increment(ppu.ppuControl.incrementMode)
 		break
 	case OAMDMA:
+		fmt.Println("OAMDMA!")
 		break
 	}
 }
@@ -360,4 +362,9 @@ func (ppu *Ppu2c02) Stop() {
 	if ppu.debug {
 		ppu.logger.Close()
 	}
+}
+
+func (ppu *Ppu2c02) Oam(index byte) []byte {
+
+	return ppu.oamData[index : index+4]
 }

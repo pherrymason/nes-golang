@@ -28,13 +28,16 @@ const (
 // Cpu6502 Represents a CPU 6502
 type Cpu6502 struct {
 	registers cpu.Registers
-	memory    Memory
+	memory    *CPUMemory
 
 	instructions [256]Instruction
 	opCyclesLeft byte // How many cycles left to finish execution of current cycle
 	cycle        uint32
 
 	addressEvaluators [13]AddressModeMethod
+
+	dmaTransfer bool
+	dmaPage     byte
 
 	// Debug parameters
 	debug       bool
@@ -47,7 +50,7 @@ type Cpu6502DebugOptions struct {
 	outputLogPath string
 }
 
-func CreateCPU(memory Memory, debug Cpu6502DebugOptions) *Cpu6502 {
+func CreateCPU(memory *CPUMemory, debug Cpu6502DebugOptions) *Cpu6502 {
 	cpu6502 := Cpu6502{
 		memory:    memory,
 		registers: cpu.CreateRegisters(),

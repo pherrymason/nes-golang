@@ -57,7 +57,29 @@ func (nes *Nes) Tick() byte {
 
 	cpuCycles := byte(0)
 	if nes.systemClockCounter%3 == 0 {
-		cpuCycles = nes.cpu.Tick()
+		if nes.cpu.memory.DmaTransfer {
+			// DMA starts on an even cpu cycle
+			if nes.cpu.memory.DmaWaiting {
+				if nes.systemClockCounter%2 == 1 {
+					nes.cpu.memory.DmaWaiting = false
+				}
+			} else {
+				// On even cycles, read from RAM
+				if nes.systemClockCounter%2 == 0 {
+					address := uint16(nes.cpu.memory.DmaPage)<<8 | uint16(nes.cpu.memory.DmaAddress)
+					nes.cpu.memory.DmaReadBuffer = nes.cpu.memory.Read(types.Address(address))
+				} else {
+					nes.ppu.WriteRegister(ppu.OAMADDR, nes.cpu.memory.DmaAddress)
+					nes.ppu.WriteRegister(ppu.OAMDATA, nes.cpu.memory.DmaReadBuffer)
+					nes.cpu.memory.DmaAddress++
+					if nes.cpu.memory.DmaAddress == 0 {
+						nes.cpu.memory.DmaTransfer = false
+					}
+				}
+			}
+		} else {
+			cpuCycles = nes.cpu.Tick()
+		}
 	}
 
 	if nes.ppu.Nmi() {
