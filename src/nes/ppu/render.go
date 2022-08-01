@@ -54,9 +54,6 @@ func (ppu *Ppu2c02) renderLogic() {
 				// fetch NameTable byte
 				address := 0x2000 | ppu.vRam.nameTableAddress()
 				ppu.nextTileId = ppu.Read(address)
-				if ppu.nextTileId != 0x24 && ppu.nextTileId != 0x00 {
-					ppu.nextTileId += 0
-				}
 			case 3:
 				// fetch attribute table byte
 				// "(vram_addr.coarse_x >> 2)"        : integer divide coarse x by 4,

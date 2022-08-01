@@ -317,9 +317,6 @@ func (ppu *Ppu2c02) WriteRegister(register types.Address, value byte) {
 	case PPUDATA:
 		address := ppu.vRam.address()
 		ppu.Write(address, value)
-		if value == 0x62 {
-			value = 10
-		}
 		ppu.vRam.increment(ppu.ppuControl.incrementMode)
 		break
 	case OAMDMA:
