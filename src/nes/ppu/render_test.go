@@ -15,53 +15,53 @@ func TestPpu2c02_updateShifters_updates_shifters_while_rendering_is_enabled(t *t
 	ppu := aPPU()
 	ppu.ppuMask.showBackground = 1
 	ppu.ppuMask.showSprites = 1
-	ppu.shifterTileLow = 1
-	ppu.shifterTileHigh = 1
-	ppu.shifterAttributeLow = 1
-	ppu.shifterAttributeHigh = 1
+	ppu.bgShifterTileLow = 1
+	ppu.bgShifterTileHigh = 1
+	ppu.bgShifterAttributeLow = 1
+	ppu.bgShifterAttributeHigh = 1
 
 	ppu.updateShifters()
 
-	assert.Equal(t, uint16(0x02), ppu.shifterTileLow)
-	assert.Equal(t, uint16(0x02), ppu.shifterTileHigh)
-	assert.Equal(t, uint16(0x02), ppu.shifterAttributeLow)
-	assert.Equal(t, uint16(0x02), ppu.shifterAttributeHigh)
+	assert.Equal(t, uint16(0x02), ppu.bgShifterTileLow)
+	assert.Equal(t, uint16(0x02), ppu.bgShifterTileHigh)
+	assert.Equal(t, uint16(0x02), ppu.bgShifterAttributeLow)
+	assert.Equal(t, uint16(0x02), ppu.bgShifterAttributeHigh)
 }
 
 func TestPpu2c02_updateShifters_does_not_updates_shifters_while_rendering_is_disabled(t *testing.T) {
 	ppu := aPPU()
 	ppu.ppuMask.showBackground = 0
 	ppu.ppuMask.showSprites = 0
-	ppu.shifterTileLow = 1
-	ppu.shifterTileHigh = 1
-	ppu.shifterAttributeLow = 1
-	ppu.shifterAttributeHigh = 1
+	ppu.bgShifterTileLow = 1
+	ppu.bgShifterTileHigh = 1
+	ppu.bgShifterAttributeLow = 1
+	ppu.bgShifterAttributeHigh = 1
 
 	ppu.updateShifters()
 
-	assert.Equal(t, uint16(0x01), ppu.shifterTileLow)
-	assert.Equal(t, uint16(0x01), ppu.shifterTileHigh)
-	assert.Equal(t, uint16(0x01), ppu.shifterAttributeLow)
-	assert.Equal(t, uint16(0x01), ppu.shifterAttributeHigh)
+	assert.Equal(t, uint16(0x01), ppu.bgShifterTileLow)
+	assert.Equal(t, uint16(0x01), ppu.bgShifterTileHigh)
+	assert.Equal(t, uint16(0x01), ppu.bgShifterAttributeLow)
+	assert.Equal(t, uint16(0x01), ppu.bgShifterAttributeHigh)
 }
 
 func TestPpu2c02_loadShifters(t *testing.T) {
 	ppu := aPPU()
-	ppu.shifterTileLow = 0xCCAA
-	ppu.shifterTileHigh = 0xCCAA
-	ppu.shifterAttributeLow = 0xFFFF
-	ppu.shifterAttributeHigh = 0x0000
+	ppu.bgShifterTileLow = 0xCCAA
+	ppu.bgShifterTileHigh = 0xCCAA
+	ppu.bgShifterAttributeLow = 0xFFFF
+	ppu.bgShifterAttributeHigh = 0x0000
 
-	ppu.nextLowTile = 0xFA
-	ppu.nextHighTile = 0xBB
-	ppu.nextAttribute = 0xAA
+	ppu.bgNextLowTile = 0xFA
+	ppu.bgNextHighTile = 0xBB
+	ppu.bgNextAttribute = 0xAA
 
 	ppu.loadShifters()
 
-	assert.Equal(t, uint16(0xCCFA), ppu.shifterTileLow, "tile low with unexpected value")
-	assert.Equal(t, uint16(0xCCBB), ppu.shifterTileHigh, "tile high with unexpected value")
-	assert.Equal(t, uint16(0xFF00), ppu.shifterAttributeLow, "attribute low with unexpected value")
-	assert.Equal(t, uint16(0x00FF), ppu.shifterAttributeHigh, "attribute low with unexpected value")
+	assert.Equal(t, uint16(0xCCFA), ppu.bgShifterTileLow, "tile low with unexpected value")
+	assert.Equal(t, uint16(0xCCBB), ppu.bgShifterTileHigh, "tile high with unexpected value")
+	assert.Equal(t, uint16(0xFF00), ppu.bgShifterAttributeLow, "attribute low with unexpected value")
+	assert.Equal(t, uint16(0x00FF), ppu.bgShifterAttributeHigh, "attribute low with unexpected value")
 }
 
 func Test_getsTile(t *testing.T) {

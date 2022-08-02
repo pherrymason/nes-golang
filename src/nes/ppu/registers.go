@@ -1,12 +1,15 @@
 package ppu
 
+const PPU_CONTROL_SPRITE_SIZE_8 = 0
+const PPU_CONTROL_SPRITE_SIZE_16 = 1
+
 type Control struct {
 	nameTableX                    byte // Most significant bit of scrolling coordinates (X)
 	nameTableY                    byte // Most significant bit of scrolling coordinates (Y)
 	incrementMode                 byte // Address increment per CPU IO of PPUDATA. (0: add 1, going across; 1: add 32, going down)
-	spritePatterTableAddress      byte // Sprite pattern table address for 8x8 sprites. (0: $0000; 1: $1000; ignored in 8x16 mode)
+	spritePatternTableAddress     byte // Sprite pattern table address for 8x8 sprites. (0: $0000; 1: $1000; ignored in 8x16 mode)
 	backgroundPatternTableAddress byte // Background pattern table address (0: $0000; 1: $1000)
-	spriteSize                    byte
+	spriteSize                    byte // 0: 8x8   1:8x16
 	masterSlaveSelect             byte
 	generateNMIAtVBlank           bool // NMI enabled/disabled
 }
@@ -16,7 +19,7 @@ func (control *Control) value() byte {
 	ctrl |= control.nameTableX
 	ctrl |= control.nameTableY << 1
 	ctrl |= control.incrementMode << 2
-	ctrl |= control.spritePatterTableAddress << 3
+	ctrl |= control.spritePatternTableAddress << 3
 	ctrl |= control.backgroundPatternTableAddress << 4
 	ctrl |= control.spriteSize << 5
 	ctrl |= control.masterSlaveSelect << 6
@@ -57,21 +60,11 @@ func (status *Status) value() byte {
 	return value
 }
 
-/*
-func (register *loopyRegister) addr() types.Address {
-	address := types.Address(register.coarseX)
-	address |= types.Address(register.coarseY << 5)
-	address |= types.Address(register.nameTableX) << 10
-	address |= types.Address(register.nameTableY) << 11
-	address |= types.Address(register.fineY) << 12
-	return address
-}*/
-
 func (ppu *Ppu2c02) ppuCtrlWrite(value byte) {
 	ppu.ppuControl.nameTableX = value & 0x01
 	ppu.ppuControl.nameTableY = (value >> 1) & 1
 	ppu.ppuControl.incrementMode = (value >> 2) & 1
-	ppu.ppuControl.spritePatterTableAddress = (value >> 3) & 1
+	ppu.ppuControl.spritePatternTableAddress = (value >> 3) & 1
 	ppu.ppuControl.backgroundPatternTableAddress = (value >> 4) & 1
 	ppu.ppuControl.spriteSize = (value >> 5) & 1
 	ppu.ppuControl.masterSlaveSelect = (value >> 6) & 1

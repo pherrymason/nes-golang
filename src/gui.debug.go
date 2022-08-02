@@ -79,7 +79,7 @@ func drawDebugger(console *nes.Nes, debuggerGUI *DebuggerGUI) {
 		drawPPUDebugger(console)
 	}
 
-	drawObjectAttributeEntries(console)
+	//drawObjectAttributeEntries(console)
 }
 
 func listenKeyboard(debuggerGUI *DebuggerGUI) {
@@ -251,7 +251,6 @@ func drawCHR(console *nes.Nes, scale int, xOffset int, yOffset int, font *raylib
 
 func drawPPUDebugger(console *nes.Nes) {
 	drawBackgroundTileIDs(console, 600, 10)
-
 }
 
 func drawObjectAttributeEntries(console *nes.Nes) {

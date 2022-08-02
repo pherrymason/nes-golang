@@ -4,6 +4,7 @@ import (
 	"github.com/raulferras/nes-golang/src/nes/types"
 	"image"
 	"image/png"
+	"math/bits"
 	"os"
 )
 
@@ -26,11 +27,6 @@ func (ppu *Ppu2c02) renderLogic() {
 
 	// On these cycles, we fetch data that will be used in next scanline
 	preFetchCycle := ppu.renderCycle >= 321 && ppu.renderCycle <= 336
-	scanlineFinished := false
-
-	if ppu.ppuMask.renderingEnabled() {
-		scanlineFinished = false
-	}
 
 	if scanlineVisible || preRenderScanline {
 		if ppu.evenFrame == false && ppu.currentScanline == 0 && ppu.renderCycle == 0 {
@@ -53,7 +49,7 @@ func (ppu *Ppu2c02) renderLogic() {
 			case 1:
 				// fetch NameTable byte
 				address := 0x2000 | ppu.vRam.nameTableAddress()
-				ppu.nextTileId = ppu.Read(address)
+				ppu.bgNextTileId = ppu.Read(address)
 			case 3:
 				// fetch attribute table byte
 				// "(vram_addr.coarse_x >> 2)"        : integer divide coarse x by 4,
@@ -67,47 +63,46 @@ func (ppu *Ppu2c02) renderLogic() {
 				address |= types.Address(ppu.vRam.nameTableX()) << 10
 				address |= types.Address(ppu.vRam.coarseX() >> 2)    // Divide coarse by 4
 				address |= types.Address(ppu.vRam.coarseY()>>2) << 3 // Divide coarse by 4, shift to make space to coarseX
-				ppu.nextAttribute = ppu.Read(address)
+				ppu.bgNextAttribute = ppu.Read(address)
 
 				// We got the right attribute byte, but we need to find the right 2bit section corresponding
 				// to the tile we are processing
 				if ppu.vRam.coarseY()&0x02 == 0x02 {
-					ppu.nextAttribute >>= 4
+					ppu.bgNextAttribute >>= 4
 				}
 				if ppu.vRam.coarseX()&0x02 == 0x02 {
-					ppu.nextAttribute >>= 2
+					ppu.bgNextAttribute >>= 2
 				}
-				ppu.nextAttribute &= 0x03
+				ppu.bgNextAttribute &= 0x03
 			case 5:
 				// fetch low tile byte
 				// "(ppu.ppuControl.backgroundPatternTableAddress << 12)"  : the pattern memory selector
 				//                                         from control register, either 0K
 				//                                         or 4K offset
-				// "(ppu.nextTileId << 4)"    : the tile id multiplied by 16, as
+				// "(ppu.bgNextTileId << 4)"    : the tile id multiplied by 16, as
 				//                                         2 lots of 8 rows of 8 bit pixels
 				// "(ppu.vRam.fineY)"                  : Offset into which row based on
 				//                                         vertical scroll offset
 				// "+ 0"                                 : Mental clarity for plane offset
 				address := types.Address(ppu.ppuControl.backgroundPatternTableAddress) << 12
-				address |= types.Address(ppu.nextTileId) << 4
+				address |= types.Address(ppu.bgNextTileId) << 4
 				address |= types.Address(ppu.vRam.fineY())
 				address |= types.Address(0)
 
-				ppu.nextLowTile = ppu.Read(address)
+				ppu.bgNextLowTile = ppu.Read(address)
 			case 7:
 				// fetch high tile byte
 				address := types.Address(ppu.ppuControl.backgroundPatternTableAddress) << 12
-				address |= types.Address(ppu.nextTileId) << 4
+				address |= types.Address(ppu.bgNextTileId) << 4
 				address |= types.Address(ppu.vRam.fineY())
 				address |= types.Address(8)
 
-				ppu.nextHighTile = ppu.Read(address)
+				ppu.bgNextHighTile = ppu.Read(address)
 			}
 		} // horizontal cycle visible|prefecth check
 
 		if ppu.renderCycle == 256 {
 			ppu.incrementY()
-			scanlineFinished = true
 		}
 
 		// When every pixel of a scanline has been rendered,
@@ -119,24 +114,71 @@ func (ppu *Ppu2c02) renderLogic() {
 		if preRenderScanline && ppu.renderCycle >= 280 && ppu.renderCycle < 305 {
 			ppu.transferY()
 		}
+
+		// Sprites stuff -------------------
+		if ppu.renderCycle == 257 && scanlineVisible {
+			for i := 0; i < 8; i++ {
+				ppu.oamDataScanline[i] = objectAttributeEntry{0, 0, 0, 0}
+				ppu.spShifterPatternLow[i] = 0x00
+				ppu.spShifterPatternHigh[i] = 0x00
+			}
+		}
+
+		if ppu.renderCycle == 257 {
+			// Pre-fetching sprites for next scanline
+			// This is not fully accurate, sprite loading occurs along different cycles.
+			ppu.spriteScanlineCount = 0
+			var spriteHeight int16
+			if ppu.ppuControl.spriteSize == 0 {
+				spriteHeight = 8
+			} else {
+				spriteHeight = 16
+			}
+
+			for oamIndex := 0; oamIndex < OAMDATA_SIZE && ppu.spriteScanlineCount < 8; oamIndex += 4 {
+				spriteY := int16(ppu.oamData[oamIndex])
+				diff := ppu.currentScanline - spriteY
+				if diff >= 0 && diff <= spriteHeight {
+					ppu.oamDataScanline[ppu.spriteScanlineCount] = objectAttributeEntry{
+						y:          byte(spriteY),
+						tileId:     ppu.oamData[oamIndex+1],
+						attributes: ppu.oamData[oamIndex+2],
+						x:          ppu.oamData[oamIndex+3],
+					}
+					ppu.spriteScanlineCount++
+				}
+			}
+		}
+
+		if ppu.renderCycle == 340 {
+			// Get sprite pattern information
+			// Doing this at cycle 340 is a simplification of what the real NES actually does.
+			// More info: https://www.nesdev.org/wiki/PPU_sprite_evaluation
+			ppu.fetchSpriteShifters()
+		}
+		// ---------------------------------
 	}
 
 	if ppu.currentScanline == 240 {
 		// idle PPU does nothing here
 	}
 
+	ppu.finalPixelComposition()
+}
+
+func (ppu *Ppu2c02) finalPixelComposition() {
 	var bgPixel byte = 0x00
 	var bgPalette byte = 0x00
 	if ppu.ppuMask.showBackgroundEnabled() {
 		bitSelector := uint16(0x8000) >> ppu.fineX
 		pixel0 := byte(0)
 		pixel1 := byte(0)
-		if ppu.shifterTileLow&bitSelector > 0 {
+		if ppu.bgShifterTileLow&bitSelector > 0 {
 			pixel0 = 1
 		} else {
 			pixel0 = 0
 		}
-		if ppu.shifterTileHigh&bitSelector > 0 {
+		if ppu.bgShifterTileHigh&bitSelector > 0 {
 			pixel1 = 1
 		} else {
 			pixel1 = 0
@@ -145,28 +187,54 @@ func (ppu *Ppu2c02) renderLogic() {
 
 		palette0 := byte(0)
 		palette1 := byte(0)
-		if ppu.shifterAttributeLow&bitSelector > 0 {
+		if ppu.bgShifterAttributeLow&bitSelector > 0 {
 			palette0 = 1
 		} else {
 			palette0 = 0
 		}
-		if ppu.shifterAttributeHigh&bitSelector > 0 {
+		if ppu.bgShifterAttributeHigh&bitSelector > 0 {
 			palette1 = 1
 		} else {
 			palette1 = 0
 		}
 		bgPalette = palette1<<1 | palette0
+	}
 
-		if ppu.renderByPixel {
-			ppu.screen.Set(
-				int(ppu.renderCycle-1),
-				int(ppu.currentScanline),
-				ppu.GetRGBColor(bgPalette, bgPixel))
-		}
+	var fgPixel byte
+	var fgPalette byte
+	//var fgPriority byte
+	if ppu.ppuMask.showSpritesEnabled() {
+		for i := byte(0); i < ppu.spriteScanlineCount; i++ {
+			if ppu.oamDataScanline[i].x > 0 {
+				continue
+			}
 
-		if scanlineFinished {
-			//SaveTile(fmt.Sprintf("%d", ppu.currentScanline), ppu.screen)
+			fgPixelLow := (ppu.spShifterPatternLow[i] & 0x80) >> 7
+			fgPixelHigh := (ppu.spShifterPatternHigh[i] & 0x80) >> 7
+			fgPixel = fgPixelHigh<<1 | fgPixelLow
+
+			fgPalette = ppu.oamDataScanline[i].palette()
+			if fgPixel != 0 {
+				break
+			}
 		}
+	}
+
+	var finalPixel byte
+	var finalPalette byte
+	if fgPixel != 0 {
+		finalPixel = fgPixel
+		finalPalette = fgPalette
+	} else {
+		finalPixel = bgPixel
+		finalPalette = bgPalette
+	}
+
+	if ppu.renderByPixel {
+		ppu.screen.Set(
+			int(ppu.renderCycle-1),
+			int(ppu.currentScanline),
+			ppu.GetRGBColor(finalPalette, finalPixel))
 	}
 }
 
@@ -175,34 +243,82 @@ func (ppu *Ppu2c02) renderLogic() {
 // This, together with the fineX register allows to get the pixel information
 // to be rendered together with a smooth per pixel scrolling
 func (ppu *Ppu2c02) updateShifters() {
-	if ppu.ppuMask.renderingEnabled() {
-		ppu.shifterTileLow <<= 1
-		ppu.shifterTileHigh <<= 1
-		ppu.shifterAttributeLow <<= 1
-		ppu.shifterAttributeHigh <<= 1
+	if ppu.ppuMask.showBackgroundEnabled() {
+		ppu.bgShifterTileLow <<= 1
+		ppu.bgShifterTileHigh <<= 1
+		ppu.bgShifterAttributeLow <<= 1
+		ppu.bgShifterAttributeHigh <<= 1
+	}
+
+	if ppu.ppuMask.showSpritesEnabled() && ppu.renderCycle >= 1 && ppu.renderCycle < 258 {
+		for i := byte(0); i < ppu.spriteScanlineCount; i++ {
+			if ppu.oamDataScanline[i].x > 0 {
+				ppu.oamDataScanline[i].x--
+			} else {
+				ppu.spShifterPatternLow[i] <<= 1
+				ppu.spShifterPatternHigh[i] <<= 1
+			}
+		}
 	}
 }
 
 // loadShifters
 // This prepares shifters with the next tile to be rendered
 func (ppu *Ppu2c02) loadShifters() {
-	ppu.shifterTileLow = (ppu.shifterTileLow & 0xFF00) | uint16(ppu.nextLowTile)
-	ppu.shifterTileHigh = (ppu.shifterTileHigh & 0xFF00) | uint16(ppu.nextHighTile)
+	ppu.bgShifterTileLow = (ppu.bgShifterTileLow & 0xFF00) | uint16(ppu.bgNextLowTile)
+	ppu.bgShifterTileHigh = (ppu.bgShifterTileHigh & 0xFF00) | uint16(ppu.bgNextHighTile)
 
 	// As only two bits are required for the color index,
 	// we will use the strategy of shifting bits from a 16bit value.
 	// In this case, we will repeat low bit through 16 bits
 	// and the same with high bit
-	if ppu.nextAttribute&0b01 == 1 {
-		ppu.shifterAttributeLow = (ppu.shifterAttributeLow & 0xFF00) | 0xFF
+	if ppu.bgNextAttribute&0b01 == 1 {
+		ppu.bgShifterAttributeLow = (ppu.bgShifterAttributeLow & 0xFF00) | 0xFF
 	} else {
-		ppu.shifterAttributeLow = (ppu.shifterAttributeLow & 0xFF00) | 0x00
+		ppu.bgShifterAttributeLow = (ppu.bgShifterAttributeLow & 0xFF00) | 0x00
 	}
 
-	if ppu.nextAttribute&0b10 == 2 {
-		ppu.shifterAttributeHigh = (ppu.shifterAttributeHigh & 0xFF00) | 0xFF
+	if ppu.bgNextAttribute&0b10 == 2 {
+		ppu.bgShifterAttributeHigh = (ppu.bgShifterAttributeHigh & 0xFF00) | 0xFF
 	} else {
-		ppu.shifterAttributeHigh = (ppu.shifterAttributeHigh & 0xFF00) | 0x00
+		ppu.bgShifterAttributeHigh = (ppu.bgShifterAttributeHigh & 0xFF00) | 0x00
+	}
+}
+
+func (ppu *Ppu2c02) fetchSpriteShifters() {
+	var spritePatternAddressLow types.Address
+	var spritePatternAddressHigh types.Address
+	var spritePatternLow byte
+	var spritePatternHigh byte
+
+	for i := byte(0); i < ppu.spriteScanlineCount; i++ {
+		object := ppu.oamDataScanline[i]
+
+		if ppu.ppuControl.spriteSize == PPU_CONTROL_SPRITE_SIZE_8 {
+			if !object.isFlippedVertically() {
+				spritePatternAddressLow = types.Address(ppu.ppuControl.spritePatternTableAddress) << 12
+				spritePatternAddressLow |= types.Address(object.tileId) << 4                    // Multiply ID per 16 (16 bytes per tile)
+				spritePatternAddressLow |= types.Address(ppu.currentScanline - int16(object.y)) // Which tile line we want
+			} else {
+				// TODO implement vertical flip
+			}
+		} else {
+			// TODO implement 8x16 sprites
+		}
+
+		spritePatternAddressHigh = spritePatternAddressLow + 8
+		spritePatternLow = ppu.Read(spritePatternAddressLow)
+		spritePatternHigh = ppu.Read(spritePatternAddressHigh)
+
+		// TODO check for horizontal flip
+		if object.isFlippedHorizontally() {
+			// todo implement
+			spritePatternLow = bits.Reverse8(spritePatternLow)
+			spritePatternHigh = bits.Reverse8(spritePatternHigh)
+		}
+
+		ppu.spShifterPatternLow[i] = spritePatternLow
+		ppu.spShifterPatternHigh[i] = spritePatternHigh
 	}
 }
 
@@ -245,7 +361,7 @@ func (ppu *Ppu2c02) renderTile(tile image.RGBA, coordX int, coordY int) {
 }
 
 func (ppu *Ppu2c02) renderSprites() {
-	spritePatternTable := ppu.ppuControl.spritePatterTableAddress
+	spritePatternTable := ppu.ppuControl.spritePatternTableAddress
 	for i := 0; i < OAMDATA_SIZE; i++ {
 		yCoordinate := ppu.oamData[i]
 		xCoordinate := ppu.oamData[i+1]

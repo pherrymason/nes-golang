@@ -22,18 +22,7 @@ type Ppu2c02 struct {
 	tRam       loopyRegister
 	fineX      uint8
 	readBuffer byte
-
-	nextTileId    byte
-	nextAttribute byte
-	nextLowTile   byte
-	nextHighTile  byte
-
-	shifterTileLow       uint16
-	shifterTileHigh      uint16
-	shifterAttributeLow  uint16
-	shifterAttributeHigh uint16
-
-	oamAddr byte
+	oamAddr    byte
 
 	cartridge    *gamePak.GamePak
 	nameTables   [2 * NAMETABLE_SIZE]byte
@@ -41,6 +30,22 @@ type Ppu2c02 struct {
 	// OAM (Object Attribute Memory) is internal memory inside the PPU.
 	// Contains a display list of up to 64 sprites, where each sprite occupies 4 bytes
 	oamData [OAMDATA_SIZE]byte
+
+	// Background rendering
+	bgNextTileId           byte
+	bgNextAttribute        byte
+	bgNextLowTile          byte
+	bgNextHighTile         byte
+	bgShifterTileLow       uint16
+	bgShifterTileHigh      uint16
+	bgShifterAttributeLow  uint16
+	bgShifterAttributeHigh uint16
+
+	// Sprite rendering
+	oamDataScanline      [8]objectAttributeEntry
+	spriteScanlineCount  byte
+	spShifterPatternLow  [8]byte
+	spShifterPatternHigh [8]byte
 
 	cycle  uint32 // Current lifetime PPU Cycle. After warmup, ignored.
 	warmup bool   // Indicates ppu is already warmed up (cycles went above 30000)
@@ -71,10 +76,10 @@ func CreatePPU(cartridge *gamePak.GamePak, debug bool, logPath string) *Ppu2c02 
 		tRam:            loopyRegister{0, 0, 0, 0, 0, 0},
 		fineX:           0,
 
-		shifterTileLow:       0,
-		shifterTileHigh:      0,
-		shifterAttributeLow:  0,
-		shifterAttributeHigh: 0,
+		bgShifterTileLow:       0,
+		bgShifterTileHigh:      0,
+		bgShifterAttributeLow:  0,
+		bgShifterAttributeHigh: 0,
 
 		warmup:        false,
 		renderByPixel: true,
