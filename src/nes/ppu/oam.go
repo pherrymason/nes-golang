@@ -24,5 +24,7 @@ func (oae *objectAttributeEntry) isFlippedHorizontally() bool {
 }
 
 func (oae *objectAttributeEntry) palette() byte {
-	return oae.attributes & 0b111
+	// Sprite palette always goes from index 4 up to 7.
+	// but to save bytes, only three bits are used.
+	return (oae.attributes & 0b111) + 4
 }
