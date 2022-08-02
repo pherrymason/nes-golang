@@ -73,7 +73,7 @@ func drawDebugger(console *nes.Nes, debuggerGUI *DebuggerGUI) {
 	scale := 3
 	drawASM(console)
 	drawPalettes(console, scale, DEBUG_X_OFFSET, 40+15*20, debuggerGUI)
-	drawCHR(console, 1, DEBUG_X_OFFSET, 40+15*20+50, font, debuggerGUI)
+	drawCHR(console, 2, DEBUG_X_OFFSET, 40+15*20+50, font, debuggerGUI)
 
 	if console.Debugger().DebugPPU {
 		drawPPUDebugger(console)

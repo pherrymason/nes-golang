@@ -3,9 +3,10 @@
 # Status
 
 - CPU: 100% of "legal" opcodes implemented
-- PPU: Implementing ~~direct~~ scanline rendering. 
+- PPU: Implemented scanline rendering. 
   - Renders contents of CHR ROM
   - Renders background.
+  - Preliminar sprite rendering.
 - APU: 0%
 - MMU: 0%
 
@@ -29,4 +30,5 @@
   <img src="assets/visual%20evolution/03-ppu-background/donkey-kong-title-3.png" width="30%" alt="Renders donkey kong title, colors finally fixed"/>
   <img src="assets/visual%20evolution/03-ppu-background/donkey-kong-3.png" width="30%" alt="Renders donkey kong, colors finally fixed"/>
   <img src="assets/visual%20evolution/03-ppu-background/supermariobros-title-4.png" width="30%" alt="Super Mario Bros title screen, colors finally fixed by implementing transparent background colors"/>
+  <img src="assets/visual%20evolution/05-ppu-sprite-rendering/donkey-kong-demo-1.png" width="30%" alt="Donkey Kong demo, preliminar sprite rendering"/>
 </p>
