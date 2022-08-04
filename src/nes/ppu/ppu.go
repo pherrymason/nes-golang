@@ -1,7 +1,6 @@
 package ppu
 
 import (
-	"fmt"
 	"github.com/raulferras/nes-golang/src/nes/gamePak"
 	"github.com/raulferras/nes-golang/src/nes/types"
 	"github.com/raulferras/nes-golang/src/utils"
@@ -325,7 +324,7 @@ func (ppu *Ppu2c02) WriteRegister(register types.Address, value byte) {
 		ppu.vRam.increment(ppu.ppuControl.incrementMode)
 		break
 	case OAMDMA:
-		fmt.Println("OAMDMA!")
+		//fmt.Println("OAMDMA!")
 		break
 	}
 }

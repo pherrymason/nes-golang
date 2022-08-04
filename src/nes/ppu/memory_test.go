@@ -25,75 +25,92 @@ func TestPPU_writes_and_reads_into_palette(t *testing.T) {
 	}
 }
 
-func TestPPU_read_nametables(t *testing.T) {
-	type expectedMirroring struct {
-		address         types.Address
-		addressMirrored types.Address
-		realVRAM        types.Address
-	}
+type mirrorAssertion struct {
+	address types.Address
+	mirrors types.Address
+}
+
+func TestPPU_read_nameTables_with_mirroring(t *testing.T) {
 	tests := []struct {
 		name       string
 		mirrorMode byte
-		mirrorA    expectedMirroring
-		mirrorB    expectedMirroring
+		assertions []mirrorAssertion
 	}{
 		{
-			"vertical mirroring: NameTable 2 mirrors NameTable 0",
-			gamePak.VerticalMirroring,
-			expectedMirroring{0x2000, 0x2800, 0},
-			expectedMirroring{0x23FF, 0x2BFF, 0x3FF},
+			name:       "vertical mirror",
+			mirrorMode: gamePak.VerticalMirroring,
+			assertions: []mirrorAssertion{
+				// NameTable 2 mirrors NameTable 0
+				{0x2000, 0x0000},
+				{0x23FF, 0x03FF},
+				{0x2800, 0x0000},
+				{0x2BFF, 0x03FF},
+				// NameTable 3 mirrors NameTable 1
+				{0x2400, 0x400},
+				{0x27FF, 0x7FF},
+				{0x2C00, 0x400},
+				{0x2FFF, 0x7FF},
+
+				// 0x3000 mirrors 0x2000
+				{0x3000, 0x000},
+				{0x33FF, 0x03FF},
+				{0x3800, 0x000},
+				{0x3eff, 0x400 + 0x2ff},
+
+				{0x3400, 0x400},
+				{0x37FF, 0x7FF},
+				{0x3C00, 0x400},
+				{0x3EFF, 0x6FF},
+
+				//{0x3B27},
+			},
 		},
 		{
-			"vertical mirroring NameTable 3 mirrors NameTable 1",
-			gamePak.VerticalMirroring,
-			expectedMirroring{0x2400, 0x2C00, 0x400},
-			expectedMirroring{0x27FF, 0x2FFF, 0x7FF},
+			name:       "horizontal mirroring",
+			mirrorMode: gamePak.HorizontalMirroring,
+			assertions: []mirrorAssertion{
+				// NameTable 2 mirrors NameTable 0
+				{0x2000, 0x000},
+				{0x23FF, 0x3FF},
+				{0x2400, 0x000},
+				{0x27ff, 0x3ff},
+				// NameTable 3 mirrors NameTable 1
+				{0x2800, 0x400},
+				{0x2BFF, 0x7FF},
+				{0x2C00, 0x400},
+				{0x2FFF, 0x7FF},
+				// 0x3000 mirrors 0x2000
+				{0x3000, 0x000},
+				{0x33FF, 0x3FF},
+				{0x3400, 0x000},
+				{0x37FF, 0x3FF},
+
+				{0x3800, 0x400},
+				{0x3Bff, 0x7ff},
+				{0x3C00, 0x400},
+				{0x3EFF, 0x6FF},
+			},
 		},
 		{
-			"horizontal mirroring NameTable 2 mirrors NameTable 0",
-			gamePak.HorizontalMirroring,
-			expectedMirroring{0x2000, 0x2400, 0},
-			expectedMirroring{0x23FF, 0x27FF, 0x3FF},
-		},
-		{
-			"horizontal mirroring NameTable 3 mirrors NameTable 1",
-			gamePak.HorizontalMirroring,
-			expectedMirroring{0x2800, 0x2C00, 0x400},
-			expectedMirroring{0x2BFF, 0x2FFF, 0x7FF},
-		},
-		{
-			"one screen mirroring",
-			gamePak.OneScreenMirroring,
-			expectedMirroring{0x2000, 0x2400, 0x000},
-			expectedMirroring{0x23FF, 0x27FF, 0x3FF},
-		},
-		{
-			"one screen mirroring > 0x2800",
-			gamePak.OneScreenMirroring,
-			expectedMirroring{0x2000, 0x2800, 0x000},
-			expectedMirroring{0x23FF, 0x2BFF, 0x3FF},
-		},
-		{
-			"one screen mirroring > 0x2C00",
-			gamePak.OneScreenMirroring,
-			expectedMirroring{0x2000, 0x2C00, 0x000},
-			expectedMirroring{0x23FF, 0x2FFF, 0x3FF},
+			name:       "One screen mirroring",
+			mirrorMode: gamePak.OneScreenMirroring,
+			assertions: []mirrorAssertion{},
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			pak := gamePak.NewGamePakWithINes(tt.mirrorMode, 0, 0, 0, 0, []byte{0}, []byte{0})
-			ppu := CreatePPU(&pak, false, "")
+		for _, ass := range tt.assertions {
+			t.Run(
+				fmt.Sprintf("%s: %x should mirror %x", tt.name, ass.address, ass.mirrors),
 
-			ppu.nameTables[tt.mirrorA.realVRAM] = 0xFF
-			assert.Equal(t, byte(0xFF), ppu.Read(tt.mirrorA.address))
-			assert.Equal(t, byte(0xFF), ppu.Read(tt.mirrorA.addressMirrored), fmt.Sprintf("failed %x mirrors %x", tt.mirrorA.addressMirrored, tt.mirrorA.address))
-
-			ppu.nameTables[tt.mirrorB.realVRAM] = 0xF1
-			assert.Equal(t, byte(0xF1), ppu.Read(tt.mirrorB.address))
-			assert.Equal(t, byte(0xF1), ppu.Read(tt.mirrorB.addressMirrored), fmt.Sprintf("failed %x mirrors %x", tt.mirrorB.addressMirrored, tt.mirrorB.address))
-		})
+				func(t *testing.T) {
+					assert.Equal(
+						t,
+						ass.mirrors,
+						getNameTableAddress(tt.mirrorMode, ass.address),
+					)
+				})
+		}
 	}
 }
 

@@ -51,8 +51,8 @@ func (ppu *Ppu2c02) read(address types.Address, readOnly bool) byte {
 	} else if isNameTableAddress(address) {
 		// Nametable 0, 1, 2, 3
 		mirroring := ppu.cartridge.Header().Mirroring()
-		realAddress := nameTableMirrorAddress(mirroring, address)
-		result = ppu.nameTables[realAddress]
+		nameTableAddress := getNameTableAddress(mirroring, address)
+		result = ppu.nameTables[nameTableAddress]
 	} else if isPaletteAddress(address) {
 		result = ppu.readPalette(address)
 	}
@@ -62,12 +62,12 @@ func (ppu *Ppu2c02) read(address types.Address, readOnly bool) byte {
 
 func (ppu *Ppu2c02) Write(address types.Address, value byte) {
 	if isNameTableAddress(address) {
-		realAddress := nameTableMirrorAddress(ppu.cartridge.Header().Mirroring(), address)
-		if ppu.nameTables[realAddress] != value {
+		nameTableAddress := getNameTableAddress(ppu.cartridge.Header().Mirroring(), address)
+		if ppu.nameTables[nameTableAddress] != value {
 			ppu.nameTableChanged = true
 		}
 
-		ppu.nameTables[realAddress] = value
+		ppu.nameTables[nameTableAddress] = value
 
 	} else if address == 0x4010 {
 		// OAM DMA: Transfers 256 bytes of data from CPU page $XX00-$XXFF to internal PPU OAM
@@ -88,7 +88,8 @@ func (ppu *Ppu2c02) Write(address types.Address, value byte) {
 
 func isNameTableAddress(address types.Address) bool {
 	// $3000-$3EFF nametable mirrors!
-	return address >= NameTableStartAddress && address <= NameTableEndAddress
+	return address >= NameTableStartAddress && /*address <= NameTableEndAddress*/
+		address <= 0x3EFF
 }
 
 func isPaletteAddress(address types.Address) bool {
@@ -128,37 +129,76 @@ func (ppu *Ppu2c02) writePalette(address types.Address, colorIndex byte) {
 	ppu.paletteTable[address] = colorIndex
 }
 
-func nameTableMirrorAddress(mirrorMode byte, address types.Address) types.Address {
+func getNameTableAddress(mirrorMode byte, address types.Address) types.Address {
 	realAddress := address
+	// $2000-$23FF 	$0400 	Nametable 0
+	// $2400-$27FF 	$0400 	Nametable 1
+	// $2800-$2BFF 	$0400 	Nametable 2
+	// $2C00-$2FFF 	$0400 	Nametable 3
+	// $3000-$3EFF 	$0F00
 	if mirrorMode == gamePak.VerticalMirroring {
-		realAddress = (address - 0x2000) & 0x27FF
-		/*
-			if address >= 0x2000 && address <= 0x23FF {
-				// Nametable 0
-				realAddress = address - 0x2000
-			} else if address >= 0x2400 && address < 0x27FF {
-				// Nametable 2
-				realAddress = address - 0x2000
-			} else if address >= 0x2800 && address <= 0x2BFF {
-				// Nametable 1
-				realAddress = address - 0x2800
-			} else {
-				// Nametable 3
-				realAddress = address - 0x2800
-			}*/
-	} else if mirrorMode == gamePak.HorizontalMirroring {
-		if address >= 0x2000 && address < 0x2400 {
-			realAddress = address - 0x2000
-		} else if address >= 0x2400 && address <= 0x27FF {
-			realAddress = address - 0x2400
-		} else if address >= 0x2800 && address <= 0x2BFF {
-			realAddress = address - 0x2400
-		} else if address >= 0x2C00 && address <= 0x2FFF {
-			realAddress = address - 0x2800
+		// -----------------------------
+		// |    $2000    |    $2400    |
+		// |      A      |      B      |
+		// |-------------+-------------|
+		// |    $2800    |    $2C00    |
+		// |      A      |      B      |
+		// |-------------+-------------|
+		// |    $3000    |    $3400    |
+		// |      A      |      B      |
+		// |-------------+-------------|
+		// |    $3800    |    $3C00    |
+		// |      A      |    $3EFF    |
+		// |-------------|-------------|
+
+		// Inspired from fceux https://github.com/TASEmulators/fceux/blob/d1467182046e7ca00d65cd35f20ee011b2a665e6/src/ppu.cpp#L524
+
+		nameTable := (address >> 10) & 0x3
+		mask := types.Address(0x3FF)
+
+		if nameTable > 1 {
+			nameTable -= 2 // Substracting 2 gives us the real nametable
 		}
+
+		realAddress = 0x2000 + (0x400 * nameTable)
+		if float32(address)/0x400 > 0xF {
+			realAddress += address & 0x2FF
+		} else {
+			realAddress += address & mask
+		}
+	} else if mirrorMode == gamePak.HorizontalMirroring {
+		// -----------------------------
+		// |    $2000    |    $2400    |
+		// |      A      |      A      |
+		// |-------------+-------------|
+		// |    $2800    |    $2C00    |
+		// |      B      |      B      |
+		// |-------------+-------------|
+		// |    $3000    |    $3400    |
+		// |      A      |      A      |
+		// |-------------+-------------|
+		// |    $3800    |    $3C00    |
+		// |      B      |    $3EFF    |
+		// |-------------|-------------|
+		address = (address - 0x2000) % 0x1000 // keep the 0xFFF part
+		table := address / 0x0400             // Nametable index
+		y := table / 2
+		x := table + 1
+		realAddress = address - ((y - (x - 1)) * 0x400)
+		// Formula explanation
+		// Having these tables
+		// +----+-----+
+		// | 0  |  1  |   Nametable A: 0x000 -> 0x3FF
+		// +----+-----+
+		// | 2  |  3  |   Nametable B: 0x400 -> 0x7FF
+		// +----+-----+
+		// We can infer that even rows are nametable a.
+		// We need to calculate how many times we need to subtract 0x400 to the address
+		// to reach 0x00 (name table A) or 0x400 (nametable B)
+		// Know the row, we subtract x -1 to the row and multiply by 0x400
 	} else if mirrorMode == gamePak.OneScreenMirroring {
-		realAddress = (address - 0x2000) & 0x3FF
+		realAddress = (address) & 0x3FF
 	}
 
-	return realAddress
+	return realAddress % 2048
 }
