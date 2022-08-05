@@ -17,7 +17,6 @@ const CPU_LOG_MAX_SIZE = 120000
 
 func createCPULogger(outputPath string) cpu6502Logger {
 	f, err := os.Create(outputPath)
-
 	if err != nil {
 		panic(fmt.Sprintf("Could not create log file: %s", outputPath))
 	}

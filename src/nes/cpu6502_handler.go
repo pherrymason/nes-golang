@@ -31,6 +31,13 @@ func (cpu6502 *Cpu6502) Tick() byte {
 		cpu6502.opCyclesLeft--
 		return cpu6502.opCyclesLeft
 	}
+	defer func() {
+		if r := recover(); r != nil {
+			cpu6502.Logger.Close()
+			panic("out")
+		}
+	}()
+
 	registersCopy := *cpu6502.Registers()
 
 	opcode := cpu6502.memory.Read(cpu6502.registers.Pc)

@@ -4,7 +4,7 @@ type Mask struct {
 	greyScale              byte
 	showBackgroundLeftMost byte
 	showSpritesLeftMost    byte
-	showBackground         byte
+	showBackground         byte // x8
 	showSprites            byte
 	emphasizeRed           byte
 	emphasizeGreen         byte

@@ -81,7 +81,7 @@ func (ppu *Ppu2c02) Write(address types.Address, value byte) {
 		} else {
 			vblank = "no"
 		}
-		err := fmt.Sprintf("Unhandled ppu address: 0x%X, ppu cycle: %d, scanline: %d, vBlank: %s", address, ppu.renderCycle, ppu.currentScanline, vblank)
+		err := fmt.Sprintf("Unhandled ppu write address: 0x%X, ppu cycle: %d, scanline: %d, vBlank: %s", address, ppu.renderCycle, ppu.currentScanline, vblank)
 		panic(err)
 	}
 }
