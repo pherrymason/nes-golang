@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	r "github.com/lachee/raylib-goplus/raylib"
+	"github.com/raulferras/nes-golang/src/debugger"
 	"github.com/raulferras/nes-golang/src/graphics"
 	"github.com/raulferras/nes-golang/src/nes"
 	"github.com/raulferras/nes-golang/src/nes/gamePak"
@@ -17,7 +18,6 @@ import (
 	"time"
 )
 
-var font *r.Font
 var cpuAdvance bool
 
 func main() {
@@ -47,7 +47,6 @@ func main() {
 	r.InitWindow(windowWidth, 700, "NES golang")
 	r.SetTraceLogLevel(r.LogWarning)
 	//r.SetTargetFPS(60)
-	font = r.LoadFont("./assets/Pixel_NES.otf")
 
 	graphics.InitDrawer()
 
@@ -59,7 +58,7 @@ func main() {
 	//path := "./assets/roms/Mega Man 2 (Europe).nes"
 	cartridge := gamePak.CreateGamePakFromROMFile(romPath)
 
-	printRomInfo(&cartridge)
+	debugger.PrintRomInfo(&cartridge)
 
 	console := nes.CreateNes(
 		&cartridge,
@@ -71,17 +70,15 @@ func main() {
 		),
 	)
 
-	console.Start()
-	mainLoop(console)
+	loop(console)
 	r.CloseWindow()
-
-	console.Stop()
 }
 
-func mainLoop(console nes.Nes) {
+func loop(console *nes.Nes) {
 	cpuAdvance = true
+	console.Start()
 	_timestamp := r.GetTime()
-	debuggerGUI := NewDebuggerGUI()
+	debuggerGUI := debugger.NewDebuggerGUI(console)
 
 	for !r.WindowShouldClose() {
 		if console.Stopped() {
@@ -108,14 +105,18 @@ func mainLoop(console nes.Nes) {
 		// Draw
 		r.BeginDrawing()
 		r.ClearBackground(r.Black)
-
-		drawEmulation(&console)
+		drawEmulation(console)
 		//drawBackgroundTileIDs(console)
-		drawDebugger(&console, &debuggerGUI)
+		debuggerGUI.Tick()
+		//
+		//r.GuiWindowBox(r.Rectangle{0, 0, 100, 100}, "??")
 		r.EndDrawing()
 
 		cpuAdvance = true
 	}
+
+	debuggerGUI.Close()
+	console.Stop()
 }
 
 func drawEmulation(console *nes.Nes) {
