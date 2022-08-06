@@ -23,8 +23,8 @@ func Test_ppuctrlWriteFlag(t *testing.T) {
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
 			ppu.ppuCtrlWrite(tt.initial)
-			ppu.ppuControl.incrementMode = tt.write
-			assert.Equal(t, tt.expected, ppu.ppuControl.value())
+			ppu.PpuControl.IncrementMode = tt.write
+			assert.Equal(t, tt.expected, ppu.PpuControl.Value())
 		})
 	}
 }
@@ -38,7 +38,7 @@ func TestPPU_PPUCTRL_write(t *testing.T) {
 
 	ppu.WriteRegister(PPUCTRL, 0xFF)
 
-	assert.Equal(t, byte(0xFF), ppu.ppuControl.value())
+	assert.Equal(t, byte(0xFF), ppu.PpuControl.Value())
 }
 
 func TestPPU_PPUMASK_write(t *testing.T) {
@@ -184,7 +184,7 @@ func TestPPU_PPUData_read(t *testing.T) {
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
 			ppu.vRam.setValue(tt.addressToRead)
-			ppu.ppuControl.incrementMode = tt.incrementMode
+			ppu.PpuControl.IncrementMode = tt.incrementMode
 			expectedIncrement := types.Address(1)
 			if tt.incrementMode == 1 {
 				expectedIncrement = 32
@@ -192,12 +192,12 @@ func TestPPU_PPUData_read(t *testing.T) {
 
 			// Dummy Read
 			firstRead := ppu.ReadRegister(PPUDATA)
-			assert.Equal(t, tt.firstRead, firstRead, "unexpected first read value")
+			assert.Equal(t, tt.firstRead, firstRead, "unexpected first read Value")
 			assert.Equal(t, (tt.addressToRead+expectedIncrement)&0x3FFF, ppu.vRam.address(), "unexpected first read ppuDataAddr increment")
 
 			secondRead := ppu.ReadRegister(PPUDATA)
 
-			assert.Equal(t, tt.secondRead, secondRead, "unexpected second read value")
+			assert.Equal(t, tt.secondRead, secondRead, "unexpected second read Value")
 
 			assert.Equal(t, (tt.addressToRead+expectedIncrement*2)&0x3FFF, ppu.vRam.address(), "unexpected second read ppuDataAddr increment")
 		})
@@ -238,7 +238,7 @@ func TestPPU_PPUData_write(t *testing.T) {
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
 			ppu.vRam.setValue(tt.addressToWrite)
-			ppu.ppuControl.incrementMode = tt.incrementMode
+			ppu.PpuControl.IncrementMode = tt.incrementMode
 			expectedIncrement := types.Address(1)
 			if tt.incrementMode == 1 {
 				expectedIncrement = 32
@@ -247,7 +247,7 @@ func TestPPU_PPUData_write(t *testing.T) {
 			ppu.WriteRegister(PPUDATA, tt.valueToWrite)
 
 			writtenValue := ppu.Read(tt.addressToWrite)
-			assert.Equal(t, tt.valueToWrite, writtenValue, "unexpected value written")
+			assert.Equal(t, tt.valueToWrite, writtenValue, "unexpected Value written")
 			assert.Equal(t, (tt.addressToWrite+expectedIncrement)&0x3FFF, ppu.vRam.address(), "unexpected first read ppuDataAddr increment")
 		})
 	}

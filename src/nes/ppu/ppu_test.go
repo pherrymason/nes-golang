@@ -85,9 +85,9 @@ func Test_should_trigger_NMI_on_vBlank(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ppu := aPPU()
 			if tt.allowNMI {
-				ppu.ppuControl.generateNMIAtVBlank = true
+				ppu.PpuControl.GenerateNMIAtVBlank = true
 			} else {
-				ppu.ppuControl.generateNMIAtVBlank = false
+				ppu.PpuControl.GenerateNMIAtVBlank = false
 			}
 			ppu.renderCycle = 1
 			ppu.currentScanline = 241

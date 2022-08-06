@@ -76,7 +76,7 @@ func (ppu *Ppu2c02) renderLogic() {
 				ppu.bgNextAttribute &= 0x03
 			case 5:
 				// fetch low tile byte
-				// "(ppu.ppuControl.backgroundPatternTableAddress << 12)"  : the pattern memory selector
+				// "(ppu.PpuControl.BackgroundPatternTableAddress << 12)"  : the pattern memory selector
 				//                                         from control register, either 0K
 				//                                         or 4K offset
 				// "(ppu.bgNextTileId << 4)"    : the tile id multiplied by 16, as
@@ -84,7 +84,7 @@ func (ppu *Ppu2c02) renderLogic() {
 				// "(ppu.vRam.fineY)"                  : Offset into which row based on
 				//                                         vertical scroll offset
 				// "+ 0"                                 : Mental clarity for plane offset
-				address := types.Address(ppu.ppuControl.backgroundPatternTableAddress) << 12
+				address := types.Address(ppu.PpuControl.BackgroundPatternTableAddress) << 12
 				address |= types.Address(ppu.bgNextTileId) << 4
 				address |= types.Address(ppu.vRam.fineY())
 				address |= types.Address(0)
@@ -92,7 +92,7 @@ func (ppu *Ppu2c02) renderLogic() {
 				ppu.bgNextLowTile = ppu.Read(address)
 			case 7:
 				// fetch high tile byte
-				address := types.Address(ppu.ppuControl.backgroundPatternTableAddress) << 12
+				address := types.Address(ppu.PpuControl.BackgroundPatternTableAddress) << 12
 				address |= types.Address(ppu.bgNextTileId) << 4
 				address |= types.Address(ppu.vRam.fineY())
 				address |= types.Address(8)
@@ -129,7 +129,7 @@ func (ppu *Ppu2c02) renderLogic() {
 			// This is not fully accurate, sprite loading occurs along different cycles.
 			ppu.spriteScanlineCount = 0
 			var spriteHeight int16
-			if ppu.ppuControl.spriteSize == 0 {
+			if ppu.PpuControl.SpriteSize == 0 {
 				spriteHeight = 8
 			} else {
 				spriteHeight = 16
@@ -269,7 +269,7 @@ func (ppu *Ppu2c02) loadShifters() {
 	ppu.bgShifterTileHigh = (ppu.bgShifterTileHigh & 0xFF00) | uint16(ppu.bgNextHighTile)
 
 	// As only two bits are required for the color index,
-	// we will use the strategy of shifting bits from a 16bit value.
+	// we will use the strategy of shifting bits from a 16bit Value.
 	// In this case, we will repeat low bit through 16 bits
 	// and the same with high bit
 	if ppu.bgNextAttribute&0b01 == 1 {
@@ -294,9 +294,9 @@ func (ppu *Ppu2c02) fetchSpriteShifters() {
 	for i := byte(0); i < ppu.spriteScanlineCount; i++ {
 		object := ppu.oamDataScanline[i]
 
-		if ppu.ppuControl.spriteSize == PPU_CONTROL_SPRITE_SIZE_8 {
+		if ppu.PpuControl.SpriteSize == PPU_CONTROL_SPRITE_SIZE_8 {
 			if !object.isFlippedVertically() {
-				spritePatternAddressLow = types.Address(ppu.ppuControl.spritePatternTableAddress) << 12
+				spritePatternAddressLow = types.Address(ppu.PpuControl.SpritePatternTableAddress) << 12
 				spritePatternAddressLow |= types.Address(object.tileId) << 4                    // Multiply ID per 16 (16 bytes per tile)
 				spritePatternAddressLow |= types.Address(ppu.currentScanline - int16(object.y)) // Which tile line we want
 			} else {
@@ -328,7 +328,7 @@ func (ppu *Ppu2c02) renderBackground() {
 	nameTableStart := 0
 	nameTablesEnd := int(PPU_NAMETABLES_0_END - NameTableStartAddress)
 	tilesWidth := 32
-	backgroundPatternTable := ppu.ppuControl.backgroundPatternTableAddress
+	backgroundPatternTable := ppu.PpuControl.BackgroundPatternTableAddress
 	//bankAddress := 0x1000 * int(backgroundPatternTable)
 	//tilesHeight := 30
 	if !ppu.nameTableChanged {
@@ -361,7 +361,7 @@ func (ppu *Ppu2c02) renderTile(tile image.RGBA, coordX int, coordY int) {
 }
 
 func (ppu *Ppu2c02) renderSprites() {
-	spritePatternTable := ppu.ppuControl.spritePatternTableAddress
+	spritePatternTable := ppu.PpuControl.SpritePatternTableAddress
 	for i := 0; i < OAMDATA_SIZE; i++ {
 		yCoordinate := ppu.oamData[i]
 		xCoordinate := ppu.oamData[i+1]
@@ -412,7 +412,7 @@ func backgroundPalette(tileColumn uint8, tileRow uint8, nameTable *[2 * NAMETABL
 		return (attrValue >> 6) & 0b11
 	}
 
-	panic("backgroundPalette: Invalid attribute value!")
+	panic("backgroundPalette: Invalid attribute Value!")
 }
 
 func (ppu *Ppu2c02) findTile(tileID byte, patternTable byte, tileColumn uint8, tileRow uint8, forcedPalette uint8) image.RGBA {

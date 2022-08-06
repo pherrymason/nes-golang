@@ -14,7 +14,7 @@ type PPU interface {
 }
 
 type Ppu2c02 struct {
-	ppuControl Control
+	PpuControl Control
 	ppuStatus  Status
 	ppuMask    Mask // Controls the rendering of sprites and backgrounds
 	vRam       loopyRegister
@@ -116,7 +116,7 @@ func (ppu *Ppu2c02) Tick() {
 			// TODO enabling VBlank only on ==1 and not on >=1 makes it difficult to start emulation inside a VBlank cycle. If changed, nmi triggering should be worked though.
 			ppu.ppuStatus.verticalBlankStarted = true
 
-			if ppu.ppuControl.generateNMIAtVBlank {
+			if ppu.PpuControl.GenerateNMIAtVBlank {
 				ppu.nmi = true
 			}
 		}
@@ -259,7 +259,7 @@ func (ppu *Ppu2c02) ReadRegister(register types.Address) byte {
 			value = ppu.readBuffer
 		}
 
-		ppu.vRam.increment(ppu.ppuControl.incrementMode)
+		ppu.vRam.increment(ppu.PpuControl.IncrementMode)
 		break
 
 	case OAMDMA:
@@ -278,8 +278,8 @@ func (ppu *Ppu2c02) WriteRegister(register types.Address, value byte) {
 	switch register {
 	case PPUCTRL:
 		ppu.ppuCtrlWrite(value)
-		ppu.tRam.setNameTableX(ppu.ppuControl.nameTableX)
-		ppu.tRam.setNameTableY(ppu.ppuControl.nameTableY)
+		ppu.tRam.setNameTableX(ppu.PpuControl.NameTableX)
+		ppu.tRam.setNameTableY(ppu.PpuControl.NameTableY)
 		// todo trigger nmi if in vblank and generateNMI transitions from 0 to 1
 		break
 
@@ -321,7 +321,7 @@ func (ppu *Ppu2c02) WriteRegister(register types.Address, value byte) {
 	case PPUDATA:
 		address := ppu.vRam.address()
 		ppu.Write(address, value)
-		ppu.vRam.increment(ppu.ppuControl.incrementMode)
+		ppu.vRam.increment(ppu.PpuControl.IncrementMode)
 		break
 	case OAMDMA:
 		//fmt.Println("OAMDMA!")

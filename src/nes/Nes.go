@@ -18,7 +18,7 @@ type Nes struct {
 	stopped            bool
 }
 
-func CreateNes(gamePak *gamePak.GamePak, debugger *NesDebugger) Nes {
+func CreateNes(gamePak *gamePak.GamePak, debugger *NesDebugger) *Nes {
 	hexit.BuildTable()
 	thePPU := ppu.CreatePPU(gamePak, debugger.DebugPPU, debugger.logPath+"/ppu.log")
 
@@ -30,7 +30,7 @@ func CreateNes(gamePak *gamePak.GamePak, debugger *NesDebugger) Nes {
 	debugger.cpu = cpu
 	debugger.ppu = thePPU
 
-	nes := Nes{
+	nes := &Nes{
 		cpu:   cpu,
 		ppu:   thePPU,
 		debug: debugger,
@@ -135,4 +135,8 @@ func (nes *Nes) Frame() *image.RGBA {
 }
 func (nes *Nes) FramePattern() []byte {
 	return nes.ppu.FramePattern()
+}
+
+func (nes *Nes) PPU() *ppu.Ppu2c02 {
+	return nes.ppu
 }

@@ -12,7 +12,7 @@ func TestPPU_writing_to_registers_are_ignored_first_29658_CPU_clocks(t *testing.
 
 	for cpuCycles := 0; cpuCycles < 29658; cpuCycles += 3 {
 		ppu.WriteRegister(PPUCTRL, 0xFF)
-		if byte(0xFF) == ppu.ppuControl.value() {
+		if byte(0xFF) == ppu.PpuControl.Value() {
 			assert.FailNowf(t, "ppuctrl write was not ignored", "Writes to PPUCTRL should be ignored first 30000 cycles. (Cycle :%d)", cpuCycles)
 		}
 

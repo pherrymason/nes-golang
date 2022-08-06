@@ -4,26 +4,26 @@ const PPU_CONTROL_SPRITE_SIZE_8 = 0
 const PPU_CONTROL_SPRITE_SIZE_16 = 1
 
 type Control struct {
-	nameTableX                    byte // Most significant bit of scrolling coordinates (X)
-	nameTableY                    byte // Most significant bit of scrolling coordinates (Y)
-	incrementMode                 byte // Address increment per CPU IO of PPUDATA. (0: add 1, going across; 1: add 32, going down)
-	spritePatternTableAddress     byte // Sprite pattern table address for 8x8 sprites. (0: $0000; 1: $1000; ignored in 8x16 mode)
-	backgroundPatternTableAddress byte // Background pattern table address (0: $0000; 1: $1000)
-	spriteSize                    byte // 0: 8x8   1:8x16
-	masterSlaveSelect             byte
-	generateNMIAtVBlank           bool // NMI enabled/disabled
+	NameTableX                    byte // Most significant bit of scrolling coordinates (X)
+	NameTableY                    byte // Most significant bit of scrolling coordinates (Y)
+	IncrementMode                 byte // Address increment per CPU IO of PPUDATA. (0: add 1, going across; 1: add 32, going down)
+	SpritePatternTableAddress     byte // Sprite pattern table address for 8x8 sprites. (0: $0000; 1: $1000; ignored in 8x16 mode)
+	BackgroundPatternTableAddress byte // Background pattern table address (0: $0000; 1: $1000)
+	SpriteSize                    byte // 0: 8x8   1:8x16
+	MasterSlaveSelect             byte
+	GenerateNMIAtVBlank           bool // NMI enabled/disabled
 }
 
-func (control *Control) value() byte {
+func (control *Control) Value() byte {
 	ctrl := byte(0)
-	ctrl |= control.nameTableX
-	ctrl |= control.nameTableY << 1
-	ctrl |= control.incrementMode << 2
-	ctrl |= control.spritePatternTableAddress << 3
-	ctrl |= control.backgroundPatternTableAddress << 4
-	ctrl |= control.spriteSize << 5
-	ctrl |= control.masterSlaveSelect << 6
-	if control.generateNMIAtVBlank {
+	ctrl |= control.NameTableX
+	ctrl |= control.NameTableY << 1
+	ctrl |= control.IncrementMode << 2
+	ctrl |= control.SpritePatternTableAddress << 3
+	ctrl |= control.BackgroundPatternTableAddress << 4
+	ctrl |= control.SpriteSize << 5
+	ctrl |= control.MasterSlaveSelect << 6
+	if control.GenerateNMIAtVBlank {
 		ctrl |= 1 << 7
 	}
 
@@ -61,17 +61,17 @@ func (status *Status) value() byte {
 }
 
 func (ppu *Ppu2c02) ppuCtrlWrite(value byte) {
-	ppu.ppuControl.nameTableX = value & 0x01
-	ppu.ppuControl.nameTableY = (value >> 1) & 1
-	ppu.ppuControl.incrementMode = (value >> 2) & 1
-	ppu.ppuControl.spritePatternTableAddress = (value >> 3) & 1
-	ppu.ppuControl.backgroundPatternTableAddress = (value >> 4) & 1
-	ppu.ppuControl.spriteSize = (value >> 5) & 1
-	ppu.ppuControl.masterSlaveSelect = (value >> 6) & 1
+	ppu.PpuControl.NameTableX = value & 0x01
+	ppu.PpuControl.NameTableY = (value >> 1) & 1
+	ppu.PpuControl.IncrementMode = (value >> 2) & 1
+	ppu.PpuControl.SpritePatternTableAddress = (value >> 3) & 1
+	ppu.PpuControl.BackgroundPatternTableAddress = (value >> 4) & 1
+	ppu.PpuControl.SpriteSize = (value >> 5) & 1
+	ppu.PpuControl.MasterSlaveSelect = (value >> 6) & 1
 	if (value>>7)&1 == 1 {
-		ppu.ppuControl.generateNMIAtVBlank = true
+		ppu.PpuControl.GenerateNMIAtVBlank = true
 	} else {
-		ppu.ppuControl.generateNMIAtVBlank = false
+		ppu.PpuControl.GenerateNMIAtVBlank = false
 	}
 }
 

@@ -115,6 +115,7 @@ func (debugger *NesDebugger) YRegister() byte {
 	return debugger.cpu.registers.Y
 }
 
+// PPU Related
 func (debugger *NesDebugger) PatternTable(patternTable byte, palette uint8) image.RGBA {
 	return debugger.ppu.PatternTable(patternTable, palette)
 }

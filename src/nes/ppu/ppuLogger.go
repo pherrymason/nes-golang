@@ -46,7 +46,7 @@ func (s *PPUState) String() string {
 	msg.WriteString(" sl:")
 	msg.WriteString(strconv.FormatUint(uint64(s.currentScanline), 10))
 	msg.WriteString(" CTRL: ")
-	msg.WriteString(hexit.HexUint8Str(s.ppuControl.value()))
+	msg.WriteString(hexit.HexUint8Str(s.ppuControl.Value()))
 	msg.WriteString(" STATUS: ")
 	msg.WriteString(hexit.HexUint8Str(s.ppuStatus.value()))
 
@@ -93,7 +93,7 @@ func (logger *logger2c02) log(ppu *Ppu2c02) {
 	}
 
 	state := PPUState{
-		ppuControl:           ppu.ppuControl,
+		ppuControl:           ppu.PpuControl,
 		ppuStatus:            ppu.ppuStatus,
 		ppuMask:              ppu.ppuMask,
 		vRam:                 ppu.vRam,

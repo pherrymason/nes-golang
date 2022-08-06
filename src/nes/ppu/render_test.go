@@ -58,10 +58,10 @@ func TestPpu2c02_loadShifters(t *testing.T) {
 
 	ppu.loadShifters()
 
-	assert.Equal(t, uint16(0xCCFA), ppu.bgShifterTileLow, "tile low with unexpected value")
-	assert.Equal(t, uint16(0xCCBB), ppu.bgShifterTileHigh, "tile high with unexpected value")
-	assert.Equal(t, uint16(0xFF00), ppu.bgShifterAttributeLow, "attribute low with unexpected value")
-	assert.Equal(t, uint16(0x00FF), ppu.bgShifterAttributeHigh, "attribute low with unexpected value")
+	assert.Equal(t, uint16(0xCCFA), ppu.bgShifterTileLow, "tile low with unexpected Value")
+	assert.Equal(t, uint16(0xCCBB), ppu.bgShifterTileHigh, "tile high with unexpected Value")
+	assert.Equal(t, uint16(0xFF00), ppu.bgShifterAttributeLow, "attribute low with unexpected Value")
+	assert.Equal(t, uint16(0x00FF), ppu.bgShifterAttributeHigh, "attribute low with unexpected Value")
 }
 
 func Test_getsTile(t *testing.T) {
