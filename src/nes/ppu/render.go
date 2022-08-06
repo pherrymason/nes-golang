@@ -59,18 +59,18 @@ func (ppu *Ppu2c02) renderLogic() {
 				//                                      shift to make room for coarse x
 
 				address := types.Address(0x23C0)
-				address |= types.Address(ppu.vRam.nameTableY()) << 11
-				address |= types.Address(ppu.vRam.nameTableX()) << 10
-				address |= types.Address(ppu.vRam.coarseX() >> 2)    // Divide coarse by 4
-				address |= types.Address(ppu.vRam.coarseY()>>2) << 3 // Divide coarse by 4, shift to make space to coarseX
+				address |= types.Address(ppu.vRam.NameTableY()) << 11
+				address |= types.Address(ppu.vRam.NameTableX()) << 10
+				address |= types.Address(ppu.vRam.CoarseX() >> 2)    // Divide coarse by 4
+				address |= types.Address(ppu.vRam.CoarseY()>>2) << 3 // Divide coarse by 4, shift to make space to CoarseX
 				ppu.bgNextAttribute = ppu.Read(address)
 
 				// We got the right attribute byte, but we need to find the right 2bit section corresponding
 				// to the tile we are processing
-				if ppu.vRam.coarseY()&0x02 == 0x02 {
+				if ppu.vRam.CoarseY()&0x02 == 0x02 {
 					ppu.bgNextAttribute >>= 4
 				}
-				if ppu.vRam.coarseX()&0x02 == 0x02 {
+				if ppu.vRam.CoarseX()&0x02 == 0x02 {
 					ppu.bgNextAttribute >>= 2
 				}
 				ppu.bgNextAttribute &= 0x03
@@ -81,12 +81,12 @@ func (ppu *Ppu2c02) renderLogic() {
 				//                                         or 4K offset
 				// "(ppu.bgNextTileId << 4)"    : the tile id multiplied by 16, as
 				//                                         2 lots of 8 rows of 8 bit pixels
-				// "(ppu.vRam.fineY)"                  : Offset into which row based on
+				// "(ppu.vRam.FineY)"                  : Offset into which row based on
 				//                                         vertical scroll offset
 				// "+ 0"                                 : Mental clarity for plane offset
 				address := types.Address(ppu.PpuControl.BackgroundPatternTableAddress) << 12
 				address |= types.Address(ppu.bgNextTileId) << 4
-				address |= types.Address(ppu.vRam.fineY())
+				address |= types.Address(ppu.vRam.FineY())
 				address |= types.Address(0)
 
 				ppu.bgNextLowTile = ppu.Read(address)
@@ -94,7 +94,7 @@ func (ppu *Ppu2c02) renderLogic() {
 				// fetch high tile byte
 				address := types.Address(ppu.PpuControl.BackgroundPatternTableAddress) << 12
 				address |= types.Address(ppu.bgNextTileId) << 4
-				address |= types.Address(ppu.vRam.fineY())
+				address |= types.Address(ppu.vRam.FineY())
 				address |= types.Address(8)
 
 				ppu.bgNextHighTile = ppu.Read(address)

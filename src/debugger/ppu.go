@@ -19,7 +19,7 @@ type PPUDebugger struct {
 func NewPPUDebugger(ppu *ppu.Ppu2c02) *PPUDebugger {
 	return &PPUDebugger{
 		enabled:         false,
-		windowRectangle: raylib.Rectangle{X: 300, Width: debuggerWidth, Height: 300},
+		windowRectangle: raylib.Rectangle{X: 300, Width: debuggerWidth, Height: 450},
 		dragWindow:      false,
 		ppu:             ppu,
 	}
@@ -42,9 +42,23 @@ func (dbg *PPUDebugger) Draw() {
 	padding := float32(5)
 	fullWidth := debuggerWidth - (padding * 2)
 
-	dbg.ppuControlGroup(fullWidth, dbg.windowRectangle.X+padding, dbg.windowRectangle.Y+30+padding)
-	dbg.ppuStatusGroup(fullWidth, dbg.windowRectangle.X+padding, dbg.windowRectangle.Y+30+64+padding*3)
-	dbg.ppuMaskGroup(fullWidth, dbg.windowRectangle.X+padding, dbg.windowRectangle.Y+30+64+padding*5+32)
+	y := dbg.windowRectangle.Y + 30 + padding
+	dbg.ppuControlGroup(fullWidth, dbg.windowRectangle.X+padding, y)
+
+	y += 64 + padding*2
+	dbg.ppuStatusGroup(fullWidth, dbg.windowRectangle.X+padding, y)
+
+	y += 32 + padding*2
+	dbg.ppuMaskGroup(fullWidth, dbg.windowRectangle.X+padding, y)
+
+	y += 64 + padding*2
+	dbg.loopyRegister(fullWidth, dbg.windowRectangle.X+padding, y, dbg.ppu.VRam(), "V")
+
+	y += 64 + padding*2
+	dbg.loopyRegister(fullWidth, dbg.windowRectangle.X+padding, y, dbg.ppu.TRam(), "T")
+
+	y += 64 + padding*2
+	dbg.renderingInfo(fullWidth, dbg.windowRectangle.X+padding, y)
 }
 
 func (dbg *PPUDebugger) ppuControlGroup(fullWidth float32, x float32, y float32) {
@@ -169,27 +183,68 @@ func (dbg *PPUDebugger) ppuMaskGroup(fullWidth float32, x float32, y float32) {
 	raylib.GuiCheckBox(raylib.Rectangle{anchor.X + 250, anchor.Y + 10 + 14 + 14, 12, 12}, "Emphasize B", emphasizeBlue)
 }
 
+func (dbg *PPUDebugger) loopyRegister(fullWidth float32, x float32, y float32, register ppu.LoopyRegister, title string) {
+	anchor := raylib.Vector2{x, y}
+	raylib.GuiGroupBox(raylib.Rectangle{anchor.X + 0, anchor.Y + 0, fullWidth, 64}, fmt.Sprintf("%s: 0x%0X", title, register.Value()))
+
+	raylib.GuiLabel(
+		raylib.Rectangle{anchor.X + 10, anchor.Y + 10, 12, 12},
+		fmt.Sprintf("Coarse X: 0x%0X (%d)", register.CoarseX(), register.CoarseX()),
+	)
+	raylib.GuiLabel(
+		raylib.Rectangle{anchor.X + 10, anchor.Y + 24, 12, 12},
+		fmt.Sprintf("Coarse Y: 0x%0X (%d)", register.CoarseY(), register.CoarseY()),
+	)
+
+	raylib.GuiLabel(
+		raylib.Rectangle{anchor.X + 130, anchor.Y + 10, 12, 12},
+		fmt.Sprintf("NX: %d", register.NameTableX()),
+	)
+	raylib.GuiLabel(
+		raylib.Rectangle{anchor.X + 130, anchor.Y + 24, 12, 12},
+		fmt.Sprintf("NY: %d", register.NameTableY()),
+	)
+
+	raylib.GuiLabel(
+		raylib.Rectangle{anchor.X + 200, anchor.Y + 10, 12, 12},
+		fmt.Sprintf("Fine Y: %d", register.FineY()),
+	)
+	raylib.GuiLabel(
+		raylib.Rectangle{anchor.X + 200, anchor.Y + 24, 12, 12},
+		fmt.Sprintf("Fine X: %d", dbg.ppu.FineX()),
+	)
+}
+func (dbg *PPUDebugger) renderingInfo(fullWidth float32, x float32, y float32) {
+	anchor := raylib.Vector2{x, y}
+	raylib.GuiGroupBox(raylib.Rectangle{anchor.X + 0, anchor.Y + 0, fullWidth, 64}, "Rendering")
+
+	raylib.GuiLabel(
+		raylib.Rectangle{anchor.X + 10, anchor.Y + 10, 12, 12},
+		fmt.Sprintf("Scanline: %d", dbg.ppu.Scanline()),
+	)
+	raylib.GuiLabel(
+		raylib.Rectangle{anchor.X + 10, anchor.Y + 24, 12, 12},
+		fmt.Sprintf("Render Cycle: %d", dbg.ppu.RenderCycle()),
+	)
+}
+
 func (dbg *PPUDebugger) updateWindowPosition() {
 	mousePosition := raylib.GetMousePosition()
 	if raylib.IsMouseButtonPressed(raylib.MouseLeftButton) {
 
 		if raylib.CheckCollisionPointRec(mousePosition, dbg.statusBarPosition()) {
-			fmt.Printf("collision\n")
 			dbg.dragWindow = true
 			dbg.positionOnStartDrag = raylib.Vector2{
 				X: mousePosition.X - dbg.windowRectangle.X,
 				Y: mousePosition.Y - dbg.windowRectangle.Y,
 			}
-			fmt.Printf("drag start: %d %d\n", int(dbg.windowRectangle.X), int(dbg.windowRectangle.Y))
 		}
 	}
 
 	if dbg.dragWindow {
 		dbg.windowRectangle.X = mousePosition.X - dbg.positionOnStartDrag.X
 		dbg.windowRectangle.Y = mousePosition.Y - dbg.positionOnStartDrag.Y
-		//fmt.Printf("dragging Mouse position: %d %d\n", int(dbg.windowRectangle.X), int(dbg.windowRectangle.Y))
 		if raylib.IsMouseButtonReleased(raylib.MouseLeftButton) {
-			fmt.Printf("release\n")
 			dbg.dragWindow = false
 		}
 	}

@@ -20,7 +20,7 @@ func TestPPU_writes_and_reads_into_palette(t *testing.T) {
 			t,
 			colorIndex,
 			readValue,
-			fmt.Sprintf("@%X has unexpected value", address),
+			fmt.Sprintf("@%X has unexpected Value", address),
 		)
 	}
 }

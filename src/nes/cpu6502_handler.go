@@ -38,6 +38,9 @@ func (cpu6502 *Cpu6502) Tick() byte {
 		}
 	}()
 
+	if cpu6502.registers.Pc == 0x8032 {
+		fmt.Println("breakpoint")
+	}
 	registersCopy := *cpu6502.Registers()
 
 	opcode := cpu6502.memory.Read(cpu6502.registers.Pc)

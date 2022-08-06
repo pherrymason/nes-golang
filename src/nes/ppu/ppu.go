@@ -17,8 +17,8 @@ type Ppu2c02 struct {
 	PpuControl Control
 	PpuStatus  Status
 	PpuMask    Mask // Controls the rendering of sprites and backgrounds
-	vRam       loopyRegister
-	tRam       loopyRegister
+	vRam       LoopyRegister
+	tRam       LoopyRegister
 	fineX      uint8
 	readBuffer byte
 	oamAddr    byte
@@ -71,8 +71,8 @@ func CreatePPU(cartridge *gamePak.GamePak, debug bool, logPath string) *Ppu2c02 
 		renderCycle:     0,
 		currentScanline: 0,
 		cycle:           0,
-		vRam:            loopyRegister{0, 0, 0, 0, 0, 0},
-		tRam:            loopyRegister{0, 0, 0, 0, 0, 0},
+		vRam:            LoopyRegister{0, 0, 0, 0, 0, 0},
+		tRam:            LoopyRegister{0, 0, 0, 0, 0, 0},
 		fineX:           0,
 
 		bgShifterTileLow:       0,
@@ -102,6 +102,22 @@ func (ppu *Ppu2c02) Frame() *image.RGBA {
 
 func (ppu *Ppu2c02) FramePattern() []byte {
 	return ppu.nameTables[0:1024]
+}
+
+func (ppu *Ppu2c02) VRam() LoopyRegister {
+	return ppu.vRam
+}
+func (ppu *Ppu2c02) TRam() LoopyRegister {
+	return ppu.tRam
+}
+func (ppu *Ppu2c02) FineX() uint8 {
+	return ppu.fineX
+}
+func (ppu *Ppu2c02) Scanline() int16 {
+	return ppu.currentScanline
+}
+func (ppu *Ppu2c02) RenderCycle() uint16 {
+	return ppu.renderCycle
 }
 
 func (ppu *Ppu2c02) Tick() {
@@ -159,22 +175,22 @@ func (ppu *Ppu2c02) Tick() {
 
 func (ppu *Ppu2c02) incrementX() {
 	if ppu.PpuMask.renderingEnabled() {
-		if ppu.vRam.coarseX() == 31 { // if coarseX == 31
-			ppu.vRam._coarseX = 0     // coarseX = 0
+		if ppu.vRam.CoarseX() == 31 { // if CoarseX == 31
+			ppu.vRam._coarseX = 0     // CoarseX = 0
 			ppu.vRam._nameTableX ^= 1 // switch horizontal nametable
 		} else {
-			ppu.vRam._coarseX += 1 // coarseX++
+			ppu.vRam._coarseX += 1 // CoarseX++
 		}
 	}
 }
 
 func (ppu *Ppu2c02) incrementY() {
 	if ppu.PpuMask.renderingEnabled() {
-		if ppu.vRam.fineY() < 7 {
+		if ppu.vRam.FineY() < 7 {
 			ppu.vRam._fineY++
 		} else {
 			ppu.vRam.resetFineY()
-			y := ppu.vRam.coarseY()
+			y := ppu.vRam.CoarseY()
 			if y == 29 { // last row of tiles in a nametable
 				ppu.vRam._coarseY = 0
 				// Switch vertical NameTable
@@ -199,8 +215,8 @@ func (ppu *Ppu2c02) transferX() {
 func (ppu *Ppu2c02) transferY() {
 	if ppu.PpuMask.renderingEnabled() {
 		ppu.vRam._fineY = ppu.tRam._fineY
-		ppu.vRam.setCoarseY(ppu.tRam.coarseY())
-		ppu.vRam.setNameTableY(ppu.tRam.nameTableY())
+		ppu.vRam.setCoarseY(ppu.tRam.CoarseY())
+		ppu.vRam.setNameTableY(ppu.tRam.NameTableY())
 	}
 }
 

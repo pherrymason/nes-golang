@@ -15,8 +15,8 @@ type PPUState struct {
 	ppuControl Control
 	ppuStatus  Status
 	ppuMask    Mask // Controls the rendering of sprites and backgrounds
-	vRam       loopyRegister
-	tRam       loopyRegister
+	vRam       LoopyRegister
+	tRam       LoopyRegister
 	fineX      uint8
 	readBuffer byte
 

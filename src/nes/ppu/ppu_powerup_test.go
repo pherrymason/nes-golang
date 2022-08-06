@@ -22,7 +22,7 @@ func TestPPU_writing_to_registers_are_ignored_first_29658_CPU_clocks(t *testing.
 		}
 
 		ppu.WriteRegister(PPUSCROLL, 0xFF)
-		if types.Address(0xFF) == ppu.tRam.value() {
+		if types.Address(0xFF) == ppu.tRam.Value() {
 			assert.FailNowf(t, "", "Writes to PPUSCROLL should be ignored first 30000 cycles, scrollX was modified (Cycle :%d)", cpuCycles)
 		}
 		if byte(0xFF) == ppu.fineX {

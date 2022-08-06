@@ -7,7 +7,7 @@ import (
 )
 
 func Test_loopyRegister_push_first_byte(t *testing.T) {
-	register := loopyRegister{}
+	register := LoopyRegister{}
 
 	register.push(0xFF)
 
@@ -17,7 +17,7 @@ func Test_loopyRegister_push_first_byte(t *testing.T) {
 }
 
 func Test_loopyRegister_push_second_byte(t *testing.T) {
-	register := loopyRegister{
+	register := LoopyRegister{
 		latch:       1,
 		_coarseY:    0b11000,
 		_nameTableX: 1,
@@ -33,7 +33,7 @@ func Test_loopyRegister_push_second_byte(t *testing.T) {
 }
 
 func Test_loopyRegister_increment(t *testing.T) {
-	register := loopyRegister{
+	register := LoopyRegister{
 		_coarseX: 0b11111,
 	}
 
