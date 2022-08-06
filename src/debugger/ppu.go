@@ -6,59 +6,53 @@ import (
 	"github.com/raulferras/nes-golang/src/nes/ppu"
 )
 
-const debuggerWidth = 350
+const ppuPanelWidth = 350
 
 type PPUDebugger struct {
-	enabled             bool
-	windowRectangle     raylib.Rectangle
-	ppu                 *ppu.Ppu2c02
-	dragWindow          bool
-	positionOnStartDrag raylib.Vector2
+	panel *draggablePanel
+	ppu   *ppu.Ppu2c02
 }
 
 func NewPPUDebugger(ppu *ppu.Ppu2c02) *PPUDebugger {
 	return &PPUDebugger{
-		enabled:         false,
-		windowRectangle: raylib.Rectangle{X: 300, Width: debuggerWidth, Height: 450},
-		dragWindow:      false,
-		ppu:             ppu,
+		panel: NewDraggablePanel(
+			"PPU Registers",
+			raylib.Vector2{300, 0},
+			ppuPanelWidth,
+			450,
+		),
+		ppu: ppu,
 	}
 }
 
-func (dbg *PPUDebugger) SetEnabled(enabled bool) {
-	dbg.enabled = enabled
+func (dbg *PPUDebugger) Toggle() {
+	dbg.panel.SetEnabled(!dbg.panel.enabled)
 }
 
 func (dbg *PPUDebugger) Draw() {
-	if dbg.enabled == false {
+	if !dbg.panel.Draw() {
 		return
 	}
-
-	dbg.updateWindowPosition()
-	shouldClose := raylib.GuiWindowBox(dbg.windowRectangle, "PPU Registers")
-	if shouldClose {
-		dbg.Close()
-	}
 	padding := float32(5)
-	fullWidth := debuggerWidth - (padding * 2)
+	fullWidth := ppuPanelWidth - (padding * 2)
 
-	y := dbg.windowRectangle.Y + 30 + padding
-	dbg.ppuControlGroup(fullWidth, dbg.windowRectangle.X+padding, y)
+	y := dbg.panel.position.Y + 30 + padding
+	dbg.ppuControlGroup(fullWidth, dbg.panel.position.X+padding, y)
 
 	y += 64 + padding*2
-	dbg.ppuStatusGroup(fullWidth, dbg.windowRectangle.X+padding, y)
+	dbg.ppuStatusGroup(fullWidth, dbg.panel.position.X+padding, y)
 
 	y += 32 + padding*2
-	dbg.ppuMaskGroup(fullWidth, dbg.windowRectangle.X+padding, y)
+	dbg.ppuMaskGroup(fullWidth, dbg.panel.position.X+padding, y)
 
 	y += 64 + padding*2
-	dbg.loopyRegister(fullWidth, dbg.windowRectangle.X+padding, y, dbg.ppu.VRam(), "V")
+	dbg.loopyRegister(fullWidth, dbg.panel.position.X+padding, y, dbg.ppu.VRam(), "V")
 
 	y += 64 + padding*2
-	dbg.loopyRegister(fullWidth, dbg.windowRectangle.X+padding, y, dbg.ppu.TRam(), "T")
+	dbg.loopyRegister(fullWidth, dbg.panel.position.X+padding, y, dbg.ppu.TRam(), "T")
 
 	y += 64 + padding*2
-	dbg.renderingInfo(fullWidth, dbg.windowRectangle.X+padding, y)
+	dbg.renderingInfo(fullWidth, dbg.panel.position.X+padding, y)
 }
 
 func (dbg *PPUDebugger) ppuControlGroup(fullWidth float32, x float32, y float32) {
@@ -226,39 +220,4 @@ func (dbg *PPUDebugger) renderingInfo(fullWidth float32, x float32, y float32) {
 		raylib.Rectangle{anchor.X + 10, anchor.Y + 24, 12, 12},
 		fmt.Sprintf("Render Cycle: %d", dbg.ppu.RenderCycle()),
 	)
-}
-
-func (dbg *PPUDebugger) updateWindowPosition() {
-	mousePosition := raylib.GetMousePosition()
-	if raylib.IsMouseButtonPressed(raylib.MouseLeftButton) {
-
-		if raylib.CheckCollisionPointRec(mousePosition, dbg.statusBarPosition()) {
-			dbg.dragWindow = true
-			dbg.positionOnStartDrag = raylib.Vector2{
-				X: mousePosition.X - dbg.windowRectangle.X,
-				Y: mousePosition.Y - dbg.windowRectangle.Y,
-			}
-		}
-	}
-
-	if dbg.dragWindow {
-		dbg.windowRectangle.X = mousePosition.X - dbg.positionOnStartDrag.X
-		dbg.windowRectangle.Y = mousePosition.Y - dbg.positionOnStartDrag.Y
-		if raylib.IsMouseButtonReleased(raylib.MouseLeftButton) {
-			dbg.dragWindow = false
-		}
-	}
-}
-
-func (dbg *PPUDebugger) statusBarPosition() raylib.Rectangle {
-	return raylib.Rectangle{
-		X:      dbg.windowRectangle.X,
-		Y:      dbg.windowRectangle.Y,
-		Width:  debuggerWidth - 20,
-		Height: 20,
-	}
-}
-
-func (dbg *PPUDebugger) Close() {
-	dbg.enabled = false
 }

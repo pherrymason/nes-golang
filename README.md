@@ -7,6 +7,7 @@
 
 ## Shortcuts
 - `p` Displays PPU Register debug panel.
+- `o` Displays Breakpoint debugger.
 
 
 # Status

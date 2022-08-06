@@ -78,7 +78,7 @@ func loop(console *nes.Nes) {
 	cpuAdvance = true
 	console.Start()
 	_timestamp := r.GetTime()
-	debuggerGUI := debugger.NewDebuggerGUI(console)
+	debuggerGUI := debugger.NewDebugger(console)
 
 	for !r.WindowShouldClose() {
 		if console.Stopped() {
@@ -91,14 +91,9 @@ func loop(console *nes.Nes) {
 		if dt > 1 {
 			dt = 0
 		}
-		//fmt.Printf("%f sec\n", dt)
-		//if r.IsKeyPressed(r.KeySpace) {
-		//	cpuAdvance = true
-		//}
 
 		// Update emulator
 		if cpuAdvance {
-			//console.Tick()
 			console.TickForTime(dt)
 		}
 
