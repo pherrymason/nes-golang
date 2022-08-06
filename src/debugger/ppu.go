@@ -35,7 +35,7 @@ func (dbg *PPUDebugger) Draw() {
 	}
 
 	dbg.updateWindowPosition()
-	shouldClose := raylib.GuiWindowBox(dbg.windowRectangle, "PPU Viewer")
+	shouldClose := raylib.GuiWindowBox(dbg.windowRectangle, "PPU Registers")
 	if shouldClose {
 		dbg.Close()
 	}
@@ -44,6 +44,7 @@ func (dbg *PPUDebugger) Draw() {
 
 	dbg.ppuControlGroup(fullWidth, dbg.windowRectangle.X+padding, dbg.windowRectangle.Y+30+padding)
 	dbg.ppuStatusGroup(fullWidth, dbg.windowRectangle.X+padding, dbg.windowRectangle.Y+30+64+padding*3)
+	dbg.ppuMaskGroup(fullWidth, dbg.windowRectangle.X+padding, dbg.windowRectangle.Y+30+64+padding*5+32)
 }
 
 func (dbg *PPUDebugger) ppuControlGroup(fullWidth float32, x float32, y float32) {
@@ -117,6 +118,55 @@ func (dbg *PPUDebugger) ppuStatusGroup(fullWidth float32, x float32, y float32) 
 	raylib.GuiCheckBox(raylib.Rectangle{anchor.X + 130, anchor.Y + 10, 12, 12}, "sprite 0 hit", sprite0Hit)
 
 	raylib.GuiCheckBox(raylib.Rectangle{anchor.X + 220, anchor.Y + 10, 12, 12}, "VBlank", verticalBlankStarted)
+}
+
+func (dbg *PPUDebugger) ppuMaskGroup(fullWidth float32, x float32, y float32) {
+	greyScale := false
+	showBgLeftMost := false
+	showSpLeftMost := false
+	showBG := false
+	showSP := false
+	emphasizeRed := false
+	emphasizeGreen := false
+	emphasizeBlue := false
+	if dbg.ppu.PpuMask.GreyScale == 1 {
+		greyScale = true
+	}
+	if dbg.ppu.PpuMask.ShowBackgroundLeftMost == 1 {
+		showBgLeftMost = true
+	}
+	if dbg.ppu.PpuMask.ShowSpritesLeftMost == 1 {
+		showSpLeftMost = true
+	}
+	if dbg.ppu.PpuMask.ShowBackground == 1 {
+		showBG = true
+	}
+	if dbg.ppu.PpuMask.ShowSprites == 1 {
+		showSP = true
+	}
+	if dbg.ppu.PpuMask.EmphasizeRed == 1 {
+		emphasizeRed = true
+	}
+	if dbg.ppu.PpuMask.EmphasizeGreen == 1 {
+		emphasizeGreen = true
+	}
+	if dbg.ppu.PpuMask.EmphasizeBlue == 1 {
+		emphasizeBlue = true
+	}
+
+	anchor := raylib.Vector2{x, y}
+	raylib.GuiGroupBox(raylib.Rectangle{anchor.X + 0, anchor.Y + 0, fullWidth, 64}, fmt.Sprintf("PPUMask: 0x%0X", dbg.ppu.PpuMask.Value()))
+
+	raylib.GuiCheckBox(raylib.Rectangle{anchor.X + 10, anchor.Y + 10, 12, 12}, "Grey", greyScale)
+	raylib.GuiCheckBox(raylib.Rectangle{anchor.X + 10, anchor.Y + 24, 12, 12}, "BG Left Most", showBgLeftMost)
+
+	raylib.GuiCheckBox(raylib.Rectangle{anchor.X + 100, anchor.Y + 10, 12, 12}, "SP Left Most", showSpLeftMost)
+	raylib.GuiCheckBox(raylib.Rectangle{anchor.X + 100, anchor.Y + 24, 12, 12}, "Show Background", showBG)
+	raylib.GuiCheckBox(raylib.Rectangle{anchor.X + 100, anchor.Y + 38, 12, 12}, "Show Sprites", showSP)
+
+	raylib.GuiCheckBox(raylib.Rectangle{anchor.X + 250, anchor.Y + 10, 12, 12}, "Emphasize R", emphasizeRed)
+	raylib.GuiCheckBox(raylib.Rectangle{anchor.X + 250, anchor.Y + 10 + 14, 12, 12}, "Emphasize G", emphasizeGreen)
+	raylib.GuiCheckBox(raylib.Rectangle{anchor.X + 250, anchor.Y + 10 + 14 + 14, 12, 12}, "Emphasize B", emphasizeBlue)
 }
 
 func (dbg *PPUDebugger) updateWindowPosition() {

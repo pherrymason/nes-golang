@@ -1,7 +1,15 @@
 [![CircleCI](https://circleci.com/gh/raulferras/nes-golang.svg?style=shield)](https://circleci.com/gh/raulferras/nes-golang)
 
-# Status
+# Usage
+## Arguments
+- `-rom` Path to rom to load.
 
+
+## Shortcuts
+- `p` Displays PPU Register debug panel.
+
+
+# Status
 - CPU: 100% of "legal" opcodes implemented
 - PPU: Implemented scanline rendering. 
   - Renders contents of CHR ROM

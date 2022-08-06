@@ -16,7 +16,7 @@ type PPU interface {
 type Ppu2c02 struct {
 	PpuControl Control
 	PpuStatus  Status
-	ppuMask    Mask // Controls the rendering of sprites and backgrounds
+	PpuMask    Mask // Controls the rendering of sprites and backgrounds
 	vRam       loopyRegister
 	tRam       loopyRegister
 	fineX      uint8
@@ -158,7 +158,7 @@ func (ppu *Ppu2c02) Tick() {
 }
 
 func (ppu *Ppu2c02) incrementX() {
-	if ppu.ppuMask.renderingEnabled() {
+	if ppu.PpuMask.renderingEnabled() {
 		if ppu.vRam.coarseX() == 31 { // if coarseX == 31
 			ppu.vRam._coarseX = 0     // coarseX = 0
 			ppu.vRam._nameTableX ^= 1 // switch horizontal nametable
@@ -169,7 +169,7 @@ func (ppu *Ppu2c02) incrementX() {
 }
 
 func (ppu *Ppu2c02) incrementY() {
-	if ppu.ppuMask.renderingEnabled() {
+	if ppu.PpuMask.renderingEnabled() {
 		if ppu.vRam.fineY() < 7 {
 			ppu.vRam._fineY++
 		} else {
@@ -190,14 +190,14 @@ func (ppu *Ppu2c02) incrementY() {
 }
 
 func (ppu *Ppu2c02) transferX() {
-	if ppu.ppuMask.renderingEnabled() {
+	if ppu.PpuMask.renderingEnabled() {
 		ppu.vRam._coarseX = ppu.tRam._coarseX
 		ppu.vRam._nameTableX = ppu.tRam._nameTableX
 	}
 }
 
 func (ppu *Ppu2c02) transferY() {
-	if ppu.ppuMask.renderingEnabled() {
+	if ppu.PpuMask.renderingEnabled() {
 		ppu.vRam._fineY = ppu.tRam._fineY
 		ppu.vRam.setCoarseY(ppu.tRam.coarseY())
 		ppu.vRam.setNameTableY(ppu.tRam.nameTableY())
@@ -284,7 +284,7 @@ func (ppu *Ppu2c02) WriteRegister(register types.Address, value byte) {
 		break
 
 	case PPUMASK:
-		ppu.ppuMask.write(value)
+		ppu.PpuMask.write(value)
 		break
 
 	case PPUSTATUS:

@@ -13,8 +13,8 @@ import (
 // Shifters test
 func TestPpu2c02_updateShifters_updates_shifters_while_rendering_is_enabled(t *testing.T) {
 	ppu := aPPU()
-	ppu.ppuMask.showBackground = 1
-	ppu.ppuMask.showSprites = 1
+	ppu.PpuMask.ShowBackground = 1
+	ppu.PpuMask.ShowSprites = 1
 	ppu.bgShifterTileLow = 1
 	ppu.bgShifterTileHigh = 1
 	ppu.bgShifterAttributeLow = 1
@@ -30,8 +30,8 @@ func TestPpu2c02_updateShifters_updates_shifters_while_rendering_is_enabled(t *t
 
 func TestPpu2c02_updateShifters_does_not_updates_shifters_while_rendering_is_disabled(t *testing.T) {
 	ppu := aPPU()
-	ppu.ppuMask.showBackground = 0
-	ppu.ppuMask.showSprites = 0
+	ppu.PpuMask.ShowBackground = 0
+	ppu.PpuMask.ShowSprites = 0
 	ppu.bgShifterTileLow = 1
 	ppu.bgShifterTileHigh = 1
 	ppu.bgShifterAttributeLow = 1

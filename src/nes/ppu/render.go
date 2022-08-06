@@ -18,7 +18,7 @@ func (ppu *Ppu2c02) Render() {
 }
 
 func (ppu *Ppu2c02) renderLogic() {
-	//renderingEnabled := ppu.ppuMask.showBackground || ppu.ppuMask.showSprites
+	//renderingEnabled := ppu.PpuMask.ShowBackground || ppu.PpuMask.ShowSprites
 	preRenderScanline := ppu.currentScanline == 261
 	scanlineVisible := ppu.currentScanline >= 0 && ppu.currentScanline < 240
 
@@ -169,7 +169,7 @@ func (ppu *Ppu2c02) renderLogic() {
 func (ppu *Ppu2c02) finalPixelComposition() {
 	var bgPixel byte = 0x00
 	var bgPalette byte = 0x00
-	if ppu.ppuMask.showBackgroundEnabled() {
+	if ppu.PpuMask.showBackgroundEnabled() {
 		bitSelector := uint16(0x8000) >> ppu.fineX
 		pixel0 := byte(0)
 		pixel1 := byte(0)
@@ -203,7 +203,7 @@ func (ppu *Ppu2c02) finalPixelComposition() {
 	var fgPixel byte
 	var fgPalette byte
 	//var fgPriority byte
-	if ppu.ppuMask.showSpritesEnabled() {
+	if ppu.PpuMask.showSpritesEnabled() {
 		for i := byte(0); i < ppu.spriteScanlineCount; i++ {
 			if ppu.oamDataScanline[i].x > 0 {
 				continue
@@ -243,14 +243,14 @@ func (ppu *Ppu2c02) finalPixelComposition() {
 // This, together with the fineX register allows to get the pixel information
 // to be rendered together with a smooth per pixel scrolling
 func (ppu *Ppu2c02) updateShifters() {
-	if ppu.ppuMask.showBackgroundEnabled() {
+	if ppu.PpuMask.showBackgroundEnabled() {
 		ppu.bgShifterTileLow <<= 1
 		ppu.bgShifterTileHigh <<= 1
 		ppu.bgShifterAttributeLow <<= 1
 		ppu.bgShifterAttributeHigh <<= 1
 	}
 
-	if ppu.ppuMask.showSpritesEnabled() && ppu.renderCycle >= 1 && ppu.renderCycle < 258 {
+	if ppu.PpuMask.showSpritesEnabled() && ppu.renderCycle >= 1 && ppu.renderCycle < 258 {
 		for i := byte(0); i < ppu.spriteScanlineCount; i++ {
 			if ppu.oamDataScanline[i].x > 0 {
 				ppu.oamDataScanline[i].x--

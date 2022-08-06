@@ -95,7 +95,7 @@ func (logger *logger2c02) log(ppu *Ppu2c02) {
 	state := PPUState{
 		ppuControl:           ppu.PpuControl,
 		ppuStatus:            ppu.PpuStatus,
-		ppuMask:              ppu.ppuMask,
+		ppuMask:              ppu.PpuMask,
 		vRam:                 ppu.vRam,
 		tRam:                 ppu.tRam,
 		fineX:                ppu.fineX,

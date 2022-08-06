@@ -56,9 +56,9 @@ func TestPPU_PPUMASK_write(t *testing.T) {
 
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
-			ppu.ppuMask.write(tt.initial)
+			ppu.PpuMask.write(tt.initial)
 			ppu.WriteRegister(PPUMASK, tt.write)
-			assert.Equal(t, tt.expected, ppu.ppuMask.value())
+			assert.Equal(t, tt.expected, ppu.PpuMask.Value())
 		})
 	}
 }

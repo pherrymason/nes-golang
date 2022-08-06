@@ -17,7 +17,7 @@ func TestPPU_writing_to_registers_are_ignored_first_29658_CPU_clocks(t *testing.
 		}
 
 		ppu.WriteRegister(PPUMASK, 0xFF)
-		if byte(0xFF) == ppu.ppuMask.value() {
+		if byte(0xFF) == ppu.PpuMask.Value() {
 			assert.FailNowf(t, "", "Writes to PPUMASK should be ignored first 30000 cycles. (Cycle :%d)", cpuCycles)
 		}
 

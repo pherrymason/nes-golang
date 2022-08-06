@@ -30,19 +30,6 @@ func (control *Control) Value() byte {
 	return ctrl
 }
 
-type MASKFlag int
-
-const (
-	greyScale MASKFlag = iota
-	showBackgroundLeftEdge
-	showSpritesLeftEdge
-	showBackground
-	showSprites
-	emphasizeRed
-	emphasizeGreen
-	emphasizeBlue
-)
-
 type Status struct {
 	SpriteOverflow       byte
 	Sprite0Hit           byte
