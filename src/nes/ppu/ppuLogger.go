@@ -48,7 +48,7 @@ func (s *PPUState) String() string {
 	msg.WriteString(" CTRL: ")
 	msg.WriteString(hexit.HexUint8Str(s.ppuControl.Value()))
 	msg.WriteString(" STATUS: ")
-	msg.WriteString(hexit.HexUint8Str(s.ppuStatus.value()))
+	msg.WriteString(hexit.HexUint8Str(s.ppuStatus.Value()))
 
 	msg.WriteString("  vRam: ")
 	msg.WriteString(hexit.HexUint16Str(uint16(s.vRam.address())))
@@ -94,7 +94,7 @@ func (logger *logger2c02) log(ppu *Ppu2c02) {
 
 	state := PPUState{
 		ppuControl:           ppu.PpuControl,
-		ppuStatus:            ppu.ppuStatus,
+		ppuStatus:            ppu.PpuStatus,
 		ppuMask:              ppu.ppuMask,
 		vRam:                 ppu.vRam,
 		tRam:                 ppu.tRam,

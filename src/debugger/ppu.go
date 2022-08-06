@@ -42,11 +42,11 @@ func (dbg *PPUDebugger) Draw() {
 	padding := float32(5)
 	fullWidth := debuggerWidth - (padding * 2)
 
-	// PPU Control
-	dbg.ppuControlGroup(padding, fullWidth)
+	dbg.ppuControlGroup(fullWidth, dbg.windowRectangle.X+padding, dbg.windowRectangle.Y+30+padding)
+	dbg.ppuStatusGroup(fullWidth, dbg.windowRectangle.X+padding, dbg.windowRectangle.Y+30+64+padding*3)
 }
 
-func (dbg *PPUDebugger) ppuControlGroup(padding float32, fullWidth float32) {
+func (dbg *PPUDebugger) ppuControlGroup(fullWidth float32, x float32, y float32) {
 	ntXEnabled := false
 	ntYEnabled := false
 	incrementModeEnabled := false
@@ -81,7 +81,7 @@ func (dbg *PPUDebugger) ppuControlGroup(padding float32, fullWidth float32) {
 		generateNMIEnabled = true
 	}
 
-	anchor := raylib.Vector2{dbg.windowRectangle.X + padding, dbg.windowRectangle.Y + 35 + padding}
+	anchor := raylib.Vector2{x, y}
 	raylib.GuiGroupBox(raylib.Rectangle{anchor.X + 0, anchor.Y + 0, fullWidth, 64}, fmt.Sprintf("PPUControl: 0x%0X", ppuControl.Value()))
 
 	raylib.GuiCheckBox(raylib.Rectangle{anchor.X + 10, anchor.Y + 10, 12, 12}, "nt X", ntXEnabled)
@@ -94,6 +94,29 @@ func (dbg *PPUDebugger) ppuControlGroup(padding float32, fullWidth float32) {
 	raylib.GuiCheckBox(raylib.Rectangle{anchor.X + 180, anchor.Y + 10, 12, 12}, "spriteSize 8x16", spriteSizeEnabled)
 	raylib.GuiCheckBox(raylib.Rectangle{anchor.X + 180, anchor.Y + 10 + 14, 12, 12}, "master/Slave", masterSlaveEnabled)
 	raylib.GuiCheckBox(raylib.Rectangle{anchor.X + 180, anchor.Y + 10 + 14 + 14, 12, 12}, "generate NMI", generateNMIEnabled)
+}
+
+func (dbg *PPUDebugger) ppuStatusGroup(fullWidth float32, x float32, y float32) {
+	spriteOverflow := false
+	sprite0Hit := false
+	verticalBlankStarted := false
+	if dbg.ppu.PpuStatus.SpriteOverflow == 1 {
+		spriteOverflow = true
+	}
+	if dbg.ppu.PpuStatus.Sprite0Hit == 1 {
+		sprite0Hit = true
+	}
+	if dbg.ppu.PpuStatus.VerticalBlankStarted {
+		verticalBlankStarted = true
+	}
+
+	anchor := raylib.Vector2{x, y}
+	raylib.GuiGroupBox(raylib.Rectangle{anchor.X + 0, anchor.Y + 0, fullWidth, 32}, fmt.Sprintf("PPUStatus: 0x%0X", dbg.ppu.PpuStatus.Value()))
+
+	raylib.GuiCheckBox(raylib.Rectangle{anchor.X + 10, anchor.Y + 10, 12, 12}, "sprite overflow", spriteOverflow)
+	raylib.GuiCheckBox(raylib.Rectangle{anchor.X + 130, anchor.Y + 10, 12, 12}, "sprite 0 hit", sprite0Hit)
+
+	raylib.GuiCheckBox(raylib.Rectangle{anchor.X + 220, anchor.Y + 10, 12, 12}, "VBlank", verticalBlankStarted)
 }
 
 func (dbg *PPUDebugger) updateWindowPosition() {

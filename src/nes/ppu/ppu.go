@@ -15,7 +15,7 @@ type PPU interface {
 
 type Ppu2c02 struct {
 	PpuControl Control
-	ppuStatus  Status
+	PpuStatus  Status
 	ppuMask    Mask // Controls the rendering of sprites and backgrounds
 	vRam       loopyRegister
 	tRam       loopyRegister
@@ -114,14 +114,14 @@ func (ppu *Ppu2c02) Tick() {
 		if ppu.renderCycle == 1 {
 			// TODO refactor to a method to set Vblank
 			// TODO enabling VBlank only on ==1 and not on >=1 makes it difficult to start emulation inside a VBlank cycle. If changed, nmi triggering should be worked though.
-			ppu.ppuStatus.verticalBlankStarted = true
+			ppu.PpuStatus.VerticalBlankStarted = true
 
 			if ppu.PpuControl.GenerateNMIAtVBlank {
 				ppu.nmi = true
 			}
 		}
 	} else if ppu.currentScanline == VBLANK_END_SCNALINE && ppu.renderCycle == 1 {
-		ppu.ppuStatus.verticalBlankStarted = false
+		ppu.PpuStatus.VerticalBlankStarted = false
 	}
 
 	// ------------------------------
@@ -228,10 +228,10 @@ func (ppu *Ppu2c02) ReadRegister(register types.Address) byte {
 
 	case PPUSTATUS:
 		// Source: javid9x reading from status only get top 3 bits. The rest tends to be filled with noise, or more likely what was last in data buffer.
-		value = ppu.ppuStatus.value()
+		value = ppu.PpuStatus.Value()
 
 		// Reading from status register alters it
-		ppu.ppuStatus.verticalBlankStarted = false // Reading from status, clears VBlank flag.
+		ppu.PpuStatus.VerticalBlankStarted = false // Reading from status, clears VBlank flag.
 		//ppu.registers.status &= 0x7F
 		ppu.tRam.resetLatch()
 		break

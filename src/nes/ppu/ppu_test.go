@@ -53,23 +53,23 @@ func TestPPU_Render_Cycles_should_trigger_vblank_on_second_cycle_of_scanline_241
 	ppu.renderCycle = 0
 
 	ppu.Tick()
-	assert.False(t, ppu.ppuStatus.verticalBlankStarted, "VBlank has been generated too early")
+	assert.False(t, ppu.PpuStatus.VerticalBlankStarted, "VBlank has been generated too early")
 
 	ppu.Tick()
-	assert.True(t, ppu.ppuStatus.verticalBlankStarted, "Should have generated VBlank on second cycle of 241 scanline")
+	assert.True(t, ppu.PpuStatus.VerticalBlankStarted, "Should have generated VBlank on second cycle of 241 scanline")
 }
 
 func TestPPU_VBlank_should_return_disable_vblank_on_second_cycle_of_scanline_261(t *testing.T) {
 	ppu := aPPU()
-	ppu.ppuStatus.verticalBlankStarted = true
+	ppu.PpuStatus.VerticalBlankStarted = true
 	ppu.currentScanline = 261
 	ppu.renderCycle = 0
 
 	ppu.Tick()
-	assert.True(t, ppu.ppuStatus.verticalBlankStarted, "VBlank has been disabled too early")
+	assert.True(t, ppu.PpuStatus.VerticalBlankStarted, "VBlank has been disabled too early")
 
 	ppu.Tick()
-	assert.False(t, ppu.ppuStatus.verticalBlankStarted, "Should have been disabled VBlank on second cycle of 261 scanline")
+	assert.False(t, ppu.PpuStatus.VerticalBlankStarted, "Should have been disabled VBlank on second cycle of 261 scanline")
 }
 
 func Test_should_trigger_NMI_on_vBlank(t *testing.T) {

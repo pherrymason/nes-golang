@@ -65,9 +65,9 @@ func TestPPU_PPUMASK_write(t *testing.T) {
 
 func TestPPU_PPUSTATUS_read(t *testing.T) {
 	ppu := aPPU()
-	ppu.ppuStatus.spriteOverflow = 1
-	ppu.ppuStatus.sprite0Hit = 1
-	ppu.ppuStatus.verticalBlankStarted = true
+	ppu.PpuStatus.SpriteOverflow = 1
+	ppu.PpuStatus.Sprite0Hit = 1
+	ppu.PpuStatus.VerticalBlankStarted = true
 
 	status := ppu.ReadRegister(PPUSTATUS)
 
@@ -76,11 +76,11 @@ func TestPPU_PPUSTATUS_read(t *testing.T) {
 
 func TestPPU_PPUSTATUS_reading_status_clears_bit7_and_the_address_latch(t *testing.T) {
 	ppu := aPPU()
-	ppu.ppuStatus.verticalBlankStarted = true
+	ppu.PpuStatus.VerticalBlankStarted = true
 
 	ppu.ReadRegister(PPUSTATUS)
 
-	assert.False(t, ppu.ppuStatus.verticalBlankStarted, "vblank flag should be cleared after reading PPUSTATUS")
+	assert.False(t, ppu.PpuStatus.VerticalBlankStarted, "vblank flag should be cleared after reading PPUSTATUS")
 	assert.Equal(t, byte(0), ppu.tRam.latch, "PPUDATA address latch should have reset")
 }
 

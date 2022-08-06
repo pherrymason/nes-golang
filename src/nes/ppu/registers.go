@@ -44,16 +44,16 @@ const (
 )
 
 type Status struct {
-	spriteOverflow       byte
-	sprite0Hit           byte
-	verticalBlankStarted bool
+	SpriteOverflow       byte
+	Sprite0Hit           byte
+	VerticalBlankStarted bool
 }
 
-func (status *Status) value() byte {
+func (status *Status) Value() byte {
 	value := byte(0)
-	value |= status.spriteOverflow << 5
-	value |= status.sprite0Hit << 6
-	if status.verticalBlankStarted {
+	value |= status.SpriteOverflow << 5
+	value |= status.Sprite0Hit << 6
+	if status.VerticalBlankStarted {
 		value |= 1 << 7
 	}
 
@@ -76,5 +76,5 @@ func (ppu *Ppu2c02) ppuCtrlWrite(value byte) {
 }
 
 func (ppu *Ppu2c02) VBlank() bool {
-	return ppu.ppuStatus.verticalBlankStarted
+	return ppu.PpuStatus.VerticalBlankStarted
 }

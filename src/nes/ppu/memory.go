@@ -76,7 +76,7 @@ func (ppu *Ppu2c02) Write(address types.Address, value byte) {
 		ppu.writePalette(address, value)
 	} else {
 		var vblank string
-		if ppu.ppuStatus.verticalBlankStarted {
+		if ppu.PpuStatus.VerticalBlankStarted {
 			vblank = "yes"
 		} else {
 			vblank = "no"
