@@ -64,34 +64,33 @@ func (dbg *PPUDebugger) ppuControlGroup(fullWidth float32, x float32, y float32)
 	spriteSizeEnabled := false
 	masterSlaveEnabled := false
 	generateNMIEnabled := false
-	ppuControl := dbg.ppu.PpuControl
-	if ppuControl.NameTableX == 1 {
+	if dbg.ppu.PpuControl.NameTableX == 1 {
 		ntXEnabled = true
 	}
-	if ppuControl.NameTableY == 1 {
+	if dbg.ppu.PpuControl.NameTableY == 1 {
 		ntYEnabled = true
 	}
-	if ppuControl.IncrementMode == 1 {
+	if dbg.ppu.PpuControl.IncrementMode == 1 {
 		incrementModeEnabled = true
 	}
-	if ppuControl.SpritePatternTableAddress == 1 {
+	if dbg.ppu.PpuControl.SpritePatternTableAddress == 1 {
 		spPatternEnabled = true
 	}
-	if ppuControl.BackgroundPatternTableAddress == 1 {
+	if dbg.ppu.PpuControl.BackgroundPatternTableAddress == 1 {
 		bgPatternEnabled = true
 	}
-	if ppuControl.SpriteSize == 1 {
+	if dbg.ppu.PpuControl.SpriteSize == 1 {
 		spriteSizeEnabled = true
 	}
-	if ppuControl.MasterSlaveSelect == 1 {
+	if dbg.ppu.PpuControl.MasterSlaveSelect == 1 {
 		masterSlaveEnabled = true
 	}
-	if ppuControl.GenerateNMIAtVBlank {
+	if dbg.ppu.PpuControl.GenerateNMIAtVBlank {
 		generateNMIEnabled = true
 	}
 
 	anchor := raylib.Vector2{x, y}
-	raylib.GuiGroupBox(raylib.Rectangle{anchor.X + 0, anchor.Y + 0, fullWidth, 64}, fmt.Sprintf("PPUControl: 0x%0X", ppuControl.Value()))
+	raylib.GuiGroupBox(raylib.Rectangle{anchor.X + 0, anchor.Y + 0, fullWidth, 64}, fmt.Sprintf("PPUControl: 0x%0X", dbg.ppu.PpuControl.Value()))
 
 	raylib.GuiCheckBox(raylib.Rectangle{anchor.X + 10, anchor.Y + 10, 12, 12}, "nt X", ntXEnabled)
 	raylib.GuiCheckBox(raylib.Rectangle{anchor.X + 10, anchor.Y + 24, 12, 12}, "nt Y", ntYEnabled)

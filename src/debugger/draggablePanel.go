@@ -10,6 +10,7 @@ type draggablePanel struct {
 	height              float32
 	dragWindow          bool
 	positionOnStartDrag raylib.Vector2
+	layoutYPositions    []float32
 }
 
 func NewDraggablePanel(title string, position raylib.Vector2, width int, height int) *draggablePanel {
@@ -32,6 +33,7 @@ func (panel *draggablePanel) Draw() bool {
 		return panel.enabled
 	}
 
+	panel.layoutYPositions = nil
 	panel.updateWindowPosition()
 	shouldClose := raylib.GuiWindowBox(
 		raylib.Rectangle{
@@ -79,7 +81,17 @@ func (panel *draggablePanel) statusBarPosition() raylib.Rectangle {
 	return raylib.Rectangle{
 		X:      panel.position.X,
 		Y:      panel.position.Y,
-		Width:  ppuPanelWidth - 20,
+		Width:  panel.width - 20,
 		Height: 20,
 	}
+}
+
+// registerStackedControl registers the height of a gui control rendered, and returns the Y position for the next element
+func (panel *draggablePanel) registerStackedControl(height float32, padding float32) float32 {
+	panel.layoutYPositions = append(panel.layoutYPositions, height)
+	sum := float32(0)
+	for i := 0; i < len(panel.layoutYPositions); i++ {
+		sum += panel.layoutYPositions[i] + padding
+	}
+	return sum
 }
