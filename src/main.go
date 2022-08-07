@@ -10,6 +10,7 @@ import (
 	"github.com/raulferras/nes-golang/src/nes/gamePak"
 	"github.com/raulferras/nes-golang/src/nes/types"
 	"github.com/raulferras/nes-golang/src/utils"
+	"image"
 	"log"
 	"math/rand"
 	_ "net/http/pprof"
@@ -97,15 +98,14 @@ func loop(console *nes.Nes) {
 			console.TickForTime(dt)
 		}
 
-		// Draw
+		// Draw --------------------
 		r.BeginDrawing()
 		r.ClearBackground(r.Black)
-		drawEmulation(console)
+		drawEmulation(console.Frame())
 		//drawBackgroundTileIDs(console)
 		debuggerGUI.Tick()
-		//
-		//r.GuiWindowBox(r.Rectangle{0, 0, 100, 100}, "??")
 		r.EndDrawing()
+		// End Draw --------------------
 
 		cpuAdvance = true
 	}
@@ -114,20 +114,10 @@ func loop(console *nes.Nes) {
 	console.Stop()
 }
 
-func drawEmulation(console *nes.Nes) {
-	frame := console.Frame()
-
+func drawEmulation(frame *image.RGBA) {
 	padding := 20
 	paddingY := 20
-	r.DrawRectangle(padding-1, paddingY-1, types.SCREEN_WIDTH+2, types.SCREEN_HEIGHT+2, r.RayWhite) /*
-		for i := 0; i < types.SCREEN_WIDTH*types.SCREEN_HEIGHT; i++ {
-			pixel := frame.Pixels[i]
-			color := utils.RGBA2raylibColor(pixel)
-			x := i % types.SCREEN_WIDTH
-			y := i / types.SCREEN_WIDTH
-
-			r.DrawPixel(padding+x, paddingY+y, color)
-		}*/
+	r.DrawRectangle(padding-1, paddingY-1, types.SCREEN_WIDTH+2, types.SCREEN_HEIGHT+2, r.RayWhite)
 	for x := 0; x < types.SCREEN_WIDTH; x++ {
 		for y := 0; y < types.SCREEN_HEIGHT; y++ {
 			pixel := frame.At(x, y)

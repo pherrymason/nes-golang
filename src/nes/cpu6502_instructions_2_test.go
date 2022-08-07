@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/raulferras/nes-golang/src/mocks"
+	cpu2 "github.com/raulferras/nes-golang/src/nes/cpu"
 	"github.com/raulferras/nes-golang/src/nes/types"
 	"github.com/stretchr/testify/assert"
 	"io"
@@ -167,7 +168,7 @@ func isUnofficialOpcode(filename string) bool {
 func createCPUFromCPUState(state CPUState) *Cpu6502 {
 	cpu := CreateCPU(
 		mocks.NewSimpleMemory(),
-		Cpu6502DebugOptions{false, ""},
+		cpu2.NewDebugger(false, ""),
 	)
 
 	// Apply initial state

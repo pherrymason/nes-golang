@@ -33,7 +33,7 @@ func (cpu6502 *Cpu6502) Tick() byte {
 	}
 	defer func() {
 		if r := recover(); r != nil {
-			cpu6502.Logger.Close()
+			cpu6502.debugger.Stop()
 			panic("out")
 		}
 	}()
@@ -57,12 +57,13 @@ func (cpu6502 *Cpu6502) Tick() byte {
 		instruction.AddressMode(),
 		cpu6502.registers.Pc+1,
 	)
-	step := OperationMethodArgument{
+	step := cpu.OperationMethodArgument{
 		instruction.AddressMode(),
 		operandAddress,
 	}
-	if cpu6502.debug {
-		cpu6502.logStep(registersCopy, opcode, operand, instruction, step, cpu6502.cycle)
+	if cpu6502.debugger.Enabled {
+		cpu6502.debugger.LogStep(registersCopy, opcode, operand, instruction, step, cpu6502.cycle)
+		//cpu6502.logStep(registersCopy, opcode, operand, instruction, step, cpu6502.cycle)
 	}
 
 	cpu6502.registers.Pc += types.Address(instruction.Size())
@@ -78,9 +79,10 @@ func (cpu6502 *Cpu6502) Tick() byte {
 	return cpu6502.opCyclesLeft
 }
 
+/*
 func (cpu6502 *Cpu6502) logStep(registers cpu.Registers, opcode byte, operand [3]byte, instruction Instruction, step OperationMethodArgument, cpuCycle uint32) {
 	//state := CreateStateFromCPU(*cpu6502)
-	state := CreateState(
+	state := cpu.CreateState(
 		registers,
 		[3]byte{opcode, operand[0], operand[1]},
 		instruction,
@@ -89,10 +91,11 @@ func (cpu6502 *Cpu6502) logStep(registers cpu.Registers, opcode byte, operand [3
 	)
 
 	cpu6502.Logger.Log(state)
-}
+}*/
 
 func (cpu6502 *Cpu6502) Stop() {
-	if cpu6502.debug {
-		cpu6502.Logger.Close()
-	}
+	//if cpu6502.debug {
+	//	cpu6502.Logger.Close()
+	//}
+	cpu6502.debugger.Stop()
 }

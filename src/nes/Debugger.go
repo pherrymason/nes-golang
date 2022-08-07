@@ -7,9 +7,9 @@ import (
 	"image/color"
 )
 
-// NesDebugger offers an api to interact externally with
-// stuff from Nes
-type NesDebugger struct {
+// Debugger offers an api to interact externally with
+// NES components
+type Debugger struct {
 	debug       bool
 	cpu         *Cpu6502
 	ppu         *ppu.Ppu2c02
@@ -20,8 +20,8 @@ type NesDebugger struct {
 	DebugPPU     bool
 }
 
-func CreateNesDebugger(logPath string, debug bool, debugPPU bool, maxCPUCycle int64) *NesDebugger {
-	return &NesDebugger{
+func CreateNesDebugger(logPath string, debug bool, debugPPU bool, maxCPUCycle int64) *Debugger {
+	return &Debugger{
 		debug:        debug,
 		cpu:          nil,
 		ppu:          nil,
@@ -32,15 +32,15 @@ func CreateNesDebugger(logPath string, debug bool, debugPPU bool, maxCPUCycle in
 	}
 }
 
-func (debugger *NesDebugger) Disassembled() map[types.Address]string {
+func (debugger *Debugger) Disassembled() map[types.Address]string {
 	return debugger.disassembled
 }
 
-func (debugger *NesDebugger) ProgramCounter() types.Address {
+func (debugger *Debugger) ProgramCounter() types.Address {
 	return debugger.cpu.ProgramCounter()
 }
 
-func (debugger *NesDebugger) N() bool {
+func (debugger *Debugger) N() bool {
 	bit := debugger.cpu.Registers().NegativeFlag()
 	if bit == 1 {
 		return true
@@ -49,7 +49,7 @@ func (debugger *NesDebugger) N() bool {
 	return false
 }
 
-func (debugger *NesDebugger) O() bool {
+func (debugger *Debugger) O() bool {
 	bit := debugger.cpu.Registers().OverflowFlag()
 	if bit == 1 {
 		return true
@@ -58,7 +58,7 @@ func (debugger *NesDebugger) O() bool {
 	return false
 }
 
-func (debugger *NesDebugger) B() bool {
+func (debugger *Debugger) B() bool {
 	bit := debugger.cpu.Registers().BreakFlag()
 	if bit == 1 {
 		return true
@@ -67,7 +67,7 @@ func (debugger *NesDebugger) B() bool {
 	return false
 }
 
-func (debugger *NesDebugger) D() bool {
+func (debugger *Debugger) D() bool {
 	bit := debugger.cpu.Registers().DecimalFlag()
 	if bit == 1 {
 		return true
@@ -76,7 +76,7 @@ func (debugger *NesDebugger) D() bool {
 	return false
 }
 
-func (debugger *NesDebugger) I() bool {
+func (debugger *Debugger) I() bool {
 	bit := debugger.cpu.Registers().InterruptFlag()
 	if bit == 1 {
 		return true
@@ -85,7 +85,7 @@ func (debugger *NesDebugger) I() bool {
 	return false
 }
 
-func (debugger *NesDebugger) Z() bool {
+func (debugger *Debugger) Z() bool {
 	bit := debugger.cpu.Registers().ZeroFlag()
 	if bit == 1 {
 		return true
@@ -94,7 +94,7 @@ func (debugger *NesDebugger) Z() bool {
 	return false
 }
 
-func (debugger *NesDebugger) C() bool {
+func (debugger *Debugger) C() bool {
 	bit := debugger.cpu.Registers().CarryFlag()
 	if bit == 1 {
 		return true
@@ -103,24 +103,24 @@ func (debugger *NesDebugger) C() bool {
 	return false
 }
 
-func (debugger *NesDebugger) ARegister() byte {
+func (debugger *Debugger) ARegister() byte {
 	return debugger.cpu.registers.A
 }
 
-func (debugger *NesDebugger) XRegister() byte {
+func (debugger *Debugger) XRegister() byte {
 	return debugger.cpu.registers.X
 }
 
-func (debugger *NesDebugger) YRegister() byte {
+func (debugger *Debugger) YRegister() byte {
 	return debugger.cpu.registers.Y
 }
 
 // PPU Related
-func (debugger *NesDebugger) PatternTable(patternTable byte, palette uint8) image.RGBA {
+func (debugger *Debugger) PatternTable(patternTable byte, palette uint8) image.RGBA {
 	return debugger.ppu.PatternTable(patternTable, palette)
 }
 
-func (debugger *NesDebugger) GetPaletteFromRam(paletteIndex uint8) [4]color.Color {
+func (debugger *Debugger) GetPaletteFromRam(paletteIndex uint8) [4]color.Color {
 	var colors [4]color.Color
 
 	colors[0] = debugger.ppu.GetRGBColor(paletteIndex, 0)
@@ -131,10 +131,10 @@ func (debugger *NesDebugger) GetPaletteFromRam(paletteIndex uint8) [4]color.Colo
 	return colors
 }
 
-func (debugger *NesDebugger) GetPaletteColorFromPaletteRam(paletteIndex byte, colorIndex byte) byte {
+func (debugger *Debugger) GetPaletteColorFromPaletteRam(paletteIndex byte, colorIndex byte) byte {
 	return debugger.ppu.GetPaletteColor(paletteIndex, colorIndex)
 }
 
-func (debugger *NesDebugger) OAM(index byte) []byte {
+func (debugger *Debugger) OAM(index byte) []byte {
 	return debugger.ppu.Oam(index)
 }

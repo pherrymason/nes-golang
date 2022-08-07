@@ -1,6 +1,7 @@
 package nes
 
 import (
+	"github.com/raulferras/nes-golang/src/nes/cpu"
 	"github.com/raulferras/nes-golang/src/nes/types"
 	"strings"
 )
@@ -45,62 +46,62 @@ func (cpu6502 *Cpu6502) Disassemble(start types.Address, end types.Address) map[
 			sInst += instruction.Name() + " "
 		}
 
-		if instruction.AddressMode() == Implicit {
+		if instruction.AddressMode() == cpu.Implicit {
 			sInst += " {IMP}"
-		} else if instruction.AddressMode() == Immediate {
+		} else if instruction.AddressMode() == cpu.Immediate {
 			value = cpu6502.memory.Peek(addr)
 			addr++
 			sInst += "#$" + myHex(types.Word(value), 2) + " {IMM}"
-		} else if instruction.AddressMode() == ZeroPage {
+		} else if instruction.AddressMode() == cpu.ZeroPage {
 			lo = cpu6502.memory.Peek(addr)
 			addr++
 			hi = 0x00
 			sInst += "$" + myHex(types.Word(lo), 2) + " {ZP0}"
-		} else if instruction.AddressMode() == ZeroPageX {
+		} else if instruction.AddressMode() == cpu.ZeroPageX {
 			lo = cpu6502.memory.Peek(addr)
 			addr++
 			hi = 0x00
 			sInst += "$" + myHex(types.Word(lo), 2) + ", X {ZPX}"
-		} else if instruction.AddressMode() == ZeroPageY {
+		} else if instruction.AddressMode() == cpu.ZeroPageY {
 			lo = cpu6502.memory.Peek(addr)
 			addr++
 			hi = 0x00
 			sInst += "$" + myHex(types.Word(lo), 2) + ", Y {ZPY}"
-		} else if instruction.AddressMode() == IndirectX {
+		} else if instruction.AddressMode() == cpu.IndirectX {
 			lo = cpu6502.memory.Peek(addr)
 			addr++
 			hi = 0x00
 			sInst += "($" + myHex(types.Word(lo), 2) + ", X) {IZX}"
-		} else if instruction.AddressMode() == IndirectY {
+		} else if instruction.AddressMode() == cpu.IndirectY {
 			lo = cpu6502.memory.Peek(addr)
 			addr++
 			hi = 0x00
 			sInst += "($" + myHex(types.Word(lo), 2) + "), Y {IZY}"
-		} else if instruction.AddressMode() == Absolute {
+		} else if instruction.AddressMode() == cpu.Absolute {
 			lo = cpu6502.memory.Peek(addr)
 			addr++
 			hi = cpu6502.memory.Peek(addr)
 			addr++
 			sInst += "$" + myHex(types.CreateWord(lo, hi), 4) + " {ABS}"
-		} else if instruction.AddressMode() == AbsoluteXIndexed {
+		} else if instruction.AddressMode() == cpu.AbsoluteXIndexed {
 			lo = cpu6502.memory.Peek(addr)
 			addr++
 			hi = cpu6502.memory.Peek(addr)
 			addr++
 			sInst += "$" + myHex(types.CreateWord(lo, hi), 4) + ", X {ABX}"
-		} else if instruction.AddressMode() == AbsoluteYIndexed {
+		} else if instruction.AddressMode() == cpu.AbsoluteYIndexed {
 			lo = cpu6502.memory.Peek(addr)
 			addr++
 			hi = cpu6502.memory.Peek(addr)
 			addr++
 			sInst += "$" + myHex(types.CreateWord(lo, hi), 4) + ", Y {ABY}"
-		} else if instruction.AddressMode() == Indirect {
+		} else if instruction.AddressMode() == cpu.Indirect {
 			lo = cpu6502.memory.Peek(addr)
 			addr++
 			hi = cpu6502.memory.Peek(addr)
 			addr++
 			sInst += "($" + myHex(types.CreateWord(lo, hi), 4) + ") {IND}"
-		} else if instruction.AddressMode() == Relative {
+		} else if instruction.AddressMode() == cpu.Relative {
 			value = cpu6502.memory.Peek(addr)
 			addr++
 			sInst += "$" + myHex(types.Word(value), 2) + " [$" + myHex(addr+types.Word(value), 4) + "] {REL}"
@@ -112,6 +113,6 @@ func (cpu6502 *Cpu6502) Disassemble(start types.Address, end types.Address) map[
 	return disassembledCode
 }
 
-func (cpu6502 *Cpu6502) GetOperation(operation byte) Instruction {
+func (cpu6502 *Cpu6502) GetOperation(operation byte) cpu.Instruction {
 	return cpu6502.instructions[operation]
 }

@@ -2,6 +2,7 @@ package nes
 
 import (
 	"github.com/FMNSSun/hexit"
+	cpu2 "github.com/raulferras/nes-golang/src/nes/cpu"
 	"github.com/raulferras/nes-golang/src/nes/gamePak"
 	"github.com/raulferras/nes-golang/src/nes/ppu"
 	"github.com/raulferras/nes-golang/src/nes/types"
@@ -13,19 +14,19 @@ type Nes struct {
 	ppu *ppu.Ppu2c02
 
 	systemClockCounter byte // Controls how many times to call each processor
-	debug              *NesDebugger
+	debug              *Debugger
 	vBlankCount        byte
 	stopped            bool
 }
 
-func CreateNes(gamePak *gamePak.GamePak, debugger *NesDebugger) *Nes {
+func CreateNes(gamePak *gamePak.GamePak, debugger *Debugger) *Nes {
 	hexit.BuildTable()
 	thePPU := ppu.CreatePPU(gamePak, debugger.DebugPPU, debugger.logPath+"/ppu.log")
 
 	cpuBus := newNESCPUMemory(thePPU, gamePak)
 	cpu := CreateCPU(
 		cpuBus,
-		Cpu6502DebugOptions{debugger.debug, debugger.logPath + "/cpu.log"},
+		cpu2.NewDebugger(debugger.debug, debugger.logPath+"/cpu.log"),
 	)
 	debugger.cpu = cpu
 	debugger.ppu = thePPU
@@ -122,7 +123,7 @@ func (nes *Nes) Stopped() bool {
 	return nes.stopped
 }
 
-func (nes *Nes) Debugger() *NesDebugger {
+func (nes *Nes) Debugger() *Debugger {
 	return nes.debug
 }
 

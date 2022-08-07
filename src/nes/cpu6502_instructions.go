@@ -1,51 +1,9 @@
 package nes
 
-import "github.com/raulferras/nes-golang/src/nes/types"
-
-type OperationMethodArgument struct {
-	AddressMode    AddressMode
-	OperandAddress types.Address
-}
-
-type OperationMethod func(info OperationMethodArgument) bool
-
-type Instruction struct {
-	name        string
-	addressMode AddressMode
-	method      OperationMethod
-	cycles      byte
-	size        byte
-}
-
-func CreateInstruction(name string, addressMode AddressMode, method OperationMethod, cycles byte, size byte) Instruction {
-	return Instruction{
-		name,
-		addressMode,
-		method,
-		cycles,
-		size,
-	}
-}
-
-func (instruction Instruction) Name() string {
-	return instruction.name
-}
-
-func (instruction Instruction) AddressMode() AddressMode {
-	return instruction.addressMode
-}
-
-func (instruction Instruction) Size() byte {
-	return instruction.size
-}
-
-func (instruction Instruction) Method() OperationMethod {
-	return instruction.method
-}
-
-func (instruction Instruction) Cycles() byte {
-	return instruction.cycles
-}
+import (
+	"github.com/raulferras/nes-golang/src/nes/cpu"
+	"github.com/raulferras/nes-golang/src/nes/types"
+)
 
 // Non Maskable Interrupt
 func (cpu6502 *Cpu6502) nmi() {
@@ -242,7 +200,7 @@ func (cpu6502 *Cpu6502) evalRelative(programCounter types.Address) (address type
 	http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
 	https://forums.nesdev.com/viewtopic.php?t=6331
 */
-func (cpu6502 *Cpu6502) adc(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) adc(info cpu.OperationMethodArgument) bool {
 	carryIn := cpu6502.registers.CarryFlag()
 	a := cpu6502.registers.A
 	value := cpu6502.memory.Read(info.OperandAddress)
@@ -277,7 +235,7 @@ func (cpu6502 *Cpu6502) adc(info OperationMethodArgument) bool {
 //	(Indirect, X) 		AND (Operand, X)	 	21 		2 			6
 //	(Indirect), Y 		AND (Operand), Y 		31 		2 			5*
 //	* Add 1 if page boundary is crossed.
-func (cpu6502 *Cpu6502) and(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) and(info cpu.OperationMethodArgument) bool {
 	cpu6502.registers.A &= cpu6502.memory.Read(info.OperandAddress)
 	cpu6502.registers.UpdateNegativeFlag(cpu6502.registers.A)
 	cpu6502.registers.UpdateZeroFlag(cpu6502.registers.A)
@@ -298,8 +256,8 @@ func (cpu6502 *Cpu6502) and(info OperationMethodArgument) bool {
      zeropage,X    ASL oper,X    16    2     6
 	 Absolute      ASL oper      0E    3     6
 */
-func (cpu6502 *Cpu6502) asl(info OperationMethodArgument) bool {
-	if info.AddressMode == Implicit {
+func (cpu6502 *Cpu6502) asl(info cpu.OperationMethodArgument) bool {
+	if info.AddressMode == cpu.Implicit {
 		cpu6502.registers.SetCarryFlag(cpu6502.registers.A>>7&0x01 == 1)
 		cpu6502.registers.A = cpu6502.registers.A << 1
 		cpu6502.registers.UpdateNegativeFlag(cpu6502.registers.A)
@@ -316,7 +274,7 @@ func (cpu6502 *Cpu6502) asl(info OperationMethodArgument) bool {
 	return false
 }
 
-func (cpu6502 *Cpu6502) addBranchCycles(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) addBranchCycles(info cpu.OperationMethodArgument) bool {
 	cpu6502.opCyclesLeft++
 	if memoryPageDiffer(cpu6502.registers.Pc, info.OperandAddress) {
 		cpu6502.opCyclesLeft++
@@ -335,7 +293,7 @@ func (cpu6502 *Cpu6502) addBranchCycles(info OperationMethodArgument) bool {
 	--------------------------------------------
 	Relative      BCC oper      90    2     2**
 */
-func (cpu6502 *Cpu6502) bcc(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) bcc(info cpu.OperationMethodArgument) bool {
 	if cpu6502.registers.CarryFlag() == 0 {
 		cpu6502.addBranchCycles(info)
 		cpu6502.registers.Pc = info.OperandAddress
@@ -354,7 +312,7 @@ func (cpu6502 *Cpu6502) bcc(info OperationMethodArgument) bool {
 	--------------------------------------------
 	Relative      BCS oper      B0    2     2**
 */
-func (cpu6502 *Cpu6502) bcs(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) bcs(info cpu.OperationMethodArgument) bool {
 	if cpu6502.registers.CarryFlag() == 1 {
 		cpu6502.addBranchCycles(info)
 		cpu6502.registers.Pc = info.OperandAddress
@@ -373,7 +331,7 @@ func (cpu6502 *Cpu6502) bcs(info OperationMethodArgument) bool {
 	--------------------------------------------
 	Relative      BEQ oper      F0    2     2**
 */
-func (cpu6502 *Cpu6502) beq(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) beq(info cpu.OperationMethodArgument) bool {
 	if cpu6502.registers.ZeroFlag() == 1 {
 		cpu6502.addBranchCycles(info)
 		cpu6502.registers.Pc = info.OperandAddress
@@ -397,7 +355,7 @@ func (cpu6502 *Cpu6502) beq(info OperationMethodArgument) bool {
 	zeropage      BIT oper      24    2     3
 	Absolute      BIT oper      2C    3     4
 */
-func (cpu6502 *Cpu6502) bit(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) bit(info cpu.OperationMethodArgument) bool {
 	value := cpu6502.memory.Read(info.OperandAddress)
 	cpu6502.registers.UpdateNegativeFlag(value)
 	cpu6502.registers.SetOverflowFlag((value>>6)&0x01 == 1)
@@ -416,7 +374,7 @@ func (cpu6502 *Cpu6502) bit(info OperationMethodArgument) bool {
 	--------------------------------------------
 	Relative      BMI oper      30    2     2**
 */
-func (cpu6502 *Cpu6502) bmi(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) bmi(info cpu.OperationMethodArgument) bool {
 	if cpu6502.registers.NegativeFlag() == 1 {
 		cpu6502.addBranchCycles(info)
 		cpu6502.registers.Pc = info.OperandAddress
@@ -435,7 +393,7 @@ func (cpu6502 *Cpu6502) bmi(info OperationMethodArgument) bool {
 	--------------------------------------------
 	Relative      BNE oper      D0    2     2**
 */
-func (cpu6502 *Cpu6502) bne(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) bne(info cpu.OperationMethodArgument) bool {
 	if cpu6502.registers.ZeroFlag() == 0 {
 		cpu6502.addBranchCycles(info)
 		cpu6502.registers.Pc = info.OperandAddress
@@ -454,7 +412,7 @@ func (cpu6502 *Cpu6502) bne(info OperationMethodArgument) bool {
 	--------------------------------------------
 	Relative      BPL oper      10    2     2**
 */
-func (cpu6502 *Cpu6502) bpl(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) bpl(info cpu.OperationMethodArgument) bool {
 	//if !cpu6502.Registers.NegativeFlag {
 	if cpu6502.registers.NegativeFlag() == 0 {
 		cpu6502.addBranchCycles(info)
@@ -478,7 +436,7 @@ func (cpu6502 *Cpu6502) bpl(info OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       BRK           00    1     7
 */
-func (cpu6502 *Cpu6502) brk(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) brk(info cpu.OperationMethodArgument) bool {
 	// Store PC in stack
 	pc := cpu6502.registers.Pc + 1
 	cpu6502.pushStack(types.HighNibble(pc))
@@ -503,7 +461,7 @@ func (cpu6502 *Cpu6502) brk(info OperationMethodArgument) bool {
 	--------------------------------------------
 	Relative      BVC oper      50    2     2**
 */
-func (cpu6502 *Cpu6502) bvc(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) bvc(info cpu.OperationMethodArgument) bool {
 	if cpu6502.registers.OverflowFlag() == 0 {
 		cpu6502.addBranchCycles(info)
 		cpu6502.registers.Pc = info.OperandAddress
@@ -521,7 +479,7 @@ func (cpu6502 *Cpu6502) bvc(info OperationMethodArgument) bool {
 	--------------------------------------------
 	Relative      BVC oper      70    2     2**
 */
-func (cpu6502 *Cpu6502) bvs(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) bvs(info cpu.OperationMethodArgument) bool {
 	if cpu6502.registers.OverflowFlag() == 1 {
 		cpu6502.addBranchCycles(info)
 		cpu6502.registers.Pc = info.OperandAddress
@@ -539,7 +497,7 @@ func (cpu6502 *Cpu6502) bvs(info OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       CLC           18    1     2
 */
-func (cpu6502 *Cpu6502) clc(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) clc(info cpu.OperationMethodArgument) bool {
 	cpu6502.registers.SetCarryFlag(false)
 
 	return false
@@ -554,7 +512,7 @@ func (cpu6502 *Cpu6502) clc(info OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       CLD           D8    1     2
 */
-func (cpu6502 *Cpu6502) cld(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) cld(info cpu.OperationMethodArgument) bool {
 	cpu6502.registers.SetDecimalFlag(false)
 
 	return false
@@ -569,7 +527,7 @@ func (cpu6502 *Cpu6502) cld(info OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       CLI           58    1     2
 */
-func (cpu6502 *Cpu6502) cli(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) cli(info cpu.OperationMethodArgument) bool {
 	cpu6502.registers.SetInterruptFlag(false)
 
 	return false
@@ -584,7 +542,7 @@ func (cpu6502 *Cpu6502) cli(info OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       CLV           B8    1     2
 */
-func (cpu6502 *Cpu6502) clv(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) clv(info cpu.OperationMethodArgument) bool {
 	cpu6502.registers.SetOverflowFlag(false)
 
 	return false
@@ -612,7 +570,7 @@ func (cpu6502 *Cpu6502) clv(info OperationMethodArgument) bool {
     the Carry will be set. The equal (Z) and sign (S) flags will be set based on
     equality or lack thereof and the sign (i.e. A>=$80) of the Accumulator.
 */
-func (cpu6502 *Cpu6502) cmp(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) cmp(info cpu.OperationMethodArgument) bool {
 	operand := cpu6502.memory.Read(info.OperandAddress)
 	cpu6502.compare(cpu6502.registers.A, operand)
 
@@ -629,7 +587,7 @@ func (cpu6502 *Cpu6502) cmp(info OperationMethodArgument) bool {
 	Zero Page     CPX $44       $E4  2   3
 	Absolute      CPX $4400     $EC  3   4
 */
-func (cpu6502 *Cpu6502) cpx(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) cpx(info cpu.OperationMethodArgument) bool {
 	operand := cpu6502.memory.Read(info.OperandAddress)
 	cpu6502.compare(cpu6502.registers.X, operand)
 
@@ -646,7 +604,7 @@ func (cpu6502 *Cpu6502) cpx(info OperationMethodArgument) bool {
 	Zero Page     CPY $44       $C4  2   3
 	Absolute      CPY $4400     $CC  3   4
 */
-func (cpu6502 *Cpu6502) cpy(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) cpy(info cpu.OperationMethodArgument) bool {
 	operand := cpu6502.memory.Read(info.OperandAddress)
 	cpu6502.compare(cpu6502.registers.Y, operand)
 
@@ -671,7 +629,7 @@ func (cpu6502 *Cpu6502) compare(register byte, operand byte) {
 	cpu6502.registers.UpdateNegativeFlag(substraction)
 }
 
-func (cpu6502 *Cpu6502) dec(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) dec(info cpu.OperationMethodArgument) bool {
 	address := info.OperandAddress
 	operand := cpu6502.memory.Read(address)
 
@@ -694,7 +652,7 @@ func (cpu6502 *Cpu6502) dec(info OperationMethodArgument) bool {
 	return false
 }
 
-func (cpu6502 *Cpu6502) dex(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) dex(info cpu.OperationMethodArgument) bool {
 	cpu6502.registers.X--
 	operand := cpu6502.registers.X
 
@@ -713,7 +671,7 @@ func (cpu6502 *Cpu6502) dex(info OperationMethodArgument) bool {
 	return false
 }
 
-func (cpu6502 *Cpu6502) dey(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) dey(info cpu.OperationMethodArgument) bool {
 	operand := cpu6502.registers.Y
 
 	operand--
@@ -753,7 +711,7 @@ func (cpu6502 *Cpu6502) dey(info OperationMethodArgument) bool {
 
 	+ add 1 cycle if page boundary crossed
 */
-func (cpu6502 *Cpu6502) eor(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) eor(info cpu.OperationMethodArgument) bool {
 	value := cpu6502.memory.Read(info.OperandAddress)
 
 	cpu6502.registers.A = cpu6502.registers.A ^ value
@@ -775,7 +733,7 @@ func (cpu6502 *Cpu6502) eor(info OperationMethodArgument) bool {
 	Absolute      INC oper      EE    3     6
 	Absolute,X    INC oper,X    FE    3     7
 */
-func (cpu6502 *Cpu6502) inc(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) inc(info cpu.OperationMethodArgument) bool {
 	value := cpu6502.memory.Read(info.OperandAddress)
 	value += 1
 
@@ -795,7 +753,7 @@ func (cpu6502 *Cpu6502) inc(info OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       INX           E8    1     2
 */
-func (cpu6502 *Cpu6502) inx(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) inx(info cpu.OperationMethodArgument) bool {
 	cpu6502.registers.X += 1
 	cpu6502.registers.UpdateZeroFlag(cpu6502.registers.X)
 	cpu6502.registers.UpdateNegativeFlag(cpu6502.registers.X)
@@ -812,7 +770,7 @@ func (cpu6502 *Cpu6502) inx(info OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       INY           C8    1     2
 */
-func (cpu6502 *Cpu6502) iny(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) iny(info cpu.OperationMethodArgument) bool {
 	cpu6502.registers.Y += 1
 	cpu6502.registers.UpdateZeroFlag(cpu6502.registers.Y)
 	cpu6502.registers.UpdateNegativeFlag(cpu6502.registers.Y)
@@ -830,7 +788,7 @@ func (cpu6502 *Cpu6502) iny(info OperationMethodArgument) bool {
 	Absolute      JMP oper      4C    3     3
 	Indirect      JMP (oper)    6C    3     5
 */
-func (cpu6502 *Cpu6502) jmp(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) jmp(info cpu.OperationMethodArgument) bool {
 	cpu6502.registers.Pc = info.OperandAddress
 
 	return false
@@ -846,7 +804,7 @@ func (cpu6502 *Cpu6502) jmp(info OperationMethodArgument) bool {
 	--------------------------------------------
 	Absolute      JSR oper      20    3     6
 */
-func (cpu6502 *Cpu6502) jsr(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) jsr(info cpu.OperationMethodArgument) bool {
 	pc := cpu6502.registers.Pc - 1
 	cpu6502.pushStack(byte(pc >> 8))
 	cpu6502.pushStack(byte(pc & 0xFF))
@@ -872,7 +830,7 @@ func (cpu6502 *Cpu6502) jsr(info OperationMethodArgument) bool {
 	(Indirect,X)  LDA (oper,X)  A1    2     6
 	(Indirect),Y  LDA (oper),Y  B1    2     5*
 */
-func (cpu6502 *Cpu6502) lda(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) lda(info cpu.OperationMethodArgument) bool {
 	cpu6502.registers.A = cpu6502.memory.Read(info.OperandAddress)
 	cpu6502.registers.UpdateZeroFlag(cpu6502.registers.A)
 	cpu6502.registers.UpdateNegativeFlag(cpu6502.registers.A)
@@ -893,7 +851,7 @@ func (cpu6502 *Cpu6502) lda(info OperationMethodArgument) bool {
 	Absolute      LDX oper      AE    3     4
 	Absolute,Y    LDX oper,Y    BE    3     4*
 */
-func (cpu6502 *Cpu6502) ldx(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) ldx(info cpu.OperationMethodArgument) bool {
 	cpu6502.registers.X = cpu6502.memory.Read(info.OperandAddress)
 	cpu6502.registers.UpdateZeroFlag(cpu6502.registers.X)
 	cpu6502.registers.UpdateNegativeFlag(cpu6502.registers.X)
@@ -914,7 +872,7 @@ func (cpu6502 *Cpu6502) ldx(info OperationMethodArgument) bool {
 	Absolute      LDY oper      AC    3     4
 	Absolute,X    LDY oper,X    BC    3     4*
 */
-func (cpu6502 *Cpu6502) ldy(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) ldy(info cpu.OperationMethodArgument) bool {
 	cpu6502.registers.Y = cpu6502.memory.Read(info.OperandAddress)
 	cpu6502.registers.UpdateZeroFlag(cpu6502.registers.Y)
 	cpu6502.registers.UpdateNegativeFlag(cpu6502.registers.Y)
@@ -935,9 +893,9 @@ func (cpu6502 *Cpu6502) ldy(info OperationMethodArgument) bool {
 	Absolute      LSR oper      4E    3     6
 	Absolute,X    LSR oper,X    5E    3     7
 */
-func (cpu6502 *Cpu6502) lsr(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) lsr(info cpu.OperationMethodArgument) bool {
 	var value byte
-	if info.AddressMode == Implicit {
+	if info.AddressMode == cpu.Implicit {
 		value = cpu6502.registers.A
 	} else {
 		value = cpu6502.memory.Read(info.OperandAddress)
@@ -950,7 +908,7 @@ func (cpu6502 *Cpu6502) lsr(info OperationMethodArgument) bool {
 	cpu6502.registers.UpdateZeroFlag(value)
 	cpu6502.registers.UpdateNegativeFlag(0)
 
-	if info.AddressMode == Implicit {
+	if info.AddressMode == cpu.Implicit {
 		cpu6502.registers.A = value
 	} else {
 		cpu6502.memory.Write(info.OperandAddress, value)
@@ -968,7 +926,7 @@ func (cpu6502 *Cpu6502) lsr(info OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       NOP           EA    1     2
 */
-func (cpu6502 *Cpu6502) nop(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) nop(info cpu.OperationMethodArgument) bool {
 	return false
 }
 
@@ -988,7 +946,7 @@ func (cpu6502 *Cpu6502) nop(info OperationMethodArgument) bool {
 	(Indirect,X)  ORA (oper,X)  01    2     6
 	(Indirect),Y  ORA (oper),Y  11    2     5*
 */
-func (cpu6502 *Cpu6502) ora(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) ora(info cpu.OperationMethodArgument) bool {
 	value := cpu6502.memory.Read(info.OperandAddress)
 	cpu6502.registers.A |= value
 	cpu6502.registers.UpdateZeroFlag(cpu6502.registers.A)
@@ -1006,7 +964,7 @@ func (cpu6502 *Cpu6502) ora(info OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       PHA           48    1     3
 */
-func (cpu6502 *Cpu6502) pha(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) pha(info cpu.OperationMethodArgument) bool {
 	cpu6502.pushStack(cpu6502.registers.A)
 
 	return false
@@ -1021,7 +979,7 @@ func (cpu6502 *Cpu6502) pha(info OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       PHP           08    1     3
 */
-func (cpu6502 *Cpu6502) php(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) php(info cpu.OperationMethodArgument) bool {
 	value := cpu6502.registers.StatusRegister()
 	value |= 0b00110000
 	cpu6502.pushStack(value)
@@ -1038,7 +996,7 @@ func (cpu6502 *Cpu6502) php(info OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       PLA           68    1     4
 */
-func (cpu6502 *Cpu6502) pla(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) pla(info cpu.OperationMethodArgument) bool {
 	cpu6502.registers.A = cpu6502.popStack()
 	cpu6502.registers.UpdateNegativeFlag(cpu6502.registers.A)
 	cpu6502.registers.UpdateZeroFlag(cpu6502.registers.A)
@@ -1055,7 +1013,7 @@ func (cpu6502 *Cpu6502) pla(info OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       PLP           28    1     4
 */
-func (cpu6502 *Cpu6502) plp(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) plp(info cpu.OperationMethodArgument) bool {
 	value := cpu6502.popStack()
 
 	// From http://nesdev.com/the%20%27B%27%20flag%20&%20BRK%20instruction.txt
@@ -1081,10 +1039,10 @@ func (cpu6502 *Cpu6502) plp(info OperationMethodArgument) bool {
 	Absolute      ROL oper      2E    3     6
 	Absolute,X    ROL oper,X    3E    3     7
 */
-func (cpu6502 *Cpu6502) rol(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) rol(info cpu.OperationMethodArgument) bool {
 	var newCarry byte
 	var value byte
-	if info.AddressMode == Implicit {
+	if info.AddressMode == cpu.Implicit {
 		newCarry = cpu6502.registers.A & 0x80 >> 7
 		cpu6502.registers.A <<= 1
 		cpu6502.registers.A |= cpu6502.registers.CarryFlag()
@@ -1117,10 +1075,10 @@ func (cpu6502 *Cpu6502) rol(info OperationMethodArgument) bool {
 	Absolute      ROR oper      6E    3     6
 	Absolute,X    ROR oper,X    7E    3     7
 */
-func (cpu6502 *Cpu6502) ror(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) ror(info cpu.OperationMethodArgument) bool {
 	var newCarry byte
 	var value byte
-	if info.AddressMode == Implicit {
+	if info.AddressMode == cpu.Implicit {
 		newCarry = cpu6502.registers.A & 0x01
 		cpu6502.registers.A >>= 1
 		cpu6502.registers.A |= cpu6502.registers.CarryFlag() << 7
@@ -1150,7 +1108,7 @@ func (cpu6502 *Cpu6502) ror(info OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       RTI           40    1     6
 */
-func (cpu6502 *Cpu6502) rti(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) rti(info cpu.OperationMethodArgument) bool {
 	statusRegister := cpu6502.popStack()
 	cpu6502.registers.LoadStatusRegisterIgnoring5and4(statusRegister)
 
@@ -1170,7 +1128,7 @@ func (cpu6502 *Cpu6502) rti(info OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       RTS           60    1     6
 */
-func (cpu6502 *Cpu6502) rts(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) rts(info cpu.OperationMethodArgument) bool {
 	lsb := cpu6502.popStack()
 	msb := cpu6502.popStack()
 	cpu6502.registers.Pc = types.CreateAddress(lsb, msb) + 1
@@ -1194,7 +1152,7 @@ func (cpu6502 *Cpu6502) rts(info OperationMethodArgument) bool {
 	(Indirect,X)  SBC (oper,X)  E1    2     6
 	(Indirect),Y  SBC (oper),Y  F1    2     5*
 */
-func (cpu6502 *Cpu6502) sbc(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) sbc(info cpu.OperationMethodArgument) bool {
 	value := cpu6502.memory.Read(info.OperandAddress)
 	borrow := (1 - cpu6502.registers.CarryFlag()) & 0x01 // == !CarryFlag
 	a := cpu6502.registers.A
@@ -1229,7 +1187,7 @@ func (cpu6502 *Cpu6502) sbc(info OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       SEC           38    1     2
 */
-func (cpu6502 *Cpu6502) sec(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) sec(info cpu.OperationMethodArgument) bool {
 	cpu6502.registers.SetCarryFlag(true)
 
 	return false
@@ -1244,31 +1202,31 @@ func (cpu6502 *Cpu6502) sec(info OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       SED           F8    1     2
 */
-func (cpu6502 *Cpu6502) sed(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) sed(info cpu.OperationMethodArgument) bool {
 	cpu6502.registers.SetDecimalFlag(true)
 
 	return false
 }
 
-func (cpu6502 *Cpu6502) sei(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) sei(info cpu.OperationMethodArgument) bool {
 	cpu6502.registers.SetInterruptFlag(true)
 
 	return false
 }
 
-func (cpu6502 *Cpu6502) sta(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) sta(info cpu.OperationMethodArgument) bool {
 	cpu6502.memory.Write(info.OperandAddress, cpu6502.registers.A)
 
 	return false
 }
 
-func (cpu6502 *Cpu6502) stx(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) stx(info cpu.OperationMethodArgument) bool {
 	cpu6502.memory.Write(info.OperandAddress, cpu6502.registers.X)
 
 	return false
 }
 
-func (cpu6502 *Cpu6502) sty(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) sty(info cpu.OperationMethodArgument) bool {
 	cpu6502.memory.Write(info.OperandAddress, cpu6502.registers.Y)
 
 	return false
@@ -1283,7 +1241,7 @@ func (cpu6502 *Cpu6502) sty(info OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       TAX           AA    1     2
 */
-func (cpu6502 *Cpu6502) tax(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) tax(info cpu.OperationMethodArgument) bool {
 	cpu6502.registers.X = cpu6502.registers.A
 	cpu6502.registers.UpdateNegativeFlag(cpu6502.registers.X)
 	cpu6502.registers.UpdateZeroFlag(cpu6502.registers.X)
@@ -1300,7 +1258,7 @@ func (cpu6502 *Cpu6502) tax(info OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       TAY           A8    1     2
 */
-func (cpu6502 *Cpu6502) tay(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) tay(info cpu.OperationMethodArgument) bool {
 	cpu6502.registers.Y = cpu6502.registers.A
 	cpu6502.registers.UpdateNegativeFlag(cpu6502.registers.Y)
 	cpu6502.registers.UpdateZeroFlag(cpu6502.registers.Y)
@@ -1317,7 +1275,7 @@ func (cpu6502 *Cpu6502) tay(info OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       TSX           BA    1     2
 */
-func (cpu6502 *Cpu6502) tsx(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) tsx(info cpu.OperationMethodArgument) bool {
 	cpu6502.registers.X = cpu6502.Registers().Sp
 	cpu6502.registers.UpdateZeroFlag(cpu6502.registers.X)
 	cpu6502.registers.UpdateNegativeFlag(cpu6502.registers.X)
@@ -1334,7 +1292,7 @@ func (cpu6502 *Cpu6502) tsx(info OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       TXA           8A    1     2
 */
-func (cpu6502 *Cpu6502) txa(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) txa(info cpu.OperationMethodArgument) bool {
 	cpu6502.registers.A = cpu6502.registers.X
 	cpu6502.registers.UpdateZeroFlag(cpu6502.registers.A)
 	cpu6502.registers.UpdateNegativeFlag(cpu6502.registers.A)
@@ -1351,7 +1309,7 @@ func (cpu6502 *Cpu6502) txa(info OperationMethodArgument) bool {
 	--------------------------------------------
 	implied       TXS           9A    1     2
 */
-func (cpu6502 *Cpu6502) txs(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) txs(info cpu.OperationMethodArgument) bool {
 	cpu6502.registers.Sp = cpu6502.registers.X
 
 	return false
@@ -1381,7 +1339,7 @@ func (cpu6502 *Cpu6502) txs(info OperationMethodArgument) bool {
 	Note on assembler syntax:
 	Most assemblers employ "OPC *oper" for forced zeropage addressing.
 */
-func (cpu6502 *Cpu6502) tya(info OperationMethodArgument) bool {
+func (cpu6502 *Cpu6502) tya(info cpu.OperationMethodArgument) bool {
 	cpu6502.registers.A = cpu6502.registers.Y
 	cpu6502.registers.UpdateZeroFlag(cpu6502.registers.A)
 	cpu6502.registers.UpdateNegativeFlag(cpu6502.registers.A)

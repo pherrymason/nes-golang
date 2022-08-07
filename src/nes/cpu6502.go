@@ -6,56 +6,29 @@ import (
 	"github.com/raulferras/nes-golang/src/nes/types"
 )
 
-// AddressMode is an enum of the available Addressing Modes in this cpu
-type AddressMode int
 type AddressModeMethod func(programCounter types.Address) (finalAddress types.Address, operand [3]byte, cycles int, pageCrossed bool)
-
-const (
-	Implicit AddressMode = iota
-	Immediate
-	ZeroPage
-	ZeroPageX
-	ZeroPageY
-	Absolute
-	AbsoluteXIndexed
-	AbsoluteYIndexed
-	Indirect
-	IndirectX
-	IndirectY
-	Relative
-)
 
 // Cpu6502 Represents a CPU 6502
 type Cpu6502 struct {
 	registers cpu.Registers
 	memory    Memory
 
-	instructions [256]Instruction
+	instructions [256]cpu.Instruction
 	opCyclesLeft byte // How many cycles left to finish execution of current cycle
 	cycle        uint32
 
 	addressEvaluators [13]AddressModeMethod
 
 	// Debug parameters
-	debug       bool
-	Logger      cpu6502Logger
+	debugger    *cpu.Debugger
 	cyclesLimit uint16
 }
 
-type Cpu6502DebugOptions struct {
-	enabled       bool
-	outputLogPath string
-}
-
-func CreateCPU(memory Memory, debug Cpu6502DebugOptions) *Cpu6502 {
+func CreateCPU(memory Memory, debugger *cpu.Debugger) *Cpu6502 {
 	cpu6502 := Cpu6502{
 		memory:    memory,
 		registers: cpu.CreateRegisters(),
-		debug:     debug.enabled,
-	}
-
-	if debug.enabled {
-		cpu6502.Logger = createCPULogger(debug.outputLogPath)
+		debugger:  debugger,
 	}
 
 	cpu6502.initInstructionsTable()
@@ -96,11 +69,6 @@ func (cpu6502 *Cpu6502) fetch() byte {
 	return value
 }
 
-/*
-func (cpu *Cpu6502) Read(address defs.Address) byte {
-	return cpu.memory.Read(address)
-}
-*/
 func (cpu6502 *Cpu6502) read16(address types.Address) types.Word {
 	low := cpu6502.memory.Read(address)
 	high := cpu6502.memory.Read(address + 1)
@@ -119,292 +87,292 @@ func (cpu6502 *Cpu6502) read16Bugged(address types.Address) types.Word {
 }
 
 func (cpu6502 *Cpu6502) initInstructionsTable() {
-	cpu6502.instructions = [256]Instruction{
-		CreateInstruction("BRK", Implicit, cpu6502.brk, 7, 1),
-		CreateInstruction("ORA", IndirectX, cpu6502.ora, 6, 2),
+	cpu6502.instructions = [256]cpu.Instruction{
+		cpu.CreateInstruction("BRK", cpu.Implicit, cpu6502.brk, 7, 1),
+		cpu.CreateInstruction("ORA", cpu.IndirectX, cpu6502.ora, 6, 2),
 		{},
 		{},
 		{},
-		CreateInstruction("ORA", ZeroPage, cpu6502.ora, 3, 2),
-		CreateInstruction("ASL", ZeroPage, cpu6502.asl, 5, 2),
+		cpu.CreateInstruction("ORA", cpu.ZeroPage, cpu6502.ora, 3, 2),
+		cpu.CreateInstruction("ASL", cpu.ZeroPage, cpu6502.asl, 5, 2),
 		{},
-		CreateInstruction("PHP", Implicit, cpu6502.php, 3, 1),
-		CreateInstruction("ORA", Immediate, cpu6502.ora, 2, 2),
-		CreateInstruction("ASL", Implicit, cpu6502.asl, 2, 1),
+		cpu.CreateInstruction("PHP", cpu.Implicit, cpu6502.php, 3, 1),
+		cpu.CreateInstruction("ORA", cpu.Immediate, cpu6502.ora, 2, 2),
+		cpu.CreateInstruction("ASL", cpu.Implicit, cpu6502.asl, 2, 1),
 		{},
 		{},
-		CreateInstruction("ORA", Absolute, cpu6502.ora, 4, 3),
-		CreateInstruction("ASL", Absolute, cpu6502.asl, 6, 3),
+		cpu.CreateInstruction("ORA", cpu.Absolute, cpu6502.ora, 4, 3),
+		cpu.CreateInstruction("ASL", cpu.Absolute, cpu6502.asl, 6, 3),
 		{},
 
 		// 0x10
-		CreateInstruction("BPL", Relative, cpu6502.bpl, 2, 2),
-		CreateInstruction("ORA", IndirectY, cpu6502.ora, 5, 2),
+		cpu.CreateInstruction("BPL", cpu.Relative, cpu6502.bpl, 2, 2),
+		cpu.CreateInstruction("ORA", cpu.IndirectY, cpu6502.ora, 5, 2),
 		{},
 		{},
 		{},
-		CreateInstruction("ORA", ZeroPageX, cpu6502.ora, 4, 2),
-		CreateInstruction("ASL", ZeroPageX, cpu6502.asl, 6, 2),
+		cpu.CreateInstruction("ORA", cpu.ZeroPageX, cpu6502.ora, 4, 2),
+		cpu.CreateInstruction("ASL", cpu.ZeroPageX, cpu6502.asl, 6, 2),
 		{},
-		CreateInstruction("CLC", Implicit, cpu6502.clc, 2, 1),
-		CreateInstruction("ORA", AbsoluteYIndexed, cpu6502.ora, 4, 3),
+		cpu.CreateInstruction("CLC", cpu.Implicit, cpu6502.clc, 2, 1),
+		cpu.CreateInstruction("ORA", cpu.AbsoluteYIndexed, cpu6502.ora, 4, 3),
 		{},
 		{},
 		{},
-		CreateInstruction("ORA", AbsoluteXIndexed, cpu6502.ora, 4, 3),
-		CreateInstruction("ASL", AbsoluteXIndexed, cpu6502.asl, 7, 3),
+		cpu.CreateInstruction("ORA", cpu.AbsoluteXIndexed, cpu6502.ora, 4, 3),
+		cpu.CreateInstruction("ASL", cpu.AbsoluteXIndexed, cpu6502.asl, 7, 3),
 		{},
 
 		// 0x20
-		CreateInstruction("JSR", Absolute, cpu6502.jsr, 6, 3),
-		CreateInstruction("AND", IndirectX, cpu6502.and, 6, 2),
+		cpu.CreateInstruction("JSR", cpu.Absolute, cpu6502.jsr, 6, 3),
+		cpu.CreateInstruction("AND", cpu.IndirectX, cpu6502.and, 6, 2),
 		{},
 		{},
-		CreateInstruction("BIT", ZeroPage, cpu6502.bit, 3, 2),
-		CreateInstruction("AND", ZeroPage, cpu6502.and, 3, 2),
-		CreateInstruction("ROL", ZeroPage, cpu6502.rol, 5, 2),
+		cpu.CreateInstruction("BIT", cpu.ZeroPage, cpu6502.bit, 3, 2),
+		cpu.CreateInstruction("AND", cpu.ZeroPage, cpu6502.and, 3, 2),
+		cpu.CreateInstruction("ROL", cpu.ZeroPage, cpu6502.rol, 5, 2),
 		{},
-		CreateInstruction("PLP", Implicit, cpu6502.plp, 4, 1),
-		CreateInstruction("AND", Immediate, cpu6502.and, 2, 2),
-		CreateInstruction("ROL", Implicit, cpu6502.rol, 2, 1),
+		cpu.CreateInstruction("PLP", cpu.Implicit, cpu6502.plp, 4, 1),
+		cpu.CreateInstruction("AND", cpu.Immediate, cpu6502.and, 2, 2),
+		cpu.CreateInstruction("ROL", cpu.Implicit, cpu6502.rol, 2, 1),
 		{},
-		CreateInstruction("BIT", Absolute, cpu6502.bit, 4, 3),
-		CreateInstruction("AND", Absolute, cpu6502.and, 4, 3),
-		CreateInstruction("ROL", Absolute, cpu6502.rol, 6, 3),
+		cpu.CreateInstruction("BIT", cpu.Absolute, cpu6502.bit, 4, 3),
+		cpu.CreateInstruction("AND", cpu.Absolute, cpu6502.and, 4, 3),
+		cpu.CreateInstruction("ROL", cpu.Absolute, cpu6502.rol, 6, 3),
 		{},
 
 		// 0x30
-		CreateInstruction("BMI", Relative, cpu6502.bmi, 2, 2),
-		CreateInstruction("AND", IndirectY, cpu6502.and, 5, 2),
+		cpu.CreateInstruction("BMI", cpu.Relative, cpu6502.bmi, 2, 2),
+		cpu.CreateInstruction("AND", cpu.IndirectY, cpu6502.and, 5, 2),
 		{},
 		{},
 		{},
-		CreateInstruction("AND", ZeroPageX, cpu6502.and, 4, 2),
-		CreateInstruction("ROL", ZeroPageX, cpu6502.rol, 6, 2),
+		cpu.CreateInstruction("AND", cpu.ZeroPageX, cpu6502.and, 4, 2),
+		cpu.CreateInstruction("ROL", cpu.ZeroPageX, cpu6502.rol, 6, 2),
 		{},
-		CreateInstruction("SEC", Implicit, cpu6502.sec, 2, 1),
-		CreateInstruction("AND", AbsoluteYIndexed, cpu6502.and, 4, 3),
+		cpu.CreateInstruction("SEC", cpu.Implicit, cpu6502.sec, 2, 1),
+		cpu.CreateInstruction("AND", cpu.AbsoluteYIndexed, cpu6502.and, 4, 3),
 		{},
 		{},
 		{},
-		CreateInstruction("AND", AbsoluteXIndexed, cpu6502.and, 4, 3),
-		CreateInstruction("ROL", AbsoluteXIndexed, cpu6502.rol, 7, 3),
+		cpu.CreateInstruction("AND", cpu.AbsoluteXIndexed, cpu6502.and, 4, 3),
+		cpu.CreateInstruction("ROL", cpu.AbsoluteXIndexed, cpu6502.rol, 7, 3),
 		{},
 
 		// 0x40
-		CreateInstruction("RTI", Implicit, cpu6502.rti, 6, 1),
-		CreateInstruction("EOR", IndirectX, cpu6502.eor, 6, 2),
+		cpu.CreateInstruction("RTI", cpu.Implicit, cpu6502.rti, 6, 1),
+		cpu.CreateInstruction("EOR", cpu.IndirectX, cpu6502.eor, 6, 2),
 		{},
 		{},
 		{},
-		CreateInstruction("EOR", ZeroPage, cpu6502.eor, 3, 2),
-		CreateInstruction("LSR", ZeroPage, cpu6502.lsr, 5, 2),
+		cpu.CreateInstruction("EOR", cpu.ZeroPage, cpu6502.eor, 3, 2),
+		cpu.CreateInstruction("LSR", cpu.ZeroPage, cpu6502.lsr, 5, 2),
 		{},
-		CreateInstruction("PHA", Implicit, cpu6502.pha, 3, 1),
-		CreateInstruction("EOR", Immediate, cpu6502.eor, 2, 2),
-		CreateInstruction("LSR", Implicit, cpu6502.lsr, 2, 1),
+		cpu.CreateInstruction("PHA", cpu.Implicit, cpu6502.pha, 3, 1),
+		cpu.CreateInstruction("EOR", cpu.Immediate, cpu6502.eor, 2, 2),
+		cpu.CreateInstruction("LSR", cpu.Implicit, cpu6502.lsr, 2, 1),
 		{},
-		CreateInstruction("JMP", Absolute, cpu6502.jmp, 3, 3),
-		CreateInstruction("EOR", Absolute, cpu6502.eor, 4, 3),
-		CreateInstruction("LSR", Absolute, cpu6502.lsr, 6, 3),
+		cpu.CreateInstruction("JMP", cpu.Absolute, cpu6502.jmp, 3, 3),
+		cpu.CreateInstruction("EOR", cpu.Absolute, cpu6502.eor, 4, 3),
+		cpu.CreateInstruction("LSR", cpu.Absolute, cpu6502.lsr, 6, 3),
 		{},
 
 		// 0x50
-		CreateInstruction("BVC", Relative, cpu6502.bvc, 2, 2),
-		CreateInstruction("EOR", IndirectY, cpu6502.eor, 5, 2),
+		cpu.CreateInstruction("BVC", cpu.Relative, cpu6502.bvc, 2, 2),
+		cpu.CreateInstruction("EOR", cpu.IndirectY, cpu6502.eor, 5, 2),
 		{},
 		{},
 		{},
-		CreateInstruction("EOR", ZeroPageX, cpu6502.eor, 4, 2),
-		CreateInstruction("LSR", ZeroPageX, cpu6502.lsr, 6, 2),
+		cpu.CreateInstruction("EOR", cpu.ZeroPageX, cpu6502.eor, 4, 2),
+		cpu.CreateInstruction("LSR", cpu.ZeroPageX, cpu6502.lsr, 6, 2),
 		{},
-		CreateInstruction("CLI", Implicit, cpu6502.cli, 2, 1),
-		CreateInstruction("EOR", AbsoluteYIndexed, cpu6502.eor, 4, 3),
+		cpu.CreateInstruction("CLI", cpu.Implicit, cpu6502.cli, 2, 1),
+		cpu.CreateInstruction("EOR", cpu.AbsoluteYIndexed, cpu6502.eor, 4, 3),
 		{},
 		{},
 		{},
-		CreateInstruction("EOR", AbsoluteXIndexed, cpu6502.eor, 4, 3),
-		CreateInstruction("LSR", AbsoluteXIndexed, cpu6502.lsr, 7, 3),
+		cpu.CreateInstruction("EOR", cpu.AbsoluteXIndexed, cpu6502.eor, 4, 3),
+		cpu.CreateInstruction("LSR", cpu.AbsoluteXIndexed, cpu6502.lsr, 7, 3),
 		{},
 
 		// 0x60
-		CreateInstruction("RTS", Implicit, cpu6502.rts, 6, 1),
-		CreateInstruction("ADC", IndirectX, cpu6502.adc, 6, 2),
+		cpu.CreateInstruction("RTS", cpu.Implicit, cpu6502.rts, 6, 1),
+		cpu.CreateInstruction("ADC", cpu.IndirectX, cpu6502.adc, 6, 2),
 		{},
 		{},
 		{},
-		CreateInstruction("ADC", ZeroPage, cpu6502.adc, 3, 2),
-		CreateInstruction("ROR", ZeroPage, cpu6502.ror, 5, 2),
+		cpu.CreateInstruction("ADC", cpu.ZeroPage, cpu6502.adc, 3, 2),
+		cpu.CreateInstruction("ROR", cpu.ZeroPage, cpu6502.ror, 5, 2),
 		{},
-		CreateInstruction("PLA", Implicit, cpu6502.pla, 4, 1),
-		CreateInstruction("ADC", Immediate, cpu6502.adc, 2, 2),
-		CreateInstruction("ROR", Implicit, cpu6502.ror, 2, 1),
+		cpu.CreateInstruction("PLA", cpu.Implicit, cpu6502.pla, 4, 1),
+		cpu.CreateInstruction("ADC", cpu.Immediate, cpu6502.adc, 2, 2),
+		cpu.CreateInstruction("ROR", cpu.Implicit, cpu6502.ror, 2, 1),
 		{},
-		CreateInstruction("JMP", Indirect, cpu6502.jmp, 5, 3),
-		CreateInstruction("ADC", Absolute, cpu6502.adc, 4, 3),
-		CreateInstruction("ROR", Absolute, cpu6502.ror, 6, 3),
+		cpu.CreateInstruction("JMP", cpu.Indirect, cpu6502.jmp, 5, 3),
+		cpu.CreateInstruction("ADC", cpu.Absolute, cpu6502.adc, 4, 3),
+		cpu.CreateInstruction("ROR", cpu.Absolute, cpu6502.ror, 6, 3),
 		{},
 
 		// 0x70
-		CreateInstruction("BVS", Relative, cpu6502.bvs, 2, 2),
-		CreateInstruction("ADC", IndirectY, cpu6502.adc, 5, 2),
+		cpu.CreateInstruction("BVS", cpu.Relative, cpu6502.bvs, 2, 2),
+		cpu.CreateInstruction("ADC", cpu.IndirectY, cpu6502.adc, 5, 2),
 		{},
 		{},
 		{},
-		CreateInstruction("ADC", ZeroPageX, cpu6502.adc, 4, 2),
-		CreateInstruction("ROR", ZeroPageX, cpu6502.ror, 6, 2),
+		cpu.CreateInstruction("ADC", cpu.ZeroPageX, cpu6502.adc, 4, 2),
+		cpu.CreateInstruction("ROR", cpu.ZeroPageX, cpu6502.ror, 6, 2),
 		{},
-		CreateInstruction("SEI", Implicit, cpu6502.sei, 2, 1),
-		CreateInstruction("ADC", AbsoluteYIndexed, cpu6502.adc, 4, 3),
+		cpu.CreateInstruction("SEI", cpu.Implicit, cpu6502.sei, 2, 1),
+		cpu.CreateInstruction("ADC", cpu.AbsoluteYIndexed, cpu6502.adc, 4, 3),
 		{},
 		{},
 		{},
-		CreateInstruction("ADC", AbsoluteXIndexed, cpu6502.adc, 4, 3),
-		CreateInstruction("ROR", AbsoluteXIndexed, cpu6502.ror, 7, 3),
+		cpu.CreateInstruction("ADC", cpu.AbsoluteXIndexed, cpu6502.adc, 4, 3),
+		cpu.CreateInstruction("ROR", cpu.AbsoluteXIndexed, cpu6502.ror, 7, 3),
 		{},
 
 		// 0x80
 		{},
-		CreateInstruction("STA", IndirectX, cpu6502.sta, 6, 2),
+		cpu.CreateInstruction("STA", cpu.IndirectX, cpu6502.sta, 6, 2),
 		{},
 		{},
-		CreateInstruction("STY", ZeroPage, cpu6502.sty, 3, 2),
-		CreateInstruction("STA", ZeroPage, cpu6502.sta, 3, 2),
-		CreateInstruction("STX", ZeroPage, cpu6502.stx, 3, 2),
+		cpu.CreateInstruction("STY", cpu.ZeroPage, cpu6502.sty, 3, 2),
+		cpu.CreateInstruction("STA", cpu.ZeroPage, cpu6502.sta, 3, 2),
+		cpu.CreateInstruction("STX", cpu.ZeroPage, cpu6502.stx, 3, 2),
 		{},
-		CreateInstruction("DEY", Implicit, cpu6502.dey, 2, 1),
+		cpu.CreateInstruction("DEY", cpu.Implicit, cpu6502.dey, 2, 1),
 		{},
-		CreateInstruction("TXA", Implicit, cpu6502.txa, 2, 1),
+		cpu.CreateInstruction("TXA", cpu.Implicit, cpu6502.txa, 2, 1),
 		{},
-		CreateInstruction("STY", Absolute, cpu6502.sty, 4, 3),
-		CreateInstruction("STA", Absolute, cpu6502.sta, 4, 3),
-		CreateInstruction("STX", Absolute, cpu6502.stx, 4, 3),
+		cpu.CreateInstruction("STY", cpu.Absolute, cpu6502.sty, 4, 3),
+		cpu.CreateInstruction("STA", cpu.Absolute, cpu6502.sta, 4, 3),
+		cpu.CreateInstruction("STX", cpu.Absolute, cpu6502.stx, 4, 3),
 		{},
 
 		// 0x90
-		CreateInstruction("BCC", Relative, cpu6502.bcc, 2, 2),
-		CreateInstruction("STA", IndirectY, cpu6502.sta, 6, 2),
+		cpu.CreateInstruction("BCC", cpu.Relative, cpu6502.bcc, 2, 2),
+		cpu.CreateInstruction("STA", cpu.IndirectY, cpu6502.sta, 6, 2),
 		{},
 		{},
-		CreateInstruction("STY", ZeroPageX, cpu6502.sty, 4, 2),
-		CreateInstruction("STA", ZeroPageX, cpu6502.sta, 4, 2),
-		CreateInstruction("STX", ZeroPageY, cpu6502.stx, 4, 2),
+		cpu.CreateInstruction("STY", cpu.ZeroPageX, cpu6502.sty, 4, 2),
+		cpu.CreateInstruction("STA", cpu.ZeroPageX, cpu6502.sta, 4, 2),
+		cpu.CreateInstruction("STX", cpu.ZeroPageY, cpu6502.stx, 4, 2),
 		{},
-		CreateInstruction("TYA", Implicit, cpu6502.tya, 2, 1),
-		CreateInstruction("STA", AbsoluteYIndexed, cpu6502.sta, 5, 3),
-		CreateInstruction("TXS", Implicit, cpu6502.txs, 2, 1),
+		cpu.CreateInstruction("TYA", cpu.Implicit, cpu6502.tya, 2, 1),
+		cpu.CreateInstruction("STA", cpu.AbsoluteYIndexed, cpu6502.sta, 5, 3),
+		cpu.CreateInstruction("TXS", cpu.Implicit, cpu6502.txs, 2, 1),
 		{},
 		{},
-		CreateInstruction("STA", AbsoluteXIndexed, cpu6502.sta, 5, 3),
+		cpu.CreateInstruction("STA", cpu.AbsoluteXIndexed, cpu6502.sta, 5, 3),
 		{},
 		{},
 
 		// 0xA0
-		CreateInstruction("LDY", Immediate, cpu6502.ldy, 2, 2),
-		CreateInstruction("LDA", IndirectX, cpu6502.lda, 6, 2),
-		CreateInstruction("LDX", Immediate, cpu6502.ldx, 2, 2),
+		cpu.CreateInstruction("LDY", cpu.Immediate, cpu6502.ldy, 2, 2),
+		cpu.CreateInstruction("LDA", cpu.IndirectX, cpu6502.lda, 6, 2),
+		cpu.CreateInstruction("LDX", cpu.Immediate, cpu6502.ldx, 2, 2),
 		{},
-		CreateInstruction("LDY", ZeroPage, cpu6502.ldy, 3, 2),
-		CreateInstruction("LDA", ZeroPage, cpu6502.lda, 3, 2),
-		CreateInstruction("LDX", ZeroPage, cpu6502.ldx, 3, 2),
+		cpu.CreateInstruction("LDY", cpu.ZeroPage, cpu6502.ldy, 3, 2),
+		cpu.CreateInstruction("LDA", cpu.ZeroPage, cpu6502.lda, 3, 2),
+		cpu.CreateInstruction("LDX", cpu.ZeroPage, cpu6502.ldx, 3, 2),
 		{},
-		CreateInstruction("TAY", Implicit, cpu6502.tay, 2, 1),
-		CreateInstruction("LDA", Immediate, cpu6502.lda, 2, 2),
-		CreateInstruction("TAX", Implicit, cpu6502.tax, 2, 1),
+		cpu.CreateInstruction("TAY", cpu.Implicit, cpu6502.tay, 2, 1),
+		cpu.CreateInstruction("LDA", cpu.Immediate, cpu6502.lda, 2, 2),
+		cpu.CreateInstruction("TAX", cpu.Implicit, cpu6502.tax, 2, 1),
 		{},
-		CreateInstruction("LDY", Absolute, cpu6502.ldy, 4, 3),
-		CreateInstruction("LDA", Absolute, cpu6502.lda, 4, 3),
-		CreateInstruction("LDX", Absolute, cpu6502.ldx, 4, 3),
+		cpu.CreateInstruction("LDY", cpu.Absolute, cpu6502.ldy, 4, 3),
+		cpu.CreateInstruction("LDA", cpu.Absolute, cpu6502.lda, 4, 3),
+		cpu.CreateInstruction("LDX", cpu.Absolute, cpu6502.ldx, 4, 3),
 		{},
 
 		// 0xB0
-		CreateInstruction("BCS", Relative, cpu6502.bcs, 2, 2),
-		CreateInstruction("LDA", IndirectY, cpu6502.lda, 5, 2),
+		cpu.CreateInstruction("BCS", cpu.Relative, cpu6502.bcs, 2, 2),
+		cpu.CreateInstruction("LDA", cpu.IndirectY, cpu6502.lda, 5, 2),
 		{},
 		{},
-		CreateInstruction("LDY", ZeroPageX, cpu6502.ldy, 4, 2),
-		CreateInstruction("LDA", ZeroPageX, cpu6502.lda, 4, 2),
-		CreateInstruction("LDX", ZeroPageY, cpu6502.ldx, 4, 2),
+		cpu.CreateInstruction("LDY", cpu.ZeroPageX, cpu6502.ldy, 4, 2),
+		cpu.CreateInstruction("LDA", cpu.ZeroPageX, cpu6502.lda, 4, 2),
+		cpu.CreateInstruction("LDX", cpu.ZeroPageY, cpu6502.ldx, 4, 2),
 		{},
-		CreateInstruction("CLV", Implicit, cpu6502.clv, 2, 1),
-		CreateInstruction("LDA", AbsoluteYIndexed, cpu6502.lda, 4, 3),
-		CreateInstruction("TSX", Implicit, cpu6502.tsx, 2, 1),
+		cpu.CreateInstruction("CLV", cpu.Implicit, cpu6502.clv, 2, 1),
+		cpu.CreateInstruction("LDA", cpu.AbsoluteYIndexed, cpu6502.lda, 4, 3),
+		cpu.CreateInstruction("TSX", cpu.Implicit, cpu6502.tsx, 2, 1),
 		{},
-		CreateInstruction("LDY", AbsoluteXIndexed, cpu6502.ldy, 4, 3),
-		CreateInstruction("LDA", AbsoluteXIndexed, cpu6502.lda, 4, 3),
-		CreateInstruction("LDX", AbsoluteYIndexed, cpu6502.ldx, 4, 3),
+		cpu.CreateInstruction("LDY", cpu.AbsoluteXIndexed, cpu6502.ldy, 4, 3),
+		cpu.CreateInstruction("LDA", cpu.AbsoluteXIndexed, cpu6502.lda, 4, 3),
+		cpu.CreateInstruction("LDX", cpu.AbsoluteYIndexed, cpu6502.ldx, 4, 3),
 		{},
 
 		// 0xC0
-		CreateInstruction("CPY", Immediate, cpu6502.cpy, 2, 2),
-		CreateInstruction("CMP", IndirectX, cpu6502.cmp, 6, 2),
+		cpu.CreateInstruction("CPY", cpu.Immediate, cpu6502.cpy, 2, 2),
+		cpu.CreateInstruction("CMP", cpu.IndirectX, cpu6502.cmp, 6, 2),
 		{},
 		{},
-		CreateInstruction("CPY", ZeroPage, cpu6502.cpy, 3, 2),
-		CreateInstruction("CMP", ZeroPage, cpu6502.cmp, 3, 2),
-		CreateInstruction("DEC", ZeroPage, cpu6502.dec, 5, 2),
+		cpu.CreateInstruction("CPY", cpu.ZeroPage, cpu6502.cpy, 3, 2),
+		cpu.CreateInstruction("CMP", cpu.ZeroPage, cpu6502.cmp, 3, 2),
+		cpu.CreateInstruction("DEC", cpu.ZeroPage, cpu6502.dec, 5, 2),
 		{},
-		CreateInstruction("INY", Implicit, cpu6502.iny, 2, 1),
-		CreateInstruction("CMP", Immediate, cpu6502.cmp, 2, 2),
-		CreateInstruction("DEX", Implicit, cpu6502.dex, 2, 1),
+		cpu.CreateInstruction("INY", cpu.Implicit, cpu6502.iny, 2, 1),
+		cpu.CreateInstruction("CMP", cpu.Immediate, cpu6502.cmp, 2, 2),
+		cpu.CreateInstruction("DEX", cpu.Implicit, cpu6502.dex, 2, 1),
 		{},
-		CreateInstruction("CPY", Absolute, cpu6502.cpy, 4, 3),
-		CreateInstruction("CMP", Absolute, cpu6502.cmp, 4, 3),
-		CreateInstruction("DEC", Absolute, cpu6502.dec, 6, 3),
+		cpu.CreateInstruction("CPY", cpu.Absolute, cpu6502.cpy, 4, 3),
+		cpu.CreateInstruction("CMP", cpu.Absolute, cpu6502.cmp, 4, 3),
+		cpu.CreateInstruction("DEC", cpu.Absolute, cpu6502.dec, 6, 3),
 		{},
 
 		// 0xD0
-		CreateInstruction("BNE", Relative, cpu6502.bne, 2, 2),
-		CreateInstruction("CMP", IndirectY, cpu6502.cmp, 5, 2),
+		cpu.CreateInstruction("BNE", cpu.Relative, cpu6502.bne, 2, 2),
+		cpu.CreateInstruction("CMP", cpu.IndirectY, cpu6502.cmp, 5, 2),
 		{},
 		{},
 		{},
-		CreateInstruction("CMP", ZeroPageX, cpu6502.cmp, 4, 2),
-		CreateInstruction("DEC", ZeroPageX, cpu6502.dec, 6, 2),
+		cpu.CreateInstruction("CMP", cpu.ZeroPageX, cpu6502.cmp, 4, 2),
+		cpu.CreateInstruction("DEC", cpu.ZeroPageX, cpu6502.dec, 6, 2),
 		{},
-		CreateInstruction("CLD", Implicit, cpu6502.cld, 2, 1),
-		CreateInstruction("CMP", AbsoluteYIndexed, cpu6502.cmp, 4, 3),
+		cpu.CreateInstruction("CLD", cpu.Implicit, cpu6502.cld, 2, 1),
+		cpu.CreateInstruction("CMP", cpu.AbsoluteYIndexed, cpu6502.cmp, 4, 3),
 		{},
 		{},
 		{},
-		CreateInstruction("CMP", AbsoluteXIndexed, cpu6502.cmp, 4, 3),
-		CreateInstruction("DEC", AbsoluteXIndexed, cpu6502.dec, 7, 3),
+		cpu.CreateInstruction("CMP", cpu.AbsoluteXIndexed, cpu6502.cmp, 4, 3),
+		cpu.CreateInstruction("DEC", cpu.AbsoluteXIndexed, cpu6502.dec, 7, 3),
 		{},
 
 		// 0xE0
-		CreateInstruction("CPX", Immediate, cpu6502.cpx, 2, 2),
-		CreateInstruction("SBC", IndirectX, cpu6502.sbc, 6, 2),
+		cpu.CreateInstruction("CPX", cpu.Immediate, cpu6502.cpx, 2, 2),
+		cpu.CreateInstruction("SBC", cpu.IndirectX, cpu6502.sbc, 6, 2),
 		{},
 		{},
-		CreateInstruction("CPX", ZeroPage, cpu6502.cpx, 3, 2),
-		CreateInstruction("SBC", ZeroPage, cpu6502.sbc, 3, 2),
-		CreateInstruction("INC", ZeroPage, cpu6502.inc, 5, 2),
+		cpu.CreateInstruction("CPX", cpu.ZeroPage, cpu6502.cpx, 3, 2),
+		cpu.CreateInstruction("SBC", cpu.ZeroPage, cpu6502.sbc, 3, 2),
+		cpu.CreateInstruction("INC", cpu.ZeroPage, cpu6502.inc, 5, 2),
 		{},
-		CreateInstruction("INX", Implicit, cpu6502.inx, 2, 1),
-		CreateInstruction("SBC", Immediate, cpu6502.sbc, 2, 2),
-		CreateInstruction("NOP", Implicit, cpu6502.nop, 2, 1),
+		cpu.CreateInstruction("INX", cpu.Implicit, cpu6502.inx, 2, 1),
+		cpu.CreateInstruction("SBC", cpu.Immediate, cpu6502.sbc, 2, 2),
+		cpu.CreateInstruction("NOP", cpu.Implicit, cpu6502.nop, 2, 1),
 		{},
-		CreateInstruction("CPX", Absolute, cpu6502.cpx, 4, 3),
-		CreateInstruction("SBC", Absolute, cpu6502.sbc, 4, 3),
-		CreateInstruction("INC", Absolute, cpu6502.inc, 6, 3),
+		cpu.CreateInstruction("CPX", cpu.Absolute, cpu6502.cpx, 4, 3),
+		cpu.CreateInstruction("SBC", cpu.Absolute, cpu6502.sbc, 4, 3),
+		cpu.CreateInstruction("INC", cpu.Absolute, cpu6502.inc, 6, 3),
 		{},
 
 		// 0xF0
-		CreateInstruction("BEQ", Relative, cpu6502.beq, 2, 2),
-		CreateInstruction("SBC", IndirectY, cpu6502.sbc, 5, 2),
+		cpu.CreateInstruction("BEQ", cpu.Relative, cpu6502.beq, 2, 2),
+		cpu.CreateInstruction("SBC", cpu.IndirectY, cpu6502.sbc, 5, 2),
 		{},
 		{},
 		{},
-		CreateInstruction("SBC", ZeroPageX, cpu6502.sbc, 4, 2),
-		CreateInstruction("INC", ZeroPageX, cpu6502.inc, 6, 2),
+		cpu.CreateInstruction("SBC", cpu.ZeroPageX, cpu6502.sbc, 4, 2),
+		cpu.CreateInstruction("INC", cpu.ZeroPageX, cpu6502.inc, 6, 2),
 		{},
-		CreateInstruction("SED", Implicit, cpu6502.sed, 2, 1),
-		CreateInstruction("SBC", AbsoluteYIndexed, cpu6502.sbc, 4, 3),
+		cpu.CreateInstruction("SED", cpu.Implicit, cpu6502.sed, 2, 1),
+		cpu.CreateInstruction("SBC", cpu.AbsoluteYIndexed, cpu6502.sbc, 4, 3),
 		{},
 		{},
 		{},
-		CreateInstruction("SBC", AbsoluteXIndexed, cpu6502.sbc, 4, 3),
-		CreateInstruction("INC", AbsoluteXIndexed, cpu6502.inc, 7, 3),
+		cpu.CreateInstruction("SBC", cpu.AbsoluteXIndexed, cpu6502.sbc, 4, 3),
+		cpu.CreateInstruction("INC", cpu.AbsoluteXIndexed, cpu6502.inc, 7, 3),
 		{},
 	}
 }
@@ -426,8 +394,8 @@ func (cpu6502 *Cpu6502) initAddressModeEvaluators() {
 	}
 }
 
-func (cpu6502 Cpu6502) evaluateOperandAddress(addressMode AddressMode, pc types.Address) (finalAddress types.Address, operand [3]byte, pageCrossed bool) {
-	if addressMode == Implicit {
+func (cpu6502 Cpu6502) evaluateOperandAddress(addressMode cpu.AddressMode, pc types.Address) (finalAddress types.Address, operand [3]byte, pageCrossed bool) {
+	if addressMode == cpu.Implicit {
 		finalAddress = 0
 		return
 	}

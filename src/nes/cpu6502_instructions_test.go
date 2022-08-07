@@ -18,7 +18,7 @@ func CreateCPUMemoryWithSimpleMapper() Memory {
 func CreateCPUWithGamePak() *Cpu6502 {
 	cpu := CreateCPU(
 		CreateCPUMemoryWithSimpleMapper(),
-		Cpu6502DebugOptions{false, ""},
+		nescpu.NewDebugger(false, ""),
 	)
 	return cpu
 }
@@ -108,7 +108,7 @@ func TestAND(t *testing.T) {
 			cpu.memory.Write(0x100, tt.operand)
 			cpu.registers.A = tt.A
 
-			extraCycle := cpu.and(OperationMethodArgument{Immediate, 0x100})
+			extraCycle := cpu.and(nescpu.OperationMethodArgument{nescpu.Immediate, 0x100})
 
 			assert.Equal(t, tt.expectedA, cpu.registers.A, fmt.Sprintf("unexpected register A result"))
 			assert.Equal(t, tt.expectedNegativeFlag, cpu.registers.NegativeFlag(), fmt.Sprintf("unexpected NegativeFlag result"))
@@ -131,21 +131,21 @@ func TestASL_Accumulator(t *testing.T) {
 	cases := []struct {
 		name             string
 		input            byte
-		addressMode      AddressMode
+		addressMode      nescpu.AddressMode
 		expectedRegister nescpu.Registers
 	}{
 		// Acumulator
-		{"Shift left Acumulator, result is > 0 without carry", 0b00000001, Implicit, expectedRegisters(0, 0, 0)},
-		{"Shift left Acumulator,result is > 0 with carry", 0b10000001, Implicit, expectedRegisters(0, 0, 1)},
-		{"Shift left Acumulator,result is 0 with carry", 0b10000000, Implicit, expectedRegisters(0, 1, 1)},
-		{"Shift left Acumulator,result is < 0 with carry", 0b11000000, Implicit, expectedRegisters(1, 0, 1)},
-		{"Shift left Acumulator,result is < 0 without carry", 0b01000000, Implicit, expectedRegisters(1, 0, 0)},
+		{"Shift left Acumulator, result is > 0 without carry", 0b00000001, nescpu.Implicit, expectedRegisters(0, 0, 0)},
+		{"Shift left Acumulator,result is > 0 with carry", 0b10000001, nescpu.Implicit, expectedRegisters(0, 0, 1)},
+		{"Shift left Acumulator,result is 0 with carry", 0b10000000, nescpu.Implicit, expectedRegisters(0, 1, 1)},
+		{"Shift left Acumulator,result is < 0 with carry", 0b11000000, nescpu.Implicit, expectedRegisters(1, 0, 1)},
+		{"Shift left Acumulator,result is < 0 without carry", 0b01000000, nescpu.Implicit, expectedRegisters(1, 0, 0)},
 		// Over memory
-		{"Shift left $, result > 0 without carry", 0b00000001, ZeroPage, expectedRegisters(0, 0, 0)},
-		{"Shift left $, result is > 0 with carry", 0b10000001, ZeroPage, expectedRegisters(0, 0, 1)},
-		{"Shift left $, result is 0 with carry", 0b10000000, ZeroPage, expectedRegisters(0, 1, 1)},
-		{"Shift left $, result is < 0, with carry", 0b11000000, ZeroPage, expectedRegisters(1, 0, 1)},
-		{"Shift left $, result is < 0, without carry", 0b01000000, ZeroPage, expectedRegisters(1, 0, 0)},
+		{"Shift left $, result > 0 without carry", 0b00000001, nescpu.ZeroPage, expectedRegisters(0, 0, 0)},
+		{"Shift left $, result is > 0 with carry", 0b10000001, nescpu.ZeroPage, expectedRegisters(0, 0, 1)},
+		{"Shift left $, result is 0 with carry", 0b10000000, nescpu.ZeroPage, expectedRegisters(0, 1, 1)},
+		{"Shift left $, result is < 0, with carry", 0b11000000, nescpu.ZeroPage, expectedRegisters(1, 0, 1)},
+		{"Shift left $, result is < 0, without carry", 0b01000000, nescpu.ZeroPage, expectedRegisters(1, 0, 0)},
 	}
 
 	for _, tt := range cases {
@@ -154,9 +154,9 @@ func TestASL_Accumulator(t *testing.T) {
 			cpu.registers.A = tt.input
 			cpu.memory.Write(0x0000, tt.input)
 
-			cpu.asl(OperationMethodArgument{tt.addressMode, 0x0000})
+			cpu.asl(nescpu.OperationMethodArgument{tt.addressMode, 0x0000})
 
-			if tt.addressMode == Implicit {
+			if tt.addressMode == nescpu.Implicit {
 				assert.Equal(t, tt.input<<1, cpu.registers.A, "unexpected Accumulator")
 			} else {
 				assert.Equal(t, tt.input<<1, cpu.memory.Read(0x0000), "unexpected result")
@@ -204,7 +204,7 @@ func TestADC(t *testing.T) {
 			cpu.registers.UpdateFlag(nescpu.CarryFlag, tt.carryFlag)
 			cpu.memory.Write(0x0000, tt.operand)
 
-			extraCycle := cpu.adc(OperationMethodArgument{Immediate, 0x0000})
+			extraCycle := cpu.adc(nescpu.OperationMethodArgument{nescpu.Immediate, 0x0000})
 
 			assert.Equal(t, tt.expectedRegister.A, cpu.registers.A, "unexpected A")
 			assert.Equal(t, tt.expectedRegister.NegativeFlag(), cpu.registers.NegativeFlag(), "unexpected NegativeFlag")
@@ -234,7 +234,7 @@ func TestBCC(t *testing.T) {
 			cpu.registers.UpdateFlag(nescpu.CarryFlag, tt.carryFlag)
 			cpu.registers.Pc = tt.pc
 
-			cpu.bcc(OperationMethodArgument{Relative, tt.expectedPc})
+			cpu.bcc(nescpu.OperationMethodArgument{nescpu.Relative, tt.expectedPc})
 
 			assert.Equal(t, tt.expectedPc, cpu.registers.Pc, "invalid pc")
 			assert.Equal(t, tt.expectedCycles, cpu.opCyclesLeft, "invalid cycles")
@@ -260,7 +260,7 @@ func TestBCS(t *testing.T) {
 			cpu := CreateCPUWithGamePak()
 			cpu.registers.UpdateFlag(nescpu.CarryFlag, tt.carry)
 			cpu.registers.Pc = tt.pc
-			cpu.bcs(OperationMethodArgument{Relative, tt.expectedPc})
+			cpu.bcs(nescpu.OperationMethodArgument{nescpu.Relative, tt.expectedPc})
 
 			assert.Equal(t, tt.expectedPc, cpu.registers.Pc, "invalid pc")
 			assert.Equal(t, tt.expectedCycles, cpu.opCyclesLeft, "invalid cycles")
@@ -287,7 +287,7 @@ func TestBEQ(t *testing.T) {
 			cpu.registers.UpdateFlag(nescpu.ZeroFlag, tt.zero)
 			cpu.registers.Pc = tt.pc
 
-			cpu.beq(OperationMethodArgument{Relative, tt.expectedPc})
+			cpu.beq(nescpu.OperationMethodArgument{nescpu.Relative, tt.expectedPc})
 
 			assert.Equal(t, tt.expectedPc, cpu.registers.Pc, "invalid pc")
 			assert.Equal(t, tt.expectedCycles, cpu.opCyclesLeft, "invalid cycles")
@@ -327,7 +327,7 @@ func TestBIT(t *testing.T) {
 			cpu.registers.A = tt.accumulator
 			cpu.memory.Write(0x0001, tt.operand)
 
-			cpu.bit(OperationMethodArgument{ZeroPage, 0x0001})
+			cpu.bit(nescpu.OperationMethodArgument{nescpu.ZeroPage, 0x0001})
 
 			assert.Equal(t, tt.expectedRegister, cpu.registers, "invalid registers")
 		})
@@ -353,7 +353,7 @@ func TestBMI(t *testing.T) {
 			cpu.registers.UpdateFlag(nescpu.NegativeFlag, tt.negative)
 			cpu.registers.Pc = tt.pc
 
-			cpu.bmi(OperationMethodArgument{Relative, tt.expectedPc})
+			cpu.bmi(nescpu.OperationMethodArgument{nescpu.Relative, tt.expectedPc})
 
 			assert.Equal(t, tt.expectedPc, cpu.registers.Pc, "invalid pc")
 			assert.Equal(t, tt.expectedCycles, cpu.opCyclesLeft, "invalid cycles")
@@ -380,7 +380,7 @@ func TestBNE(t *testing.T) {
 		cpu := CreateCPUWithGamePak()
 		cpu.registers.Pc = dp.pc
 		cpu.registers.UpdateFlag(nescpu.ZeroFlag, dp.zero)
-		cpu.bne(OperationMethodArgument{Relative, dp.expectedPc})
+		cpu.bne(nescpu.OperationMethodArgument{nescpu.Relative, dp.expectedPc})
 
 		assert.Equal(t, dp.expectedPc, cpu.registers.Pc, dp.failError+":invalid pc")
 		assert.Equal(t, dp.expectedCycles, cpu.opCyclesLeft, dp.failError+":invalid cycles")
@@ -406,7 +406,7 @@ func TestBPL(t *testing.T) {
 			cpu.registers.Pc = tt.pc
 			cpu.registers.UpdateFlag(nescpu.NegativeFlag, tt.negative)
 
-			cpu.bpl(OperationMethodArgument{Relative, tt.expectedPc})
+			cpu.bpl(nescpu.OperationMethodArgument{nescpu.Relative, tt.expectedPc})
 
 			assert.Equal(t, tt.expectedPc, cpu.registers.Pc, "invalid pc")
 			assert.Equal(t, tt.expectedCycles, cpu.opCyclesLeft, "invalid cycles")
@@ -423,7 +423,7 @@ func TestBRK(t *testing.T) {
 	cpu.memory.Write(types.Address(0xFFFE), types.LowNibble(expectedPc))
 	cpu.memory.Write(types.Address(0xFFFF), types.HighNibble(expectedPc))
 
-	cpu.brk(OperationMethodArgument{Implicit, 0x0000})
+	cpu.brk(nescpu.OperationMethodArgument{nescpu.Implicit, 0x0000})
 
 	assert.Equal(t, programCounter+1, cpu.read16(0x1FE))
 	// Stored status Registers in stack should be...
@@ -454,7 +454,7 @@ func TestBVC(t *testing.T) {
 			cpu := CreateCPUWithGamePak()
 			cpu.registers.Pc = tt.pc
 			cpu.registers.UpdateFlag(nescpu.OverflowFlag, tt.overflow)
-			cpu.bvc(OperationMethodArgument{Relative, tt.expectedPc})
+			cpu.bvc(nescpu.OperationMethodArgument{nescpu.Relative, tt.expectedPc})
 
 			assert.Equal(t, tt.expectedPc, cpu.registers.Pc, "invalid pc")
 			assert.Equal(t, tt.expectedCycles, cpu.opCyclesLeft, "invalid cycles")
@@ -483,7 +483,7 @@ func TestBVS(t *testing.T) {
 			cpu := CreateCPUWithGamePak()
 			cpu.registers.Pc = tt.pc
 			cpu.registers.UpdateFlag(nescpu.OverflowFlag, tt.overflow)
-			cpu.bvs(OperationMethodArgument{Relative, tt.expectedPc})
+			cpu.bvs(nescpu.OperationMethodArgument{nescpu.Relative, tt.expectedPc})
 
 			assert.Equal(t, tt.expectedPc, cpu.registers.Pc, "invalid pc")
 			assert.Equal(t, tt.expectedCycles, cpu.opCyclesLeft, "invalid cycles")
@@ -495,7 +495,7 @@ func TestCLC(t *testing.T) {
 	cpu := CreateCPUWithGamePak()
 	cpu.registers.UpdateFlag(nescpu.CarryFlag, 1)
 
-	cpu.clc(OperationMethodArgument{Implicit, 0x00})
+	cpu.clc(nescpu.OperationMethodArgument{nescpu.Implicit, 0x00})
 
 	assert.Zero(t, cpu.registers.CarryFlag())
 }
@@ -504,7 +504,7 @@ func TestCLD(t *testing.T) {
 	cpu := CreateCPUWithGamePak()
 	cpu.registers.UpdateFlag(nescpu.DecimalFlag, 1)
 
-	cpu.cld(OperationMethodArgument{Implicit, 0x00})
+	cpu.cld(nescpu.OperationMethodArgument{nescpu.Implicit, 0x00})
 
 	assert.Zero(t, cpu.registers.DecimalFlag())
 }
@@ -513,7 +513,7 @@ func TestCLI(t *testing.T) {
 	cpu := CreateCPUWithGamePak()
 	cpu.registers.UpdateFlag(nescpu.InterruptFlag, 1)
 
-	cpu.cli(OperationMethodArgument{Implicit, 0x00})
+	cpu.cli(nescpu.OperationMethodArgument{nescpu.Implicit, 0x00})
 
 	assert.Zero(t, cpu.registers.InterruptFlag())
 }
@@ -522,7 +522,7 @@ func TestCLV(t *testing.T) {
 	cpu := CreateCPUWithGamePak()
 	cpu.registers.UpdateFlag(nescpu.OverflowFlag, 1)
 
-	cpu.clv(OperationMethodArgument{Implicit, 0x00})
+	cpu.clv(nescpu.OperationMethodArgument{nescpu.Implicit, 0x00})
 
 	assert.Zero(t, cpu.registers.OverflowFlag())
 }
@@ -536,7 +536,7 @@ func TestCompareOperations(t *testing.T) {
 	type dataProvider struct {
 		title            string
 		operand          byte
-		op               OperationMethod
+		op               nescpu.OperationMethod
 		expectedCarry    byte
 		expectedZero     byte
 		expectedNegative byte
@@ -545,7 +545,7 @@ func TestCompareOperations(t *testing.T) {
 	cases := []struct {
 		title            string
 		operand          byte
-		op               OperationMethod
+		op               nescpu.OperationMethod
 		expectedCarry    byte
 		expectedZero     byte
 		expectedNegative byte
@@ -565,7 +565,7 @@ func TestCompareOperations(t *testing.T) {
 		t.Run(tt.title, func(t *testing.T) {
 			cpu.memory.Write(0x00, tt.operand)
 
-			tt.op(OperationMethodArgument{ZeroPage, types.Address(0x00)})
+			tt.op(nescpu.OperationMethodArgument{nescpu.ZeroPage, types.Address(0x00)})
 
 			assert.Equal(t, tt.expectedCarry, cpu.registers.CarryFlag(), "unexpected Carry")
 			assert.Equal(t, tt.expectedZero, cpu.registers.ZeroFlag(), "unexpected Zero")
@@ -592,7 +592,7 @@ func TestDEC(t *testing.T) {
 			cpu := CreateCPUWithGamePak()
 			cpu.memory.Write(0x0000, tt.initialValue)
 
-			cpu.dec(OperationMethodArgument{ZeroPage, types.Address(0x0000)})
+			cpu.dec(nescpu.OperationMethodArgument{nescpu.ZeroPage, types.Address(0x0000)})
 
 			assert.Equal(t, tt.expectedValue, cpu.memory.Read(0))
 			assert.Equal(t, tt.expectedZero, cpu.registers.ZeroFlag())
@@ -608,7 +608,7 @@ func TestDECXY(t *testing.T) {
 
 	cases := []struct {
 		title            string
-		op               OperationMethod
+		op               nescpu.OperationMethod
 		expectedX        byte
 		expectedY        byte
 		expectedZero     byte
@@ -624,7 +624,7 @@ func TestDECXY(t *testing.T) {
 
 	for _, tt := range cases {
 		t.Run(tt.title, func(t *testing.T) {
-			tt.op(OperationMethodArgument{Implicit, 0})
+			tt.op(nescpu.OperationMethodArgument{nescpu.Implicit, 0})
 			assert.Equal(t, tt.expectedX, cpu.registers.X, "unexpected X")
 			assert.Equal(t, tt.expectedY, cpu.registers.Y, "unexpected Y")
 			assert.Equal(t, tt.expectedNegative, cpu.registers.NegativeFlag(), "unexpected Negative flag")
@@ -653,7 +653,7 @@ func TestEOR(t *testing.T) {
 			cpu.registers.A = tt.a
 			cpu.memory.Write(0x05, tt.value)
 
-			extraCycle := cpu.eor(OperationMethodArgument{Immediate, 0x05})
+			extraCycle := cpu.eor(nescpu.OperationMethodArgument{nescpu.Immediate, 0x05})
 
 			assert.Equal(t, tt.expectedA, cpu.registers.A)
 			assert.Equal(t, tt.expectedZero, cpu.registers.ZeroFlag())
@@ -681,7 +681,7 @@ func TestINC(t *testing.T) {
 			cpu := CreateCPUWithGamePak()
 			cpu.memory.Write(0x00, tt.value)
 
-			cpu.inc(OperationMethodArgument{ZeroPage, 0x00})
+			cpu.inc(nescpu.OperationMethodArgument{nescpu.ZeroPage, 0x00})
 
 			assert.Equal(t, tt.expectedValue, cpu.memory.Read(0x00))
 			assert.Equal(t, tt.expectedNegative, cpu.registers.NegativeFlag())
@@ -708,7 +708,7 @@ func TestINX(t *testing.T) {
 			cpu := CreateCPUWithGamePak()
 			cpu.registers.X = tt.value
 
-			cpu.inx(OperationMethodArgument{ZeroPage, 0x00})
+			cpu.inx(nescpu.OperationMethodArgument{nescpu.ZeroPage, 0x00})
 
 			assert.Equal(t, tt.expectedValue, cpu.registers.X)
 			assert.Equal(t, tt.expectedNegative, cpu.registers.NegativeFlag())
@@ -735,7 +735,7 @@ func TestINY(t *testing.T) {
 			cpu := CreateCPUWithGamePak()
 			cpu.registers.Y = tt.value
 
-			cpu.iny(OperationMethodArgument{ZeroPage, 0x00})
+			cpu.iny(nescpu.OperationMethodArgument{nescpu.ZeroPage, 0x00})
 
 			assert.Equal(t, tt.expectedValue, cpu.registers.Y)
 			assert.Equal(t, tt.expectedNegative, cpu.registers.NegativeFlag())
@@ -747,7 +747,7 @@ func TestINY(t *testing.T) {
 func TestJMP(t *testing.T) {
 	cpu := CreateCPUWithGamePak()
 
-	cpu.jmp(OperationMethodArgument{Absolute, 0x100})
+	cpu.jmp(nescpu.OperationMethodArgument{nescpu.Absolute, 0x100})
 
 	assert.Equal(t, types.Address(0x100), cpu.registers.Pc)
 }
@@ -759,7 +759,7 @@ func TestJSR(t *testing.T) {
 	cpu.memory.Write(types.Address(0x203), 0x05) // MSB
 
 	cpu.registers.Pc = 0x0203
-	cpu.jsr(OperationMethodArgument{Absolute, 0x202})
+	cpu.jsr(nescpu.OperationMethodArgument{nescpu.Absolute, 0x202})
 
 	assert.Equal(t, types.Address(0x0202), cpu.registers.Pc)
 	assert.Equal(t, byte(0x02), cpu.popStack())
@@ -783,7 +783,7 @@ func TestLDA(t *testing.T) {
 			cpu := CreateCPUWithGamePak()
 			cpu.memory.Write(types.Address(0x00), tt.value)
 
-			extraCycle := cpu.lda(OperationMethodArgument{Immediate, 0x00})
+			extraCycle := cpu.lda(nescpu.OperationMethodArgument{nescpu.Immediate, 0x00})
 
 			assert.Equal(t, tt.value, cpu.registers.A)
 			assert.Equal(t, tt.expectedZero, cpu.registers.ZeroFlag())
@@ -810,7 +810,7 @@ func TestLDX(t *testing.T) {
 			cpu := CreateCPUWithGamePak()
 			cpu.memory.Write(types.Address(0x00), tt.value)
 
-			extraCycle := cpu.ldx(OperationMethodArgument{Immediate, 0x00})
+			extraCycle := cpu.ldx(nescpu.OperationMethodArgument{nescpu.Immediate, 0x00})
 
 			assert.Equal(t, tt.value, cpu.registers.X)
 			assert.Equal(t, tt.expectedZero, cpu.registers.ZeroFlag())
@@ -837,7 +837,7 @@ func TestLDY(t *testing.T) {
 			cpu := CreateCPUWithGamePak()
 			cpu.memory.Write(types.Address(0x00), tt.value)
 
-			extraCycle := cpu.ldy(OperationMethodArgument{Immediate, 0x00})
+			extraCycle := cpu.ldy(nescpu.OperationMethodArgument{nescpu.Immediate, 0x00})
 
 			assert.Equal(t, tt.value, cpu.registers.Y)
 			assert.Equal(t, tt.expectedZero, cpu.registers.ZeroFlag())
@@ -850,18 +850,18 @@ func TestLDY(t *testing.T) {
 func TestLSR(t *testing.T) {
 	cases := []struct {
 		name           string
-		addressingMode AddressMode
+		addressingMode nescpu.AddressMode
 		value          byte
 		expectedResult byte
 		expectedZero   byte
 		expectedCarry  byte
 	}{
-		{"", Implicit, 0b00000010, 0b00000001, 0, 0},
-		{"", Implicit, 0b00000011, 0b00000001, 0, 1},
-		{"", Implicit, 0b00000001, 0b00000000, 1, 1},
-		{"", ZeroPage, 0b00000010, 0b00000001, 0, 0},
-		{"", ZeroPage, 0b00000011, 0b00000001, 0, 1},
-		{"", ZeroPage, 0b00000001, 0b00000000, 1, 1},
+		{"", nescpu.Implicit, 0b00000010, 0b00000001, 0, 0},
+		{"", nescpu.Implicit, 0b00000011, 0b00000001, 0, 1},
+		{"", nescpu.Implicit, 0b00000001, 0b00000000, 1, 1},
+		{"", nescpu.ZeroPage, 0b00000010, 0b00000001, 0, 0},
+		{"", nescpu.ZeroPage, 0b00000011, 0b00000001, 0, 1},
+		{"", nescpu.ZeroPage, 0b00000001, 0b00000000, 1, 1},
 	}
 
 	for _, tt := range cases {
@@ -871,9 +871,9 @@ func TestLSR(t *testing.T) {
 			cpu.registers.A = tt.value
 			cpu.memory.Write(types.Address(0x00), tt.value)
 
-			cpu.lsr(OperationMethodArgument{tt.addressingMode, 0x00})
+			cpu.lsr(nescpu.OperationMethodArgument{tt.addressingMode, 0x00})
 
-			if tt.addressingMode == Implicit {
+			if tt.addressingMode == nescpu.Implicit {
 				assert.Equal(t, tt.expectedResult, cpu.registers.A)
 			} else {
 				assert.Equal(t, tt.expectedResult, cpu.memory.Read(0x00))
@@ -903,7 +903,7 @@ func TestORA(t *testing.T) {
 			cpu.registers.A = tt.a
 			cpu.memory.Write(0x00, tt.value)
 
-			extraCycle := cpu.ora(OperationMethodArgument{Immediate, 0x00})
+			extraCycle := cpu.ora(nescpu.OperationMethodArgument{nescpu.Immediate, 0x00})
 
 			assert.Equal(t, tt.expectedResult, cpu.registers.A)
 			assert.Equal(t, tt.expectedZero, cpu.registers.ZeroFlag())
@@ -916,7 +916,7 @@ func TestORA(t *testing.T) {
 func TestPHA(t *testing.T) {
 	cpu := CreateCPUWithGamePak()
 	cpu.registers.A = 0x30
-	cpu.pha(OperationMethodArgument{Implicit, 0x00})
+	cpu.pha(nescpu.OperationMethodArgument{nescpu.Implicit, 0x00})
 
 	assert.Equal(t, byte(0x30), cpu.popStack())
 }
@@ -925,7 +925,7 @@ func TestPHP(t *testing.T) {
 	cpu := CreateCPUWithGamePak()
 	cpu.registers.Status = 0b11001111
 
-	cpu.php(OperationMethodArgument{Implicit, 0x00})
+	cpu.php(nescpu.OperationMethodArgument{nescpu.Implicit, 0x00})
 
 	assert.Equal(t, byte(0xFF), cpu.popStack())
 }
@@ -946,7 +946,7 @@ func TestPLA(t *testing.T) {
 			cpu := CreateCPUWithGamePak()
 			cpu.pushStack(tt.pulledValue)
 
-			cpu.pla(OperationMethodArgument{Implicit, 0x00})
+			cpu.pla(nescpu.OperationMethodArgument{nescpu.Implicit, 0x00})
 
 			assert.Equal(t, tt.pulledValue, cpu.registers.A)
 			assert.Equal(t, tt.expectedNegative, cpu.registers.NegativeFlag())
@@ -961,7 +961,7 @@ func TestPLP(t *testing.T) {
 	cpu := CreateCPUWithGamePak()
 	cpu.pushStack(0xFF)
 
-	cpu.plp(OperationMethodArgument{Implicit, 0x00})
+	cpu.plp(nescpu.OperationMethodArgument{nescpu.Implicit, 0x00})
 
 	assert.Equal(t, byte(0), (cpu.registers.Status>>4)&0x01, "PLP must set B flag to 0")
 	assert.Equal(t, byte(0xEF), cpu.registers.Status)
@@ -970,7 +970,7 @@ func TestPLP(t *testing.T) {
 
 func TestROL(t *testing.T) {
 	cases := []struct {
-		addressingMode   AddressMode
+		addressingMode   nescpu.AddressMode
 		value            byte
 		carry            byte
 		expectedResult   byte
@@ -978,17 +978,17 @@ func TestROL(t *testing.T) {
 		expectedNegative byte
 		expectedCarry    byte
 	}{
-		{Implicit, 0b00000000, 0, 0, 1, 0, 0},
-		{Implicit, 0b00000000, 1, 1, 0, 0, 0},
-		{Implicit, 0b00000001, 0, 0b10, 0, 0, 0},
-		{Implicit, 0b10000000, 0, 0, 1, 0, 1},
-		{Implicit, 0b01000000, 0, 0x80, 0, 1, 0},
+		{nescpu.Implicit, 0b00000000, 0, 0, 1, 0, 0},
+		{nescpu.Implicit, 0b00000000, 1, 1, 0, 0, 0},
+		{nescpu.Implicit, 0b00000001, 0, 0b10, 0, 0, 0},
+		{nescpu.Implicit, 0b10000000, 0, 0, 1, 0, 1},
+		{nescpu.Implicit, 0b01000000, 0, 0x80, 0, 1, 0},
 
-		{ZeroPage, 0b00000000, 0, 0, 1, 0, 0},
-		{ZeroPage, 0b00000000, 1, 1, 0, 0, 0},
-		{ZeroPage, 0b00000001, 0, 0b10, 0, 0, 0},
-		{ZeroPage, 0b10000000, 0, 0, 1, 0, 1},
-		{ZeroPage, 0b01000000, 0, 0x80, 0, 1, 0},
+		{nescpu.ZeroPage, 0b00000000, 0, 0, 1, 0, 0},
+		{nescpu.ZeroPage, 0b00000000, 1, 1, 0, 0, 0},
+		{nescpu.ZeroPage, 0b00000001, 0, 0b10, 0, 0, 0},
+		{nescpu.ZeroPage, 0b10000000, 0, 0, 1, 0, 1},
+		{nescpu.ZeroPage, 0b01000000, 0, 0x80, 0, 1, 0},
 	}
 
 	for _, tt := range cases {
@@ -998,9 +998,9 @@ func TestROL(t *testing.T) {
 			cpu.registers.UpdateFlag(nescpu.CarryFlag, tt.carry)
 			cpu.memory.Write(types.Address(0x00), tt.value)
 
-			cpu.rol(OperationMethodArgument{tt.addressingMode, 0x00})
+			cpu.rol(nescpu.OperationMethodArgument{tt.addressingMode, 0x00})
 
-			if tt.addressingMode == Implicit {
+			if tt.addressingMode == nescpu.Implicit {
 				assert.Equal(t, tt.expectedResult, cpu.registers.A)
 			} else {
 				assert.Equal(t, tt.expectedResult, cpu.memory.Read(0x00))
@@ -1015,7 +1015,7 @@ func TestROL(t *testing.T) {
 
 func TestROR(t *testing.T) {
 	cases := []struct {
-		addressingMode   AddressMode
+		addressingMode   nescpu.AddressMode
 		value            byte
 		carry            byte
 		expectedResult   byte
@@ -1023,17 +1023,17 @@ func TestROR(t *testing.T) {
 		expectedNegative byte
 		expectedCarry    byte
 	}{
-		{Implicit, 0b00000000, 0, 0, 1, 0, 0},
-		{Implicit, 0b00000001, 0, 0, 1, 0, 1},
-		{Implicit, 0b00000000, 1, 0x80, 0, 1, 0},
-		{Implicit, 0b10000000, 0, 0x40, 0, 0, 0},
-		{Implicit, 0b10000001, 1, 0xC0, 0, 1, 1},
+		{nescpu.Implicit, 0b00000000, 0, 0, 1, 0, 0},
+		{nescpu.Implicit, 0b00000001, 0, 0, 1, 0, 1},
+		{nescpu.Implicit, 0b00000000, 1, 0x80, 0, 1, 0},
+		{nescpu.Implicit, 0b10000000, 0, 0x40, 0, 0, 0},
+		{nescpu.Implicit, 0b10000001, 1, 0xC0, 0, 1, 1},
 
-		{ZeroPage, 0b00000000, 0, 0, 1, 0, 0},
-		{ZeroPage, 0b00000001, 0, 0, 1, 0, 1},
-		{ZeroPage, 0b00000000, 1, 0x80, 0, 1, 0},
-		{ZeroPage, 0b10000000, 0, 0x40, 0, 0, 0},
-		{ZeroPage, 0b10000001, 1, 0xC0, 0, 1, 1},
+		{nescpu.ZeroPage, 0b00000000, 0, 0, 1, 0, 0},
+		{nescpu.ZeroPage, 0b00000001, 0, 0, 1, 0, 1},
+		{nescpu.ZeroPage, 0b00000000, 1, 0x80, 0, 1, 0},
+		{nescpu.ZeroPage, 0b10000000, 0, 0x40, 0, 0, 0},
+		{nescpu.ZeroPage, 0b10000001, 1, 0xC0, 0, 1, 1},
 	}
 
 	for _, tt := range cases {
@@ -1043,9 +1043,9 @@ func TestROR(t *testing.T) {
 			cpu.registers.UpdateFlag(nescpu.CarryFlag, tt.carry)
 			cpu.memory.Write(types.Address(0x00), tt.value)
 
-			cpu.ror(OperationMethodArgument{tt.addressingMode, 0x00})
+			cpu.ror(nescpu.OperationMethodArgument{tt.addressingMode, 0x00})
 
-			if tt.addressingMode == Implicit {
+			if tt.addressingMode == nescpu.Implicit {
 				assert.Equal(t, tt.expectedResult, cpu.registers.A)
 			} else {
 				assert.Equal(t, tt.expectedResult, cpu.memory.Read(0x00))
@@ -1067,7 +1067,7 @@ func TestRTI(t *testing.T) {
 	// Push a StatusRegister into stack
 	cpu.pushStack(0xFF)
 
-	cpu.rti(OperationMethodArgument{AddressMode: Implicit, OperandAddress: 0xFF})
+	cpu.rti(nescpu.OperationMethodArgument{AddressMode: nescpu.Implicit, OperandAddress: 0xFF})
 
 	assert.Equal(t, pc, cpu.registers.Pc)
 	assert.Equal(t, byte(0xeF), cpu.registers.Status)
@@ -1080,7 +1080,7 @@ func TestRTS(t *testing.T) {
 	cpu.pushStack(types.HighNibble(pc))
 	cpu.pushStack(types.LowNibble(pc))
 
-	cpu.rts(OperationMethodArgument{Implicit, 0x00})
+	cpu.rts(nescpu.OperationMethodArgument{nescpu.Implicit, 0x00})
 
 	expectedProgramCounter := types.Address(0x533)
 	assert.Equal(t, expectedProgramCounter, cpu.registers.Pc)
@@ -1113,7 +1113,7 @@ func TestSBC(t *testing.T) {
 			cpu.registers.UpdateFlag(nescpu.CarryFlag, tt.carry)
 			cpu.memory.Write(0x00, tt.value)
 
-			extraCycle := cpu.sbc(OperationMethodArgument{Immediate, 0x00})
+			extraCycle := cpu.sbc(nescpu.OperationMethodArgument{nescpu.Immediate, 0x00})
 
 			assert.Equal(t, tt.expectedResult, cpu.registers.A, "Invalid subtraction result")
 			assert.Equal(t, tt.expectedCarry, cpu.registers.CarryFlag(), "Invalid CarryFlag")
@@ -1128,7 +1128,7 @@ func TestSBC(t *testing.T) {
 func TestSEC(t *testing.T) {
 	cpu := CreateCPUWithGamePak()
 
-	cpu.sec(OperationMethodArgument{Implicit, 0x00})
+	cpu.sec(nescpu.OperationMethodArgument{nescpu.Implicit, 0x00})
 
 	assert.Equal(t, byte(1), cpu.registers.CarryFlag())
 }
@@ -1136,7 +1136,7 @@ func TestSEC(t *testing.T) {
 func TestSED(t *testing.T) {
 	cpu := CreateCPUWithGamePak()
 
-	cpu.sed(OperationMethodArgument{Implicit, 0x00})
+	cpu.sed(nescpu.OperationMethodArgument{nescpu.Implicit, 0x00})
 
 	assert.Equal(t, byte(1), cpu.registers.DecimalFlag())
 }
@@ -1144,7 +1144,7 @@ func TestSED(t *testing.T) {
 func TestSEI(t *testing.T) {
 	cpu := CreateCPUWithGamePak()
 
-	cpu.sei(OperationMethodArgument{Implicit, 0x00})
+	cpu.sei(nescpu.OperationMethodArgument{nescpu.Implicit, 0x00})
 
 	assert.Equal(t, byte(1), cpu.registers.InterruptFlag())
 }
@@ -1153,7 +1153,7 @@ func TestSTA(t *testing.T) {
 	cpu := CreateCPUWithGamePak()
 	cpu.registers.A = 0xFF
 
-	cpu.sta(OperationMethodArgument{Implicit, 0x522})
+	cpu.sta(nescpu.OperationMethodArgument{nescpu.Implicit, 0x522})
 
 	assert.Equal(t, byte(0xFF), cpu.memory.Read(0x522))
 }
@@ -1162,7 +1162,7 @@ func TestSTX(t *testing.T) {
 	cpu := CreateCPUWithGamePak()
 	cpu.registers.X = 0xFF
 
-	cpu.stx(OperationMethodArgument{Implicit, 0x522})
+	cpu.stx(nescpu.OperationMethodArgument{nescpu.Implicit, 0x522})
 
 	assert.Equal(t, byte(0xFF), cpu.memory.Read(0x522))
 }
@@ -1171,7 +1171,7 @@ func TestSTY(t *testing.T) {
 	cpu := CreateCPUWithGamePak()
 	cpu.registers.Y = 0xFF
 
-	cpu.sty(OperationMethodArgument{Implicit, 0x522})
+	cpu.sty(nescpu.OperationMethodArgument{nescpu.Implicit, 0x522})
 
 	assert.Equal(t, byte(0xFF), cpu.memory.Read(0x522))
 }
@@ -1180,7 +1180,7 @@ func TestTAX_TAY(t *testing.T) {
 	cpu := CreateCPUWithGamePak()
 	cases := []struct {
 		name             string
-		op               OperationMethod
+		op               nescpu.OperationMethod
 		a                byte
 		expectedNegative byte
 		expectedZero     byte
@@ -1198,7 +1198,7 @@ func TestTAX_TAY(t *testing.T) {
 			cpu.registers.Reset()
 			cpu.registers.A = tt.a
 
-			tt.op(OperationMethodArgument{Implicit, 0x00})
+			tt.op(nescpu.OperationMethodArgument{nescpu.Implicit, 0x00})
 
 			if tt.name == "tax" {
 				assert.Equal(t, cpu.registers.A, cpu.registers.X, "unexpected X")
@@ -1227,7 +1227,7 @@ func TestTSX(t *testing.T) {
 			cpu := CreateCPUWithGamePak()
 			cpu.Registers().SetStackPointer(tt.sp)
 
-			cpu.tsx(OperationMethodArgument{Implicit, 0x00})
+			cpu.tsx(nescpu.OperationMethodArgument{nescpu.Implicit, 0x00})
 
 			assert.Equal(t, tt.sp, cpu.registers.X)
 			assert.Equal(t, tt.expectedZero, cpu.registers.ZeroFlag(), "Incorrect Zero Flag")
@@ -1252,7 +1252,7 @@ func TestTXA(t *testing.T) {
 			cpu := CreateCPUWithGamePak()
 			cpu.registers.X = tt.x
 
-			cpu.txa(OperationMethodArgument{Implicit, 0x00})
+			cpu.txa(nescpu.OperationMethodArgument{nescpu.Implicit, 0x00})
 
 			assert.Equal(t, tt.x, cpu.registers.A)
 			assert.Equal(t, tt.expectedZero, cpu.registers.ZeroFlag())
@@ -1265,7 +1265,7 @@ func TestTXS(t *testing.T) {
 	cpu := CreateCPUWithGamePak()
 	cpu.registers.X = 0xFF
 
-	cpu.txs(OperationMethodArgument{Implicit, 0x00})
+	cpu.txs(nescpu.OperationMethodArgument{nescpu.Implicit, 0x00})
 
 	assert.Equal(t, byte(0xFF), cpu.registers.Sp)
 }
@@ -1286,7 +1286,7 @@ func TestTYA(t *testing.T) {
 			cpu := CreateCPUWithGamePak()
 			cpu.registers.Y = tt.y
 
-			cpu.tya(OperationMethodArgument{Implicit, 0x00})
+			cpu.tya(nescpu.OperationMethodArgument{nescpu.Implicit, 0x00})
 
 			assert.Equal(t, cpu.registers.Y, cpu.registers.A)
 			assert.Equal(t, tt.expectedZero, cpu.registers.ZeroFlag())

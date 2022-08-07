@@ -11,7 +11,7 @@ import (
 
 const DEBUG_X_OFFSET = 300
 
-type Debugger struct {
+type GuiDebugger struct {
 	chrPaletteSelector    uint8
 	overlayTileIdx        bool
 	overlayAttributeTable bool
@@ -26,11 +26,11 @@ type Panel interface {
 	Draw()
 }
 
-func NewDebugger(emulator *nes.Nes) Debugger {
+func NewDebugger(emulator *nes.Nes) GuiDebugger {
 	font := raylib.LoadFont("./assets/Pixel_NES.otf")
 	raylib.GuiLoadStyle("./assets/style.rgs")
 
-	return Debugger{
+	return GuiDebugger{
 		chrPaletteSelector:    0,
 		overlayTileIdx:        false,
 		overlayAttributeTable: false,
@@ -41,19 +41,20 @@ func NewDebugger(emulator *nes.Nes) Debugger {
 	}
 }
 
-func (dbg *Debugger) Close() {
+func (dbg *GuiDebugger) Close() {
 	defer raylib.UnloadFont(dbg.font)
 }
 
-func (dbg *Debugger) Tick() {
+func (dbg *GuiDebugger) Tick() {
 	dbg.listenKeyboard()
 	raylib.DrawFPS(0, 0)
+
 	dbg.ppuDebugger.Draw()
 	dbg.breakpointDebugger.Draw()
 	//dbg.DrawDebugger(dbg.emulator)
 }
 
-func (dbg *Debugger) DrawDebugger(emulator *nes.Nes) {
+func (dbg *GuiDebugger) DrawDebugger(emulator *nes.Nes) {
 	x := DEBUG_X_OFFSET
 	y := 10
 
@@ -106,7 +107,7 @@ func (dbg *Debugger) DrawDebugger(emulator *nes.Nes) {
 	//drawObjectAttributeEntries(emulator)
 }
 
-func (dbg *Debugger) listenKeyboard() {
+func (dbg *GuiDebugger) listenKeyboard() {
 	if raylib.IsKeyPressed(raylib.KeyP) {
 		//dbg.chrPaletteSelector += 1
 		//if dbg.chrPaletteSelector > (8 - 1) {
@@ -151,7 +152,7 @@ func drawASM(console *nes.Nes) {
 	}
 }
 
-func drawPalettes(console *nes.Nes, scale int, xOffset int, yOffset int, debuggerGUI *Debugger) {
+func drawPalettes(console *nes.Nes, scale int, xOffset int, yOffset int, debuggerGUI *GuiDebugger) {
 	// Draw defined palettes (8)
 	x := xOffset
 	y := yOffset
@@ -193,7 +194,7 @@ func drawColorWatch(coordX int, coordY int, width int, height int, color color.C
 	raylib.DrawRectangle(coordX, coordY, width, height, pixelColor2RaylibColor(color))
 }
 
-func drawCHR(console *nes.Nes, scale int, xOffset int, yOffset int, font *raylib.Font, debuggerGUI *Debugger) {
+func drawCHR(console *nes.Nes, scale int, xOffset int, yOffset int, font *raylib.Font, debuggerGUI *GuiDebugger) {
 	drawIndexes := false
 
 	if raylib.IsKeyDown(raylib.KeyZero) {

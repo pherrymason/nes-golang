@@ -3,6 +3,7 @@ package nes
 import (
 	"bufio"
 	"fmt"
+	"github.com/raulferras/nes-golang/src/nes/cpu"
 	gamePak2 "github.com/raulferras/nes-golang/src/nes/gamePak"
 	"os"
 	"testing"
@@ -33,12 +34,12 @@ func TestNestest(t *testing.T) {
 		}
 	}
 
-	nes.cpu.Logger.Close()
+	nes.cpu.debugger.Stop()
 	// Compare logs
-	compareLogs(t, nes.cpu.Logger.Snapshots())
+	compareLogs(t, nes.cpu.debugger.Logger.Snapshots())
 }
 
-func compareLogs(t *testing.T, snapshots []CpuState) {
+func compareLogs(t *testing.T, snapshots []cpu.CpuState) {
 	fmt.Println("Comparing state")
 
 	file, err := os.Open("./../../assets/roms/nestest/nestest.log")
@@ -53,7 +54,7 @@ func compareLogs(t *testing.T, snapshots []CpuState) {
 	for i, state := range snapshots {
 		scanner.Scan()
 		nesTestLine := scanner.Text()
-		nesTestState := CreateStateFromNesTestLine(nesTestLine)
+		nesTestState := cpu.CreateStateFromNesTestLine(nesTestLine)
 		if !state.RegistersEquals(nesTestState) {
 			msg := fmt.Sprintf("Error in iteration %d\n", i+1)
 			msg += fmt.Sprintf("Expected: %s\n", nesTestState.ToString())
@@ -69,6 +70,6 @@ func TestCPUDummyReads(t *testing.T) {
 	t.Skip()
 	gamePak := gamePak2.CreateGamePakFromROMFile("./../../tests/roms/cpu_dummy_reads.nes")
 
-	nes := CreateNes(&gamePak, &NesDebugger{})
+	nes := CreateNes(&gamePak, &Debugger{})
 	nes.Start()
 }
