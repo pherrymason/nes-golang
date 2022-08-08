@@ -3,7 +3,8 @@
 # Usage
 ## Arguments
 - `-rom` Path to rom to load.
-
+- `-scale` Output screen resolution, relative to native NES. > 1
+- `-breakpoint` setup a single breakpoint
 
 ## Shortcuts
 - `p` Displays PPU Register debug panel.

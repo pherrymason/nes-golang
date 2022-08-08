@@ -17,7 +17,7 @@ func TestNestest(t *testing.T) {
 
 	nes := CreateNes(
 		&gamePak,
-		CreateNesDebugger(outputLogPath, true, false, -1),
+		CreateNesDebugger(outputLogPath, true, false),
 	)
 
 	nes.StartAt(0xC000)
@@ -25,7 +25,7 @@ func TestNestest(t *testing.T) {
 	var i uint32 = 1
 	for {
 		nes.Tick()
-		opCyclesLeft := nes.cpu.opCyclesLeft
+		opCyclesLeft := nes.Cpu.opCyclesLeft
 		if opCyclesLeft == 0 {
 			i++
 		}
@@ -34,9 +34,9 @@ func TestNestest(t *testing.T) {
 		}
 	}
 
-	nes.cpu.debugger.Stop()
+	nes.Cpu.debugger.Stop()
 	// Compare logs
-	compareLogs(t, nes.cpu.debugger.Logger.Snapshots())
+	compareLogs(t, nes.Cpu.debugger.Logger.Snapshots())
 }
 
 func compareLogs(t *testing.T, snapshots []cpu.CpuState) {

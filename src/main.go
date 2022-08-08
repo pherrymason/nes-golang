@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/FMNSSun/hexit"
 	r "github.com/lachee/raylib-goplus/raylib"
 	"github.com/pkg/profile"
 	"github.com/raulferras/nes-golang/src/debugger"
@@ -20,16 +21,8 @@ import (
 var cpuAdvance bool
 
 func main() {
-	scale, cpuprofile, romPath, debugPPU, maxCPUCycle := cmdLineArguments()
+	scale, cpuprofile, romPath, debugPPU, breakpoint := cmdLineArguments()
 	if cpuprofile != "" {
-		/*f, err := os.Create(cpuprofile)
-		if err != nil {
-			log.Fatal(err)
-		}
-		pprof.StartCPUProfile(f)
-		pprof.
-		defer pprof.StopCPUProfile()
-		*/
 		defer profile.Start(profile.CPUProfile, profile.ProfilePath(".")).Stop()
 	}
 
@@ -57,14 +50,17 @@ func main() {
 
 	debugger.PrintRomInfo(&cartridge)
 
+	nesDebugger := nes.CreateNesDebugger(
+		"./var",
+		true,
+		debugPPU,
+	)
+	if len(breakpoint) > 0 {
+		nesDebugger.AddBreakPoint(types.Address(hexit.UnhexUint16Str(breakpoint)))
+	}
 	console := nes.CreateNes(
 		&cartridge,
-		nes.CreateNesDebugger(
-			"./var",
-			true,
-			debugPPU,
-			maxCPUCycle,
-		),
+		nesDebugger,
 	)
 
 	loop(console, scale)
@@ -78,7 +74,7 @@ func loop(console *nes.Nes, scale int) {
 	debuggerGUI := debugger.NewDebugger(console)
 
 	for !r.WindowShouldClose() {
-		if console.Stopped() {
+		if console.Finished() {
 			break
 		}
 
@@ -90,8 +86,10 @@ func loop(console *nes.Nes, scale int) {
 		}
 
 		// Update emulator
-		if cpuAdvance {
+		if !console.Paused() {
 			console.TickForTime(dt)
+		} else {
+			console.PausedTick()
 		}
 
 		// Draw --------------------
@@ -126,13 +124,13 @@ func drawEmulation(frame *image.RGBA) {
 	}
 }
 
-func cmdLineArguments() (int, string, string, bool, int64) {
+func cmdLineArguments() (int, string, string, bool, string) {
 	var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 	var romPath = flag.String("rom", "", "path to rom")
 	var debugPPU = flag.Bool("debugPPU", false, "Displays PPU debug information")
-	var stopAtCpuCycle = flag.Int64("maxCpuCycle", -1, "stops emulation at given cpu cycle")
 	var scale = flag.Int("scale", 1, "scale resolution")
+	var breakpoint = flag.String("breakpoint", "", "defines a breakpoint on start")
 	flag.Parse()
 
-	return *scale, *cpuprofile, *romPath, *debugPPU, *stopAtCpuCycle
+	return *scale, *cpuprofile, *romPath, *debugPPU, *breakpoint
 }

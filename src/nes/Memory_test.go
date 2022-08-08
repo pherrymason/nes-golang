@@ -58,8 +58,8 @@ func TestCPUMemory_Read_into_cpu_ram(t *testing.T) {
 		fields fields
 		args   args
 	}{
-		{"cpu reading into ram (low edge)", fields{}, args{0x0000, 0x01}},
-		{"cpu reading into ram (high edge)", fields{}, args{RAM_HIGHER_ADDRESS, 0x01}},
+		{"Cpu reading into ram (low edge)", fields{}, args{0x0000, 0x01}},
+		{"Cpu reading into ram (high edge)", fields{}, args{RAM_HIGHER_ADDRESS, 0x01}},
 	}
 
 	for _, tt := range tests {
@@ -85,8 +85,8 @@ func TestCPUMemory_Read_into_ppu(t *testing.T) {
 		fields fields
 		args   args
 	}{
-		{"cpu reading into ppu (low edge)", fields{ppu: &fakePPU{}}, args{0x2000, 0x01}},
-		{"cpu reading into ppu (high edge)", fields{ppu: &fakePPU{}}, args{0x3FFF, 0x01}},
+		{"Cpu reading into ppu (low edge)", fields{ppu: &fakePPU{}}, args{0x2000, 0x01}},
+		{"Cpu reading into ppu (high edge)", fields{ppu: &fakePPU{}}, args{0x3FFF, 0x01}},
 	}
 
 	for _, tt := range tests {
@@ -114,8 +114,8 @@ func TestCPUMemory_Write_into_cpu_ram(t *testing.T) {
 		fields fields
 		args   args
 	}{
-		{"cpu writing into ram (low edge)", fields{}, args{0x0000, 0x01}},
-		{"cpu writing into ram (high edge)", fields{}, args{RAM_HIGHER_ADDRESS, 0x01}},
+		{"Cpu writing into ram (low edge)", fields{}, args{0x0000, 0x01}},
+		{"Cpu writing into ram (high edge)", fields{}, args{RAM_HIGHER_ADDRESS, 0x01}},
 	}
 
 	for _, tt := range tests {
@@ -140,8 +140,8 @@ func TestCPUMemory_Write_into_ppu(t *testing.T) {
 		fields fields
 		args   args
 	}{
-		{"cpu writing into ppu (low edge)", fields{ppu: &fakePPU{}}, args{0x2000, 0x01}},
-		{"cpu writing into ppu (high edge)", fields{ppu: &fakePPU{}}, args{0x3FFF, 0x01}},
+		{"Cpu writing into ppu (low edge)", fields{ppu: &fakePPU{}}, args{0x2000, 0x01}},
+		{"Cpu writing into ppu (high edge)", fields{ppu: &fakePPU{}}, args{0x3FFF, 0x01}},
 	}
 
 	for _, tt := range tests {

@@ -80,9 +80,9 @@ func (cpu6502 *Cpu6502) Tick() byte {
 }
 
 /*
-func (cpu6502 *Cpu6502) logStep(registers cpu.Registers, opcode byte, operand [3]byte, instruction Instruction, step OperationMethodArgument, cpuCycle uint32) {
+func (cpu6502 *Cpu6502) logStep(registers Cpu.Registers, opcode byte, operand [3]byte, instruction Instruction, step OperationMethodArgument, cpuCycle uint32) {
 	//state := CreateStateFromCPU(*cpu6502)
-	state := cpu.CreateState(
+	state := Cpu.CreateState(
 		registers,
 		[3]byte{opcode, operand[0], operand[1]},
 		instruction,

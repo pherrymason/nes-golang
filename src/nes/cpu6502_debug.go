@@ -3,6 +3,7 @@ package nes
 import (
 	"github.com/raulferras/nes-golang/src/nes/cpu"
 	"github.com/raulferras/nes-golang/src/nes/types"
+	"github.com/raulferras/nes-golang/src/utils"
 	"strings"
 )
 
@@ -19,8 +20,9 @@ func myHex(n types.Word, d int) string {
 	return s
 }
 
-func (cpu6502 *Cpu6502) Disassemble(start types.Address, end types.Address) map[types.Address]string {
+func (cpu6502 *Cpu6502) Disassemble(start types.Address, end types.Address) (map[types.Address]string, []utils.ASM) {
 	disassembledCode := make(map[types.Address]string)
+	sortedDisassembledCode := make([]utils.ASM, 0, end-start)
 	addr := start
 	value := byte(0x00)
 	lo := byte(0x00)
@@ -107,10 +109,11 @@ func (cpu6502 *Cpu6502) Disassemble(start types.Address, end types.Address) map[
 			sInst += "$" + myHex(types.Word(value), 2) + " [$" + myHex(addr+types.Word(value), 4) + "] {REL}"
 		}
 
+		sortedDisassembledCode = append(sortedDisassembledCode, utils.ASM{lineAddr, sInst})
 		disassembledCode[lineAddr] = sInst
 	}
 
-	return disassembledCode
+	return disassembledCode, sortedDisassembledCode
 }
 
 func (cpu6502 *Cpu6502) GetOperation(operation byte) cpu.Instruction {

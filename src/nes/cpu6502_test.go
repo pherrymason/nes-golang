@@ -42,8 +42,8 @@ func TestGetStatusRegister(t *testing.T) {
 	cpu.registers.SetFlag(nesCpu.DecimalFlag)
 	assert.Equal(t, byte(0xF), cpu.registers.Status)
 
-	//cpu.registers.SetFlag(nesCpu.breakCommandFlag)
-	//assert.Equal(t, byte(0x3F), cpu.registers.Status)
+	//Cpu.registers.SetFlag(nesCpu.breakCommandFlag)
+	//assert.Equal(t, byte(0x3F), Cpu.registers.Status)
 
 	cpu.registers.SetFlag(nesCpu.OverflowFlag)
 	assert.Equal(t, byte(0x4F), cpu.registers.Status)

@@ -35,6 +35,10 @@ func CreateCPU(memory Memory, debugger *cpu.Debugger) *Cpu6502 {
 	return &cpu6502
 }
 
+func (cpu6502 *Cpu6502) Complete() bool {
+	return cpu6502.opCyclesLeft == 0
+}
+
 func (cpu6502 *Cpu6502) ProgramCounter() types.Address {
 	return cpu6502.Registers().Pc
 }
