@@ -37,7 +37,7 @@ func CreateCPU(memory Memory, debugger *cpu.Debugger) *Cpu6502 {
 	return &cpu6502
 }
 
-func (cpu6502 Cpu6502) ProgramCounter() types.Address {
+func (cpu6502 *Cpu6502) ProgramCounter() types.Address {
 	return cpu6502.Registers().Pc
 }
 
@@ -394,7 +394,7 @@ func (cpu6502 *Cpu6502) initAddressModeEvaluators() {
 	}
 }
 
-func (cpu6502 Cpu6502) evaluateOperandAddress(addressMode cpu.AddressMode, pc types.Address) (finalAddress types.Address, operand [3]byte, pageCrossed bool) {
+func (cpu6502 *Cpu6502) evaluateOperandAddress(addressMode cpu.AddressMode, pc types.Address) (finalAddress types.Address, operand [3]byte, pageCrossed bool) {
 	if addressMode == cpu.Implicit {
 		finalAddress = 0
 		return
