@@ -4,7 +4,7 @@
 ## Arguments
 - `-rom` Path to rom to load.
 - `-scale` Output screen resolution, relative to native NES. > 1
-- `-breakpoint` setup a single breakpoint
+- `-breakpoint` setup a cpu breakpoint
 
 ## Shortcuts
 - `p` Displays PPU Register debug panel.
@@ -12,13 +12,17 @@
 
 
 # Status
-- CPU: 100% of "legal" opcodes implemented
-- PPU: Implemented scanline rendering. 
-  - Renders contents of CHR ROM
-  - Renders background.
-  - Preliminar sprite rendering.
-- APU: 0%
-- MMU: 0%
+- Emulation:
+  - CPU: 100% of "legal" opcodes implemented
+  - PPU: Implemented scanline rendering. 
+    - Renders contents of CHR ROM
+    - Renders background.
+    - Preliminar sprite rendering.
+  - APU: 0%
+  - MMU: 0%
+- UI
+  - PPU register viewer
+  - CPU Debugger
 
 ## Visual evolution
 <p align="center">

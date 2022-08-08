@@ -178,7 +178,11 @@ func (dbg *PPUDebugger) ppuMaskGroup(fullWidth float32, x float32, y float32) {
 
 func (dbg *PPUDebugger) loopyRegister(fullWidth float32, x float32, y float32, register ppu.LoopyRegister, title string) {
 	anchor := raylib.Vector2{x, y}
-	raylib.GuiGroupBox(raylib.Rectangle{anchor.X + 0, anchor.Y + 0, fullWidth, 64}, fmt.Sprintf("%s: 0x%0X", title, register.Value()))
+
+	raylib.GuiGroupBox(
+		raylib.Rectangle{anchor.X + 0, anchor.Y + 0, fullWidth, 64},
+		fmt.Sprintf("%s: 0x%0X", title, register.Value()),
+	)
 
 	raylib.GuiLabel(
 		raylib.Rectangle{anchor.X + 10, anchor.Y + 10, 12, 12},

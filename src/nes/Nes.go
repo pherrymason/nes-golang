@@ -69,16 +69,26 @@ func (nes *Nes) PausedTick() {
 	if nes.Debugger().shouldPauseEmulation() {
 		return
 	}
-
+	waitForOperationCompletion := false
+	initialCompleteStatus := nes.Cpu.Complete()
+	if initialCompleteStatus == false {
+		waitForOperationCompletion = true
+	}
 	for {
 		nes.Tick()
-		if nes.Cpu.Complete() {
-			break
+		if !waitForOperationCompletion {
+			if nes.Cpu.Complete() != initialCompleteStatus {
+				waitForOperationCompletion = true
+			}
+		} else {
+			if nes.Cpu.Complete() {
+				break
+			}
 		}
 	}
 
 	// Run until just before next cpu operation schedules to be called
-	if (nes.systemClockCounter+1)%3 != 0 {
+	if (nes.systemClockCounter)%3 != 0 {
 		for {
 			nes.Tick()
 			if (nes.systemClockCounter)%3 == 0 {
@@ -94,23 +104,13 @@ func (nes *Nes) TickForTime(seconds float64) {
 	cycles := int(1789773 * seconds)
 	//waitingForCpuOperation := false
 	for cycles > 0 {
-		if nes.Debugger().shouldPauseEmulation() {
+		if nes.Cpu.Complete() && nes.Debugger().shouldPauseEmulation() {
 			break
 		}
 
 		cpuCycles, _ := nes.Tick()
 		//log.Printf("Cpu cycles left: %d\n", cpuCycles)
 		cycles -= int(cpuCycles)
-		//if cpuExecuted {
-		//	waitingForCpuOperation = true
-		//}
-		//
-		//if waitingForCpuOperation && cpuCycles == 0 {
-		//	waitingForCpuOperation = false
-		//	if nes.Debugger().isManualStepMode() {
-		//		nes.Debugger().oneCpuOperationRan()
-		//	}
-		//}
 		if nes.Finished() {
 			break
 		}

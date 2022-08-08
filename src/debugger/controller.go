@@ -28,7 +28,7 @@ type Panel interface {
 
 func NewDebugger(emulator *nes.Nes) GuiDebugger {
 	font := raylib.LoadFont("./assets/Pixel_NES.otf")
-	raylib.GuiLoadStyle("./assets/style.rgs")
+	//raylib.GuiLoadStyle("./assets/style.rgs")
 
 	return GuiDebugger{
 		chrPaletteSelector:    0,
