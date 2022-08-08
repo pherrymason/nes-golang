@@ -7,6 +7,7 @@ import (
 	"github.com/raulferras/nes-golang/src/nes/ppu"
 	"github.com/raulferras/nes-golang/src/nes/types"
 	"image"
+	"log"
 )
 
 type Nes struct {
@@ -26,7 +27,7 @@ func CreateNes(gamePak *gamePak.GamePak, debugger *Debugger) *Nes {
 	cpuBus := newNESCPUMemory(thePPU, gamePak)
 	cpu := CreateCPU(
 		cpuBus,
-		cpu2.NewDebugger(debugger.debug, debugger.logPath+"/cpu.log"),
+		cpu2.NewDebugger(debugger.debugCPU, debugger.logPath+"/cpu.log"),
 	)
 	debugger.cpu = cpu
 	debugger.ppu = thePPU
@@ -104,8 +105,26 @@ func (nes *Nes) Tick() byte {
 }
 
 func (nes *Nes) TickForTime(seconds float64) {
+	/*
+		if nes.Debugger().shouldPauseBecauseBreakpoint() {
+			fmt.Printf("1\n")
+			time.Sleep(100 * time.Millisecond)
+			return
+		} else if nes.Debugger().cpuStepByStepMode {
+			fmt.Printf("2\n")
+			time.Sleep(100 * time.Millisecond)
+			nes.Tick()
+			return
+		}*/
+
 	cycles := int(1789773 * seconds)
+	//log.Printf("Running for %.2fsec\n", seconds)
 	for cycles > 0 {
+		if nes.Debugger().shouldPauseBecauseBreakpoint() {
+			log.Printf("Brekapoint reached")
+			break
+		}
+
 		cycles -= int(nes.Tick())
 		if nes.Stopped() {
 			break

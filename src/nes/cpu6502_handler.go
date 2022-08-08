@@ -94,8 +94,5 @@ func (cpu6502 *Cpu6502) logStep(registers cpu.Registers, opcode byte, operand [3
 }*/
 
 func (cpu6502 *Cpu6502) Stop() {
-	//if cpu6502.debug {
-	//	cpu6502.Logger.Close()
-	//}
 	cpu6502.debugger.Stop()
 }

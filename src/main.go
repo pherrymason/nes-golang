@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	r "github.com/lachee/raylib-goplus/raylib"
+	"github.com/pkg/profile"
 	"github.com/raulferras/nes-golang/src/debugger"
 	"github.com/raulferras/nes-golang/src/graphics"
 	"github.com/raulferras/nes-golang/src/nes"
@@ -11,30 +12,25 @@ import (
 	"github.com/raulferras/nes-golang/src/nes/types"
 	"github.com/raulferras/nes-golang/src/utils"
 	"image"
-	"log"
 	"math/rand"
 	_ "net/http/pprof"
-	"os"
-	"runtime/pprof"
 	"time"
 )
 
 var cpuAdvance bool
 
 func main() {
-	/*
-		var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
-		var romPath = flag.String("rom", "", "path to rom")
-		var debugPPU = flag.Bool("debugPPU", false, "Displays PPU debug information")
-		flag.Parse()*/
-	cpuprofile, romPath, debugPPU, maxCPUCycle := cmdLineArguments()
+	scale, cpuprofile, romPath, debugPPU, maxCPUCycle := cmdLineArguments()
 	if cpuprofile != "" {
-		f, err := os.Create(cpuprofile)
+		/*f, err := os.Create(cpuprofile)
 		if err != nil {
 			log.Fatal(err)
 		}
 		pprof.StartCPUProfile(f)
+		pprof.
 		defer pprof.StopCPUProfile()
+		*/
+		defer profile.Start(profile.CPUProfile, profile.ProfilePath(".")).Stop()
 	}
 
 	rand.Seed(time.Now().UnixNano())
@@ -71,11 +67,11 @@ func main() {
 		),
 	)
 
-	loop(console)
+	loop(console, scale)
 	r.CloseWindow()
 }
 
-func loop(console *nes.Nes) {
+func loop(console *nes.Nes, scale int) {
 	cpuAdvance = true
 	console.Start()
 	_timestamp := r.GetTime()
@@ -130,12 +126,13 @@ func drawEmulation(frame *image.RGBA) {
 	}
 }
 
-func cmdLineArguments() (string, string, bool, int64) {
+func cmdLineArguments() (int, string, string, bool, int64) {
 	var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 	var romPath = flag.String("rom", "", "path to rom")
 	var debugPPU = flag.Bool("debugPPU", false, "Displays PPU debug information")
 	var stopAtCpuCycle = flag.Int64("maxCpuCycle", -1, "stops emulation at given cpu cycle")
+	var scale = flag.Int("scale", 1, "scale resolution")
 	flag.Parse()
 
-	return *cpuprofile, *romPath, *debugPPU, *stopAtCpuCycle
+	return *scale, *cpuprofile, *romPath, *debugPPU, *stopAtCpuCycle
 }

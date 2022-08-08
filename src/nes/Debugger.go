@@ -10,26 +10,49 @@ import (
 // Debugger offers an api to interact externally with
 // NES components
 type Debugger struct {
-	debug       bool
-	cpu         *Cpu6502
-	ppu         *ppu.Ppu2c02
-	logPath     string
-	maxCPUCycle int64
-
+	cpu          *Cpu6502
+	ppu          *ppu.Ppu2c02
+	logPath      string
+	maxCPUCycle  int64
 	disassembled map[types.Address]string
 	DebugPPU     bool
+	debugCPU     bool
+	// debugging related
+	cpuBreakPoints    map[types.Address]bool
+	cpuStepByStepMode bool
 }
 
-func CreateNesDebugger(logPath string, debug bool, debugPPU bool, maxCPUCycle int64) *Debugger {
+func CreateNesDebugger(logPath string, debugCPU bool, debugPPU bool, maxCPUCycle int64) *Debugger {
 	return &Debugger{
-		debug:        debug,
 		cpu:          nil,
 		ppu:          nil,
 		logPath:      logPath,
 		maxCPUCycle:  maxCPUCycle,
 		disassembled: nil,
+		debugCPU:     debugCPU,
 		DebugPPU:     debugPPU,
+
+		cpuBreakPoints: make(map[types.Address]bool),
 	}
+}
+
+func (debugger *Debugger) AddBreakPoint(address types.Address) {
+	debugger.cpuBreakPoints[address] = true
+}
+
+func (debugger *Debugger) RemoveBreakPoint(address types.Address) {
+	debugger.cpuBreakPoints[address] = false
+}
+
+func (debugger *Debugger) shouldPauseBecauseBreakpoint() bool {
+	pc := debugger.cpu.ProgramCounter()
+	enabled, exist := debugger.cpuBreakPoints[pc]
+	if enabled && exist {
+		debugger.cpuStepByStepMode = true
+		return true
+	}
+
+	return false
 }
 
 func (debugger *Debugger) Disassembled() map[types.Address]string {

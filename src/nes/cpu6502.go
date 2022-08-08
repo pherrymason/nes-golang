@@ -19,9 +19,7 @@ type Cpu6502 struct {
 
 	addressEvaluators [13]AddressModeMethod
 
-	// Debug parameters
-	debugger    *cpu.Debugger
-	cyclesLimit uint16
+	debugger *cpu.Debugger
 }
 
 func CreateCPU(memory Memory, debugger *cpu.Debugger) *Cpu6502 {

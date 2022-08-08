@@ -3,9 +3,12 @@ package debugger
 import (
 	"fmt"
 	"github.com/lachee/raylib-goplus/raylib"
+	"github.com/raulferras/nes-golang/src/nes"
+	"github.com/raulferras/nes-golang/src/nes/types"
 )
 
 type breakpointDebugger struct {
+	emulator           *nes.Nes
 	panel              *draggablePanel
 	breakpointAddPanel *breakpointAdd
 	breakpoints        [4]uint16
@@ -15,8 +18,9 @@ type breakpointDebugger struct {
 
 const breakpointDebuggerWidth = 500
 
-func NewBreakpointDebugger() *breakpointDebugger {
+func NewBreakpointDebugger(emulator *nes.Nes) *breakpointDebugger {
 	return &breakpointDebugger{
+		emulator: emulator,
 		panel: NewDraggablePanel(
 			"Debugger · Breakpoints",
 			raylib.Vector2{300, 350},
@@ -133,4 +137,5 @@ func (dbg *breakpointDebugger) onAddBreakpoint(address uint16) {
 	fmt.Printf("Breakpoint created: %X\n", address)
 	dbg.breakpoints[dbg.breakpointsCount] = address
 	dbg.breakpointsCount++
+	dbg.emulator.Debugger().AddBreakPoint(types.Address(address))
 }

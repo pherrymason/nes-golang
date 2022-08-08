@@ -37,7 +37,7 @@ func NewDebugger(emulator *nes.Nes) GuiDebugger {
 		font:                  font,
 		emulator:              emulator,
 		ppuDebugger:           NewPPUDebugger(emulator.PPU()),
-		breakpointDebugger:    NewBreakpointDebugger(),
+		breakpointDebugger:    NewBreakpointDebugger(emulator),
 	}
 }
 
