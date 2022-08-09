@@ -31,12 +31,6 @@ func (cpu6502 *Cpu6502) Tick() byte {
 		cpu6502.opCyclesLeft--
 		return cpu6502.opCyclesLeft
 	}
-	defer func() {
-		if r := recover(); r != nil {
-			cpu6502.debugger.Stop()
-			panic("out")
-		}
-	}()
 
 	if cpu6502.registers.Pc == 0x8032 {
 		fmt.Println("breakpoint")

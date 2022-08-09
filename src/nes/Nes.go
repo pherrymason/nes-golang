@@ -7,6 +7,8 @@ import (
 	"github.com/raulferras/nes-golang/src/nes/ppu"
 	"github.com/raulferras/nes-golang/src/nes/types"
 	"image"
+	"log"
+	"runtime/debug"
 )
 
 type Nes struct {
@@ -118,6 +120,7 @@ func (nes *Nes) TickForTime(seconds float64) {
 }
 
 func (nes *Nes) Tick() (byte, bool) {
+	defer nes.handlePanic()
 	nes.ppu.Tick()
 
 	cpuCycles := byte(0)
@@ -198,4 +201,13 @@ func (nes *Nes) FramePattern() []byte {
 
 func (nes *Nes) PPU() *ppu.Ppu2c02 {
 	return nes.ppu
+}
+
+func (nes *Nes) handlePanic() {
+	a := recover()
+	if a != nil {
+		nes.Stop()
+		log.Fatalf("%s\nTrace: %s", a, string(debug.Stack()))
+		//os.Exit(3)
+	}
 }
