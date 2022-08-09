@@ -19,5 +19,7 @@
 var/*.log
 tools
 examples
-/roms
 /build
+/assets/roms
+*.log
+*.zip
