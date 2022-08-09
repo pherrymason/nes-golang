@@ -49,9 +49,9 @@ type Ppu2c02 struct {
 	cycle  uint32 // Current lifetime PPU Cycle. After warmup, ignored.
 	warmup bool   // Indicates ppu is already warmed up (cycles went above 30000)
 
-	renderCycle     uint16 // Current cycle inside a scanline. From 0 to PPU_CYCLES_BY_SCANLINE
-	currentScanline int16  // Current vertical scanline being rendered
-	evenFrame       bool   // Is current frame even?
+	renderCycle     uint16 // Current cycle inside a Scanline. From 0 to PPU_CYCLES_BY_SCANLINE
+	currentScanline int16  // Current vertical Scanline being rendered
+	evenFrame       bool   // Is current Frame even?
 
 	nmi              bool // NMI Interrupt thrown
 	nameTableChanged bool

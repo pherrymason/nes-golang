@@ -1,3 +1,7 @@
+2022-08-09:
+Implement initial support for roms with no CHR-ROM.
+Better error detection and graceful emulator shutdown.
+
 2021-05-13:
 Implement PPU triggering NMI.
 

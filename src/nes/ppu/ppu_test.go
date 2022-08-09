@@ -47,7 +47,30 @@ func TestPPU_Render_Cycles_should_reset_scanline_after_261_scanlines(t *testing.
 	assert.Equal(t, uint16(0), ppu.renderCycle)
 }
 
-func TestPPU_Render_Cycles_should_trigger_vblank_on_second_cycle_of_scanline_241(t *testing.T) {
+func TestPPU_Tick_should_raise_vblank_between_second_cycle_of_scanline_241_and_second_cycle_of_prerender_scanline(t *testing.T) {
+	ppu := aPPU()
+	ppu.currentScanline = 0
+	ppu.renderCycle = 0
+
+	for scanline := 0; scanline < 262; scanline++ {
+		for pixel := 0; pixel < 341; pixel++ {
+			ppu.Tick()
+			if (scanline == 241 && pixel >= 1) ||
+				(scanline > 241 && scanline < 261) ||
+				(scanline == 261 && pixel < 1) {
+				assert.True(t, ppu.PpuStatus.VerticalBlankStarted, "VBlank should be raised")
+
+			} else {
+				assert.False(t, ppu.PpuStatus.VerticalBlankStarted, "VBlank is not down")
+			}
+		}
+	}
+
+	//ppu.Tick()
+	//assert.True(t, ppu.PpuStatus.VerticalBlankStarted, "Should have generated VBlank on second cycle of 241 Scanline")
+}
+
+func TestPPU_Tick_should_trigger_vblank_on_second_cycle_of_scanline_241(t *testing.T) {
 	ppu := aPPU()
 	ppu.currentScanline = 241
 	ppu.renderCycle = 0
@@ -56,7 +79,7 @@ func TestPPU_Render_Cycles_should_trigger_vblank_on_second_cycle_of_scanline_241
 	assert.False(t, ppu.PpuStatus.VerticalBlankStarted, "VBlank has been generated too early")
 
 	ppu.Tick()
-	assert.True(t, ppu.PpuStatus.VerticalBlankStarted, "Should have generated VBlank on second cycle of 241 scanline")
+	assert.True(t, ppu.PpuStatus.VerticalBlankStarted, "Should have generated VBlank on second cycle of 241 Scanline")
 }
 
 func TestPPU_VBlank_should_return_disable_vblank_on_second_cycle_of_scanline_261(t *testing.T) {
@@ -69,7 +92,7 @@ func TestPPU_VBlank_should_return_disable_vblank_on_second_cycle_of_scanline_261
 	assert.True(t, ppu.PpuStatus.VerticalBlankStarted, "VBlank has been disabled too early")
 
 	ppu.Tick()
-	assert.False(t, ppu.PpuStatus.VerticalBlankStarted, "Should have been disabled VBlank on second cycle of 261 scanline")
+	assert.False(t, ppu.PpuStatus.VerticalBlankStarted, "Should have been disabled VBlank on second cycle of 261 Scanline")
 }
 
 func Test_should_trigger_NMI_on_vBlank(t *testing.T) {

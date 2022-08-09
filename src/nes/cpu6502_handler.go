@@ -26,13 +26,13 @@ func (cpu6502 *Cpu6502) ResetToAddress(programCounter types.Address) {
 	cpu6502.cycle = 7
 }
 
-func (cpu6502 *Cpu6502) Tick() byte {
+func (cpu6502 *Cpu6502) Tick() (byte, cpu.CpuState) {
 	if cpu6502.opCyclesLeft > 0 {
 		cpu6502.opCyclesLeft--
-		return cpu6502.opCyclesLeft
+		return cpu6502.opCyclesLeft, cpu.CreateWaitingState()
 	}
 
-	if cpu6502.registers.Pc == 0x8032 {
+	if cpu6502.registers.Pc == 0xE035 {
 		fmt.Println("breakpoint")
 	}
 	registersCopy := *cpu6502.Registers()
@@ -55,10 +55,14 @@ func (cpu6502 *Cpu6502) Tick() byte {
 		instruction.AddressMode(),
 		operandAddress,
 	}
-	if cpu6502.debugger.Enabled {
-		cpu6502.debugger.LogStep(registersCopy, opcode, operand, instruction, step, cpu6502.cycle)
-		//cpu6502.logStep(registersCopy, opcode, operand, instruction, step, cpu6502.cycle)
-	}
+
+	state := cpu.CreateState(
+		registersCopy,
+		[3]byte{opcode, operand[0], operand[1]},
+		instruction,
+		step,
+		cpu6502.cycle,
+	)
 
 	cpu6502.registers.Pc += types.Address(instruction.Size())
 
@@ -70,22 +74,8 @@ func (cpu6502 *Cpu6502) Tick() byte {
 
 	cpu6502.cycle += uint32(cpu6502.opCyclesLeft)
 
-	return cpu6502.opCyclesLeft
+	return cpu6502.opCyclesLeft, state
 }
-
-/*
-func (cpu6502 *Cpu6502) logStep(registers Cpu.Registers, opcode byte, operand [3]byte, instruction Instruction, step OperationMethodArgument, cpuCycle uint32) {
-	//state := CreateStateFromCPU(*cpu6502)
-	state := Cpu.CreateState(
-		registers,
-		[3]byte{opcode, operand[0], operand[1]},
-		instruction,
-		step,
-		cpuCycle,
-	)
-
-	cpu6502.Logger.Log(state)
-}*/
 
 func (cpu6502 *Cpu6502) Stop() {
 	cpu6502.debugger.Stop()

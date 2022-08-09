@@ -1,5 +1,7 @@
 package cpu
 
+import "github.com/raulferras/nes-golang/src/nes/ppu"
+
 // Debugger
 // Handles logging and debugging features like breakpoints
 type Debugger struct {
@@ -29,8 +31,14 @@ func (debugger *Debugger) Stop() {
 	}
 }
 
-func (debugger *Debugger) LogStep(registers Registers, opcode byte, operand [3]byte, instruction Instruction, step OperationMethodArgument, cpuCycle uint32) {
-	//state := CreateStateFromCPU(*debugger)
+func (debugger *Debugger) LogState(state CpuState, ppuState ppu.SimplePPUState) {
+	if state.waiting {
+		return
+	}
+	debugger.Logger.Log(state, ppuState)
+}
+
+func (debugger *Debugger) logStep(registers Registers, opcode byte, operand [3]byte, instruction Instruction, step OperationMethodArgument, cpuCycle uint32) {
 	state := CreateState(
 		registers,
 		[3]byte{opcode, operand[0], operand[1]},
@@ -39,5 +47,5 @@ func (debugger *Debugger) LogStep(registers Registers, opcode byte, operand [3]b
 		cpuCycle,
 	)
 
-	debugger.Logger.Log(state)
+	debugger.LogState(state, ppu.NewSimplePPUState(0, 0, 0))
 }

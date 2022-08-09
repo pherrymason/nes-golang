@@ -61,6 +61,11 @@ func (nes *Nes) Start() {
 	nes.debug.disassembled = disassembledMap
 	nes.debug.sortedDisassembled = sortedDisassembled
 	nes.Cpu.Reset()
+
+	// Run PPU for 7 cpu cycles
+	for i := 0; i < (7*3)-1; i++ {
+		nes.ppu.Tick()
+	}
 }
 
 func (nes *Nes) Pause() {
@@ -149,7 +154,14 @@ func (nes *Nes) Tick() (byte, bool) {
 			}
 			cpuCycles = 1
 		} else {
-			cpuCycles = nes.Cpu.Tick()
+			spend, cpuState := nes.Cpu.Tick()
+			cpuCycles = spend
+			if nes.Cpu.debugger.Enabled {
+				nes.Cpu.debugger.LogState(
+					cpuState,
+					ppu.NewSimplePPUState(0, nes.ppu.RenderCycle(), nes.ppu.Scanline()),
+				)
+			}
 		}
 	}
 

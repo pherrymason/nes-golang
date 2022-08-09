@@ -3,6 +3,7 @@ package cpu
 import (
 	"fmt"
 	"github.com/FMNSSun/hexit"
+	"github.com/raulferras/nes-golang/src/nes/ppu"
 	"github.com/raulferras/nes-golang/src/nes/types"
 	"github.com/raulferras/nes-golang/src/utils"
 	"regexp"
@@ -16,6 +17,11 @@ type CpuState struct {
 	RawOpcode          [3]byte
 	EvaluatedAddress   types.Address
 	CyclesSinceReset   uint32
+	waiting            bool
+}
+
+func CreateWaitingState() CpuState {
+	return CpuState{waiting: true}
 }
 
 func CreateState(registers Registers, opcode [3]byte, instruction Instruction, step OperationMethodArgument, cpuCycle uint32) CpuState {
@@ -25,6 +31,7 @@ func CreateState(registers Registers, opcode [3]byte, instruction Instruction, s
 		opcode,
 		step.OperandAddress,
 		cpuCycle,
+		false,
 	}
 
 	return state
@@ -68,12 +75,13 @@ func CreateStateFromNesTestLine(nesTestLine string) CpuState {
 		opcode,
 		types.CreateAddress(0x00, 0x00),
 		uint32(cpuCycles),
+		false,
 	}
 
 	return state
 }
 
-func (state *CpuState) String() string {
+func (state *CpuState) String(ppuState ppu.SimplePPUState) string {
 	var msg strings.Builder
 	msg.Grow(150)
 
@@ -112,7 +120,10 @@ func (state *CpuState) String() string {
 	msg.WriteString(hexit.HexUint8Str(state.Registers.Status))
 	msg.WriteString(" SP:")
 	msg.WriteString(hexit.HexUint8Str(state.Registers.Sp))
-	msg.WriteString(" PPU:___,___")
+	msg.WriteString(" PPU: ")
+	msg.WriteString(strconv.FormatUint(uint64(ppuState.Scanline), 10))
+	msg.WriteString(",")
+	msg.WriteString(strconv.FormatUint(uint64(ppuState.RenderCycle), 10))
 	msg.WriteString(" CYC:")
 	msg.WriteString(strconv.FormatUint(uint64(state.CyclesSinceReset), 10))
 	msg.WriteString("\n")

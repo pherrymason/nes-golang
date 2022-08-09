@@ -10,7 +10,7 @@ import (
 )
 
 func TestNestest(t *testing.T) {
-	gamePak := gamePak2.CreateGamePakFromROMFile("./../../assets/roms/nestest/nestest.nes")
+	gamePak := gamePak2.CreateGamePakFromROMFile("./../../assets/roms/tests/nestest/nestest.nes")
 	outputLogPath := "./../../var"
 
 	var limitCycles uint32 = 5004
@@ -39,10 +39,10 @@ func TestNestest(t *testing.T) {
 	compareLogs(t, nes.Cpu.debugger.Logger.Snapshots())
 }
 
-func compareLogs(t *testing.T, snapshots []cpu.CpuState) {
+func compareLogs(t *testing.T, snapshots []cpu.Snapshot) {
 	fmt.Println("Comparing state")
 
-	file, err := os.Open("./../../assets/roms/nestest/nestest.log")
+	file, err := os.Open("./../../assets/roms/tests/nestest/nestest.log")
 	if err != nil {
 		fmt.Println(fmt.Errorf("could not find file nestest.log"))
 		panic(err)
@@ -51,14 +51,14 @@ func compareLogs(t *testing.T, snapshots []cpu.CpuState) {
 	scanner := bufio.NewScanner(file)
 	scanner.Split(bufio.ScanLines)
 
-	for i, state := range snapshots {
+	for i, snapshot := range snapshots {
 		scanner.Scan()
 		nesTestLine := scanner.Text()
 		nesTestState := cpu.CreateStateFromNesTestLine(nesTestLine)
-		if !state.RegistersEquals(nesTestState) {
+		if !snapshot.CpuState.RegistersEquals(nesTestState) {
 			msg := fmt.Sprintf("Error in iteration %d\n", i+1)
 			msg += fmt.Sprintf("Expected: %s\n", nesTestState.ToString())
-			msg += fmt.Sprintf("Actual: %s\n", state.ToString())
+			msg += fmt.Sprintf("Actual: %s\n", snapshot.CpuState.ToString())
 
 			t.Errorf(msg)
 			t.FailNow()

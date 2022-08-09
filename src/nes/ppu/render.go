@@ -25,7 +25,7 @@ func (ppu *Ppu2c02) renderLogic() {
 	// We are in a cycle which falls inside the visible horizontal region
 	cycleIsVisible := ppu.renderCycle >= 1 && ppu.renderCycle <= 256
 
-	// On these cycles, we fetch data that will be used in next scanline
+	// On these cycles, we fetch data that will be used in next Scanline
 	preFetchCycle := ppu.renderCycle >= 321 && ppu.renderCycle <= 336
 
 	if scanlineVisible || preRenderScanline {
@@ -105,7 +105,7 @@ func (ppu *Ppu2c02) renderLogic() {
 			ppu.incrementY()
 		}
 
-		// When every pixel of a scanline has been rendered,
+		// When every pixel of a Scanline has been rendered,
 		// we need to reset the X coordinate
 		if ppu.renderCycle == 257 {
 			ppu.transferX()
@@ -125,7 +125,7 @@ func (ppu *Ppu2c02) renderLogic() {
 		}
 
 		if ppu.renderCycle == 257 {
-			// Pre-fetching sprites for next scanline
+			// Pre-fetching sprites for next Scanline
 			// This is not fully accurate, sprite loading occurs along different cycles.
 			ppu.spriteScanlineCount = 0
 			var spriteHeight int16
@@ -355,7 +355,7 @@ func (ppu *Ppu2c02) renderTile(tile image.RGBA, coordX int, coordY int) {
 		//calculatedY := baseY + (i/8)*types.SCREEN_WIDTH
 		//calculatedX := baseX + i%8
 		//arrayIndex := calculatedX + calculatedY
-		//frame.Pixels[arrayIndex] = tile.Pixels[i]
+		//Frame.Pixels[arrayIndex] = tile.Pixels[i]
 		ppu.screen.Set(coordX, coordY, tile.At(i/TILE_WIDTH, i%TILE_WIDTH))
 	}
 }
