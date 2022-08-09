@@ -38,8 +38,15 @@ func CreateGamePakFromROMFile(romFilePath string) GamePak {
 	prgLength := int(inesHeader.ProgramSize())*0x4000 + 16
 	prgROM := data[16:prgLength]
 
-	chrLength := int(inesHeader.CHRSize()) * 0x2000
-	chrROM := data[prgLength : chrLength+prgLength]
+	var chrROM []byte
+	chrLength := int(inesHeader.CHRSize())
+	if chrLength == 0 {
+		chrLength = 8 * 0x2000
+		chrROM = make([]byte, chrLength)
+	} else {
+		chrLength *= 0x2000
+		chrROM = data[prgLength : chrLength+prgLength]
+	}
 	return CreateGamePak(
 		inesHeader,
 		prgROM,

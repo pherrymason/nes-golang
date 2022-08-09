@@ -68,6 +68,7 @@ func (ines INesHeader) TvSystem() byte {
 }
 
 func CreateINes1Header(prgRomSize byte, chrRomSize byte, flag6 byte, flag7 byte, flag8 byte, flag9 byte, flag10 byte) INesHeader {
+	// If the header CHR-ROM value is 0, we should assume that 8KB of CHR-RAM is available.
 	return INesHeader{
 		prgROMSize: prgRomSize,
 		chrROMSize: chrRomSize,
