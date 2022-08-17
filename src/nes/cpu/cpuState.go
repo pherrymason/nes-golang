@@ -109,7 +109,11 @@ func (state *CpuState) String(ppuState ppu.SimplePPUState) string {
 	msg.Write(hexit.HexUint16(uint16(state.EvaluatedAddress)))
 
 	//msg = clampSpace(msg, 48)
-	msg.WriteString("        ")
+	if state.CurrentInstruction.AddressMode() == Immediate {
+		msg.WriteString("       ")
+	} else {
+		msg.WriteString("        ")
+	}
 	msg.WriteString("A:")
 	msg.WriteString(hexit.HexUint8Str(state.Registers.A))
 	msg.WriteString(" X:")
@@ -124,8 +128,32 @@ func (state *CpuState) String(ppuState ppu.SimplePPUState) string {
 	msg.WriteString(strconv.FormatUint(uint64(ppuState.Scanline), 10))
 	msg.WriteString(",")
 	msg.WriteString(strconv.FormatUint(uint64(ppuState.RenderCycle), 10))
+
+	spaces := 7
+	if ppuState.Scanline < 10 {
+		spaces -= 1
+	} else if ppuState.Scanline < 100 {
+		spaces -= 2
+	} else {
+		spaces -= 3
+	}
+	if ppuState.RenderCycle < 10 {
+		spaces -= 1
+	} else if ppuState.RenderCycle < 100 {
+		spaces -= 2
+	} else {
+		spaces -= 3
+	}
+	for s := 0; s < spaces; s++ {
+		msg.WriteString(" ")
+	}
 	msg.WriteString(" CYC:")
 	msg.WriteString(strconv.FormatUint(uint64(state.CyclesSinceReset), 10))
+
+	// Frame number
+	msg.WriteString(" f")
+	msg.WriteString(strconv.FormatUint(uint64(ppuState.Frame+1), 10))
+
 	msg.WriteString("\n")
 
 	/*

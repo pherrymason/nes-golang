@@ -137,8 +137,8 @@ func (ppu *Ppu2c02) renderLogic() {
 
 			for oamIndex := 0; oamIndex < OAMDATA_SIZE && ppu.spriteScanlineCount < 8; oamIndex += 4 {
 				spriteY := int16(ppu.oamData[oamIndex])
-				diff := ppu.currentScanline - spriteY
-				if diff >= 0 && diff <= spriteHeight {
+				diff := ppu.currentScanline - Scanline(spriteY)
+				if diff >= 0 && diff <= Scanline(spriteHeight) {
 					ppu.oamDataScanline[ppu.spriteScanlineCount] = objectAttributeEntry{
 						y:          byte(spriteY),
 						tileId:     ppu.oamData[oamIndex+1],
@@ -297,8 +297,8 @@ func (ppu *Ppu2c02) fetchSpriteShifters() {
 		if ppu.PpuControl.SpriteSize == PPU_CONTROL_SPRITE_SIZE_8 {
 			if !object.isFlippedVertically() {
 				spritePatternAddressLow = types.Address(ppu.PpuControl.SpritePatternTableAddress) << 12
-				spritePatternAddressLow |= types.Address(object.tileId) << 4                    // Multiply ID per 16 (16 bytes per tile)
-				spritePatternAddressLow |= types.Address(ppu.currentScanline - int16(object.y)) // Which tile line we want
+				spritePatternAddressLow |= types.Address(object.tileId) << 4                       // Multiply ID per 16 (16 bytes per tile)
+				spritePatternAddressLow |= types.Address(ppu.currentScanline - Scanline(object.y)) // Which tile line we want
 			} else {
 				// TODO implement vertical flip
 			}

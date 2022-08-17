@@ -159,7 +159,7 @@ func (nes *Nes) Tick() (byte, bool) {
 			if nes.Cpu.debugger.Enabled {
 				nes.Cpu.debugger.LogState(
 					cpuState,
-					ppu.NewSimplePPUState(0, nes.ppu.RenderCycle(), nes.ppu.Scanline()),
+					ppu.NewSimplePPUState(nes.ppu.FrameNumber(), nes.ppu.RenderCycle(), nes.ppu.Scanline()),
 				)
 			}
 		}

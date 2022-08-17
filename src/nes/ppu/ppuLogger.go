@@ -32,7 +32,7 @@ type PPUState struct {
 
 	cycle           uint32
 	renderCycle     uint16
-	currentScanline int16
+	currentScanline Scanline
 	nmi             bool
 }
 

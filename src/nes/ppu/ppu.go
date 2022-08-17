@@ -1,17 +1,21 @@
 package ppu
 
 import (
+	"fmt"
 	"github.com/raulferras/nes-golang/src/nes/gamePak"
 	"github.com/raulferras/nes-golang/src/nes/types"
 	"github.com/raulferras/nes-golang/src/utils"
 	"image"
 	"image/color"
+	"log"
 )
 
 type PPU interface {
 	WriteRegister(register types.Address, value byte)
 	ReadRegister(register types.Address) byte
 }
+
+type Scanline uint16
 
 type Ppu2c02 struct {
 	PpuControl Control
@@ -49,9 +53,10 @@ type Ppu2c02 struct {
 	cycle  uint32 // Current lifetime PPU Cycle. After warmup, ignored.
 	warmup bool   // Indicates ppu is already warmed up (cycles went above 30000)
 
-	renderCycle     uint16 // Current cycle inside a Scanline. From 0 to PPU_CYCLES_BY_SCANLINE
-	currentScanline int16  // Current vertical Scanline being rendered
-	evenFrame       bool   // Is current Frame even?
+	renderCycle     uint16   // Current cycle inside a Scanline. From 0 to PPU_CYCLES_BY_SCANLINE
+	currentScanline Scanline // Current vertical Scanline being rendered
+	evenFrame       bool     // Is current Frame even?
+	frame           uint16
 
 	nmi              bool // NMI Interrupt thrown
 	nameTableChanged bool
@@ -113,11 +118,15 @@ func (ppu *Ppu2c02) TRam() LoopyRegister {
 func (ppu *Ppu2c02) FineX() uint8 {
 	return ppu.fineX
 }
-func (ppu *Ppu2c02) Scanline() int16 {
+func (ppu *Ppu2c02) Scanline() Scanline {
 	return ppu.currentScanline
 }
 func (ppu *Ppu2c02) RenderCycle() uint16 {
 	return ppu.renderCycle
+}
+
+func (ppu *Ppu2c02) FrameNumber() uint16 {
+	return ppu.frame
 }
 
 func (ppu *Ppu2c02) Tick() {
@@ -158,6 +167,8 @@ func (ppu *Ppu2c02) Tick() {
 		if ppu.currentScanline == 261 {
 			ppu.evenFrame = !ppu.evenFrame
 			ppu.currentScanline = 0
+			ppu.frame++
+			fmt.Printf("End of frame: %d\n", ppu.frame)
 		} else {
 			ppu.currentScanline++
 		}
@@ -288,6 +299,7 @@ func (ppu *Ppu2c02) ReadRegister(register types.Address) byte {
 // Write made by CPU
 func (ppu *Ppu2c02) WriteRegister(register types.Address, value byte) {
 	if !ppu.warmup {
+		log.Printf("Ignoring write register: %40X: %0X\n", register, value)
 		return
 	}
 
