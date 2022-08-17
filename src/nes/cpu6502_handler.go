@@ -27,52 +27,52 @@ func (cpu6502 *Cpu6502) ResetToAddress(programCounter types.Address) {
 }
 
 func (cpu6502 *Cpu6502) Tick() (byte, cpu.CpuState) {
-	if cpu6502.opCyclesLeft > 0 {
-		cpu6502.opCyclesLeft--
-		return cpu6502.opCyclesLeft, cpu.CreateWaitingState()
+	var state cpu.CpuState
+
+	if cpu6502.opCyclesLeft == 0 {
+		registersCopy := *cpu6502.Registers()
+
+		opcode := cpu6502.memory.Read(cpu6502.registers.Pc)
+		instruction := cpu6502.instructions[opcode]
+		cpu6502.opCyclesLeft = instruction.Cycles()
+
+		if instruction.Method() == nil {
+			msg := fmt.Errorf("opcode 0x%X not implemented", opcode)
+			cpu6502.Stop()
+			panic(msg)
+		}
+
+		operandAddress, operand, pageCrossed := cpu6502.evaluateOperandAddress(
+			instruction.AddressMode(),
+			cpu6502.registers.Pc+1,
+		)
+		step := cpu.OperationMethodArgument{
+			instruction.AddressMode(),
+			operandAddress,
+		}
+
+		state = cpu.CreateState(
+			registersCopy,
+			[3]byte{opcode, operand[0], operand[1]},
+			instruction,
+			step,
+			cpu6502.cycle,
+		)
+
+		cpu6502.registers.Pc += types.Address(instruction.Size())
+
+		opMightNeedExtraCycle := instruction.Method()(step)
+
+		if pageCrossed && opMightNeedExtraCycle {
+			cpu6502.opCyclesLeft++
+		}
+
+		cpu6502.cycle += uint32(cpu6502.opCyclesLeft)
+	} else {
+		state = cpu.CreateWaitingState()
 	}
 
-	if cpu6502.registers.Pc == 0xE035 {
-		fmt.Println("breakpoint")
-	}
-	registersCopy := *cpu6502.Registers()
-
-	opcode := cpu6502.memory.Read(cpu6502.registers.Pc)
-	instruction := cpu6502.instructions[opcode]
-	cpu6502.opCyclesLeft = instruction.Cycles()
-
-	if instruction.Method() == nil {
-		msg := fmt.Errorf("opcode 0x%X not implemented", opcode)
-		cpu6502.Stop()
-		panic(msg)
-	}
-
-	operandAddress, operand, pageCrossed := cpu6502.evaluateOperandAddress(
-		instruction.AddressMode(),
-		cpu6502.registers.Pc+1,
-	)
-	step := cpu.OperationMethodArgument{
-		instruction.AddressMode(),
-		operandAddress,
-	}
-
-	state := cpu.CreateState(
-		registersCopy,
-		[3]byte{opcode, operand[0], operand[1]},
-		instruction,
-		step,
-		cpu6502.cycle,
-	)
-
-	cpu6502.registers.Pc += types.Address(instruction.Size())
-
-	opMightNeedExtraCycle := instruction.Method()(step)
-
-	if pageCrossed && opMightNeedExtraCycle {
-		cpu6502.opCyclesLeft++
-	}
-
-	cpu6502.cycle += uint32(cpu6502.opCyclesLeft)
+	cpu6502.opCyclesLeft--
 
 	return cpu6502.opCyclesLeft, state
 }

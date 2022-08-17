@@ -5,8 +5,6 @@ import (
 	"github.com/FMNSSun/hexit"
 	"github.com/raulferras/nes-golang/src/nes/ppu"
 	"github.com/raulferras/nes-golang/src/nes/types"
-	"github.com/raulferras/nes-golang/src/utils"
-	"regexp"
 	"strconv"
 	"strings"
 )
@@ -17,11 +15,11 @@ type CpuState struct {
 	RawOpcode          [3]byte
 	EvaluatedAddress   types.Address
 	CyclesSinceReset   uint32
-	waiting            bool
+	Waiting            bool
 }
 
 func CreateWaitingState() CpuState {
-	return CpuState{waiting: true}
+	return CpuState{Waiting: true}
 }
 
 func CreateState(registers Registers, opcode [3]byte, instruction Instruction, step OperationMethodArgument, cpuCycle uint32) CpuState {
@@ -31,50 +29,6 @@ func CreateState(registers Registers, opcode [3]byte, instruction Instruction, s
 		opcode,
 		step.OperandAddress,
 		cpuCycle,
-		false,
-	}
-
-	return state
-}
-
-func CreateStateFromNesTestLine(nesTestLine string) CpuState {
-	fields := strings.Fields(nesTestLine)
-	_ = fields
-
-	blocks := utils.StringSplitByRegex(nesTestLine)
-
-	result := utils.HexStringToByteArray(blocks[0])
-	pc := types.CreateAddress(result[1], result[0])
-
-	fields = strings.Fields(blocks[1])
-	opcode := [3]byte{utils.HexStringToByteArray(fields[0])[0]}
-
-	flagFields := strings.Fields(blocks[3])
-
-	r, _ := regexp.Compile("CYC:([0-9]+)$")
-	cpuCyclesString := r.FindStringSubmatch(nesTestLine)
-
-	cpuCycles, _ := strconv.ParseUint(cpuCyclesString[1], 10, 16)
-
-	state := CpuState{
-		Registers{
-			utils.NestestDecodeRegisterFlag(flagFields[0]),
-			utils.NestestDecodeRegisterFlag(flagFields[1]),
-			utils.NestestDecodeRegisterFlag(flagFields[2]),
-			pc,
-			utils.NestestDecodeRegisterFlag(flagFields[4]),
-			utils.NestestDecodeRegisterFlag(flagFields[3]),
-		},
-		CreateInstruction(
-			strings.Fields(blocks[2])[0],
-			Implicit,
-			nil,
-			0,
-			0,
-		),
-		opcode,
-		types.CreateAddress(0x00, 0x00),
-		uint32(cpuCycles),
 		false,
 	}
 

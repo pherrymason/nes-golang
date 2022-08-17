@@ -32,7 +32,7 @@ func (debugger *Debugger) Stop() {
 }
 
 func (debugger *Debugger) LogState(state CpuState, ppuState ppu.SimplePPUState) {
-	if state.waiting {
+	if state.Waiting {
 		return
 	}
 	debugger.Logger.Log(state, ppuState)

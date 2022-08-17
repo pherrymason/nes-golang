@@ -15,7 +15,7 @@ type Nes struct {
 	Cpu *Cpu6502
 	ppu *ppu.Ppu2c02
 
-	systemClockCounter byte // Controls how many times to call each processor
+	systemClockCounter uint64 // Controls how many times to call each processor
 	debug              *Debugger
 	vBlankCount        byte
 	finished           bool
@@ -52,6 +52,11 @@ func (nes *Nes) StartAt(address types.Address) {
 	nes.debug.sortedDisassembled = sortedDisassembled
 
 	nes.Cpu.ResetToAddress(address)
+	// Run PPU for 7 cpu cycles. We subtract 1 because next Nes.Tick will first call PPU.
+	for i := 0; i < (7 * 3); i++ {
+		nes.ppu.Tick()
+		nes.systemClockCounter++
+	}
 }
 
 // Start todo Rename to PowerOn
@@ -126,6 +131,7 @@ func (nes *Nes) TickForTime(seconds float64) {
 
 func (nes *Nes) Tick() (byte, bool) {
 	defer nes.handlePanic()
+	ppuState := ppu.NewSimplePPUState(nes.ppu.FrameNumber(), nes.ppu.RenderCycle(), nes.ppu.Scanline())
 	nes.ppu.Tick()
 
 	cpuCycles := byte(0)
@@ -159,7 +165,7 @@ func (nes *Nes) Tick() (byte, bool) {
 			if nes.Cpu.debugger.Enabled {
 				nes.Cpu.debugger.LogState(
 					cpuState,
-					ppu.NewSimplePPUState(nes.ppu.FrameNumber(), nes.ppu.RenderCycle(), nes.ppu.Scanline()),
+					ppuState,
 				)
 			}
 		}
@@ -200,7 +206,7 @@ func (nes *Nes) Debugger() *Debugger {
 	return nes.debug
 }
 
-func (nes *Nes) SystemClockCounter() byte {
+func (nes *Nes) SystemClockCounter() uint64 {
 	return nes.systemClockCounter
 }
 
