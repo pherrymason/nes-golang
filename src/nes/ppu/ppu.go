@@ -1,7 +1,6 @@
 package ppu
 
 import (
-	"fmt"
 	"github.com/raulferras/nes-golang/src/nes/gamePak"
 	"github.com/raulferras/nes-golang/src/nes/types"
 	"github.com/raulferras/nes-golang/src/utils"
@@ -168,7 +167,6 @@ func (ppu *Ppu2c02) Tick() {
 			ppu.evenFrame = !ppu.evenFrame
 			ppu.currentScanline = 0
 			ppu.frame++
-			fmt.Printf("End of frame: %d\n", ppu.frame)
 		} else {
 			ppu.currentScanline++
 		}
