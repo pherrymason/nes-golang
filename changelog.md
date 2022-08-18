@@ -1,3 +1,8 @@
+2022-08-18:
+Mapper000 takes into account roms with CHR RAM. This fixes some roms that try to write in that memory.
+Refactor GamePak and Mapper relation.
+Improve PPU/CPU synchronization, matching with nestest.log timmings. This causes a performance deterioration, to be analyzed.
+
 2022-08-09:
 Implement initial support for roms with no CHR-ROM.
 Better error detection and graceful emulator shutdown.
