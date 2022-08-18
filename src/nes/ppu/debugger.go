@@ -4,7 +4,7 @@ import (
 	"image"
 )
 
-func (ppu *Ppu2c02) PatternTable(patternTable byte, palette byte) image.RGBA {
+func (ppu *P2c02) PatternTable(patternTable byte, palette byte) image.RGBA {
 	const CanvasWIDTH = 128
 	chr := image.NewRGBA(image.Rect(0, 0, CanvasWIDTH, 8*8))
 	//chr := make([]color.Color, CanvasWIDTH*128)

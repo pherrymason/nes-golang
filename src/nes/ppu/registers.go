@@ -47,7 +47,7 @@ func (status *Status) Value() byte {
 	return value
 }
 
-func (ppu *Ppu2c02) ppuCtrlWrite(value byte) {
+func (ppu *P2c02) ppuCtrlWrite(value byte) {
 	ppu.PpuControl.NameTableX = value & 0x01
 	ppu.PpuControl.NameTableY = (value >> 1) & 1
 	ppu.PpuControl.IncrementMode = (value >> 2) & 1
@@ -62,6 +62,6 @@ func (ppu *Ppu2c02) ppuCtrlWrite(value byte) {
 	}
 }
 
-func (ppu *Ppu2c02) VBlank() bool {
+func (ppu *P2c02) VBlank() bool {
 	return ppu.PpuStatus.VerticalBlankStarted
 }

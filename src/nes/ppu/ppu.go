@@ -3,7 +3,6 @@ package ppu
 import (
 	"github.com/raulferras/nes-golang/src/nes/gamePak"
 	"github.com/raulferras/nes-golang/src/nes/types"
-	"github.com/raulferras/nes-golang/src/utils"
 	"image"
 	"image/color"
 	"log"
@@ -16,7 +15,7 @@ type PPU interface {
 
 type Scanline uint16
 
-type Ppu2c02 struct {
+type P2c02 struct {
 	PpuControl Control
 	PpuStatus  Status
 	PpuMask    Mask // Controls the rendering of sprites and backgrounds
@@ -68,9 +67,9 @@ type Ppu2c02 struct {
 	debug           bool
 }
 
-func CreatePPU(cartridge *gamePak.GamePak, debug bool, logPath string) *Ppu2c02 {
+func CreatePPU(cartridge *gamePak.GamePak, debug bool, logPath string) *P2c02 {
 	debug = false
-	ppu := &Ppu2c02{
+	ppu := &P2c02{
 		cartridge:       cartridge,
 		renderCycle:     0,
 		currentScanline: 0,
@@ -100,35 +99,35 @@ func CreatePPU(cartridge *gamePak.GamePak, debug bool, logPath string) *Ppu2c02 
 	return ppu
 }
 
-func (ppu *Ppu2c02) Frame() *image.RGBA {
+func (ppu *P2c02) Frame() *image.RGBA {
 	return ppu.screen
 }
 
-func (ppu *Ppu2c02) FramePattern() []byte {
+func (ppu *P2c02) FramePattern() []byte {
 	return ppu.nameTables[0:1024]
 }
 
-func (ppu *Ppu2c02) VRam() LoopyRegister {
+func (ppu *P2c02) VRam() LoopyRegister {
 	return ppu.vRam
 }
-func (ppu *Ppu2c02) TRam() LoopyRegister {
+func (ppu *P2c02) TRam() LoopyRegister {
 	return ppu.tRam
 }
-func (ppu *Ppu2c02) FineX() uint8 {
+func (ppu *P2c02) FineX() uint8 {
 	return ppu.fineX
 }
-func (ppu *Ppu2c02) Scanline() Scanline {
+func (ppu *P2c02) Scanline() Scanline {
 	return ppu.currentScanline
 }
-func (ppu *Ppu2c02) RenderCycle() uint16 {
+func (ppu *P2c02) RenderCycle() uint16 {
 	return ppu.renderCycle
 }
 
-func (ppu *Ppu2c02) FrameNumber() uint16 {
+func (ppu *P2c02) FrameNumber() uint16 {
 	return ppu.frame
 }
 
-func (ppu *Ppu2c02) Tick() {
+func (ppu *P2c02) Tick() {
 	if ppu.debug && ppu.warmup == true {
 		ppu.logger.log(ppu)
 	}
@@ -167,6 +166,7 @@ func (ppu *Ppu2c02) Tick() {
 			ppu.evenFrame = !ppu.evenFrame
 			ppu.currentScanline = 0
 			ppu.frame++
+			//fmt.Printf("End of frame: %d\n", ppu.frame)
 		} else {
 			ppu.currentScanline++
 		}
@@ -182,7 +182,7 @@ func (ppu *Ppu2c02) Tick() {
 	}
 }
 
-func (ppu *Ppu2c02) incrementX() {
+func (ppu *P2c02) incrementX() {
 	if ppu.PpuMask.renderingEnabled() {
 		if ppu.vRam.CoarseX() == 31 { // if CoarseX == 31
 			ppu.vRam._coarseX = 0     // CoarseX = 0
@@ -193,7 +193,7 @@ func (ppu *Ppu2c02) incrementX() {
 	}
 }
 
-func (ppu *Ppu2c02) incrementY() {
+func (ppu *P2c02) incrementY() {
 	if ppu.PpuMask.renderingEnabled() {
 		if ppu.vRam.FineY() < 7 {
 			ppu.vRam._fineY++
@@ -214,14 +214,14 @@ func (ppu *Ppu2c02) incrementY() {
 	}
 }
 
-func (ppu *Ppu2c02) transferX() {
+func (ppu *P2c02) transferX() {
 	if ppu.PpuMask.renderingEnabled() {
 		ppu.vRam._coarseX = ppu.tRam._coarseX
 		ppu.vRam._nameTableX = ppu.tRam._nameTableX
 	}
 }
 
-func (ppu *Ppu2c02) transferY() {
+func (ppu *P2c02) transferY() {
 	if ppu.PpuMask.renderingEnabled() {
 		ppu.vRam._fineY = ppu.tRam._fineY
 		ppu.vRam.setCoarseY(ppu.tRam.CoarseY())
@@ -229,19 +229,19 @@ func (ppu *Ppu2c02) transferY() {
 	}
 }
 
-func (ppu *Ppu2c02) Nmi() bool {
+func (ppu *P2c02) Nmi() bool {
 	occurred := ppu.nmi
 	ppu.nmi = false
 
 	return occurred
 }
 
-func (ppu *Ppu2c02) ResetNmi() {
+func (ppu *P2c02) ResetNmi() {
 	ppu.nmi = false
 }
 
 // Read made by CPU
-func (ppu *Ppu2c02) ReadRegister(register types.Address) byte {
+func (ppu *P2c02) ReadRegister(register types.Address) byte {
 	value := byte(0x00)
 
 	switch register {
@@ -295,7 +295,7 @@ func (ppu *Ppu2c02) ReadRegister(register types.Address) byte {
 }
 
 // Write made by CPU
-func (ppu *Ppu2c02) WriteRegister(register types.Address, value byte) {
+func (ppu *P2c02) WriteRegister(register types.Address, value byte) {
 	if !ppu.warmup {
 		log.Printf("Ignoring write register: %40X: %0X\n", register, value)
 		return
@@ -366,17 +366,17 @@ func (ppu *Ppu2c02) WriteRegister(register types.Address, value byte) {
 	//$3F19-$3F1B 	Sprite palette 2
 	//$3F1D-$3F1F 	Sprite palette 3
 */
-func (ppu *Ppu2c02) GetRGBColor(palette byte, colorIndex byte) color.Color {
+func (ppu *P2c02) GetRGBColor(palette byte, colorIndex byte) color.Color {
 	paletteColor := ppu.GetPaletteColor(palette, colorIndex)
-
-	return utils.NewColorRGB(
-		SystemPalette[paletteColor][0],
-		SystemPalette[paletteColor][1],
-		SystemPalette[paletteColor][2],
-	)
+	return color.RGBA{R: SystemPalette[paletteColor][0], G: SystemPalette[paletteColor][1], B: SystemPalette[paletteColor][2], A: 255}
+	//return utils.NewColorRGB(
+	//	SystemPalette[paletteColor][0],
+	//	SystemPalette[paletteColor][1],
+	//	SystemPalette[paletteColor][2],
+	//)
 }
 
-func (ppu *Ppu2c02) GetPaletteColor(palette byte, colorIndex byte) byte {
+func (ppu *P2c02) GetPaletteColor(palette byte, colorIndex byte) byte {
 	if palette > 0 && colorIndex == 0 {
 		palette = 0
 	}
@@ -385,13 +385,13 @@ func (ppu *Ppu2c02) GetPaletteColor(palette byte, colorIndex byte) byte {
 	return ppu.Read(PaletteLowAddress + paletteAddress)
 }
 
-func (ppu *Ppu2c02) Stop() {
+func (ppu *P2c02) Stop() {
 	if ppu.debug {
 		ppu.logger.Close()
 	}
 }
 
-func (ppu *Ppu2c02) Oam(index byte) []byte {
+func (ppu *P2c02) Oam(index byte) []byte {
 
 	return ppu.oamData[index : index+4]
 }

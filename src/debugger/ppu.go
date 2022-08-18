@@ -10,10 +10,10 @@ const ppuPanelWidth = 350
 
 type PPUDebugger struct {
 	panel *draggablePanel
-	ppu   *ppu.Ppu2c02
+	ppu   *ppu.P2c02
 }
 
-func NewPPUDebugger(ppu *ppu.Ppu2c02) *PPUDebugger {
+func NewPPUDebugger(ppu *ppu.P2c02) *PPUDebugger {
 	return &PPUDebugger{
 		panel: NewDraggablePanel(
 			"PPU Registers",

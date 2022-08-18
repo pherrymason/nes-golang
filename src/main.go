@@ -93,12 +93,13 @@ func loop(console *nes.Nes, scale int) {
 		}
 
 		// Draw --------------------
+
 		r.BeginDrawing()
 		r.ClearBackground(r.Black)
 		drawEmulation(console.Frame())
-		//drawBackgroundTileIDs(console)
 		debuggerGUI.Tick()
 		r.EndDrawing()
+
 		// End Draw --------------------
 
 		cpuAdvance = true
@@ -116,9 +117,6 @@ func drawEmulation(frame *image.RGBA) {
 		for y := 0; y < types.SCREEN_HEIGHT; y++ {
 			pixel := frame.At(x, y)
 			color := utils.RGBA2raylibColor(pixel)
-			//x := i % types.SCREEN_WIDTH
-			//y := i / types.SCREEN_WIDTH
-
 			r.DrawPixel(padding+x, paddingY+y, color)
 		}
 	}

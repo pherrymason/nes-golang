@@ -85,7 +85,7 @@ func NewLogger2c02(enabled bool, outputPath string) *logger2c02 {
 	return &logger
 }
 
-func (logger *logger2c02) log(ppu *Ppu2c02) {
+func (logger *logger2c02) log(ppu *P2c02) {
 
 	if len(logger.snapshots) == PPU_LOG_BUFFER_MAXSIZE {
 		logger.logToFile()

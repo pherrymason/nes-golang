@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-func (ppu *Ppu2c02) Render() {
+func (ppu *P2c02) Render() {
 	if ppu.renderByPixel == false {
 		ppu.renderBackground()
 		//ppu.renderSprites()
@@ -17,7 +17,7 @@ func (ppu *Ppu2c02) Render() {
 	}
 }
 
-func (ppu *Ppu2c02) renderLogic() {
+func (ppu *P2c02) renderLogic() {
 	//renderingEnabled := ppu.PpuMask.ShowBackground || ppu.PpuMask.ShowSprites
 	preRenderScanline := ppu.currentScanline == 261
 	scanlineVisible := ppu.currentScanline >= 0 && ppu.currentScanline < 240
@@ -166,7 +166,7 @@ func (ppu *Ppu2c02) renderLogic() {
 	ppu.finalPixelComposition()
 }
 
-func (ppu *Ppu2c02) finalPixelComposition() {
+func (ppu *P2c02) finalPixelComposition() {
 	var bgPixel byte = 0x00
 	var bgPalette byte = 0x00
 	if ppu.PpuMask.showBackgroundEnabled() {
@@ -242,7 +242,7 @@ func (ppu *Ppu2c02) finalPixelComposition() {
 // This method shifts one bit to the left the contents of the shifter registers.
 // This, together with the fineX register allows to get the pixel information
 // to be rendered together with a smooth per pixel scrolling
-func (ppu *Ppu2c02) updateShifters() {
+func (ppu *P2c02) updateShifters() {
 	if ppu.PpuMask.showBackgroundEnabled() {
 		ppu.bgShifterTileLow <<= 1
 		ppu.bgShifterTileHigh <<= 1
@@ -264,7 +264,7 @@ func (ppu *Ppu2c02) updateShifters() {
 
 // loadShifters
 // This prepares shifters with the next tile to be rendered
-func (ppu *Ppu2c02) loadShifters() {
+func (ppu *P2c02) loadShifters() {
 	ppu.bgShifterTileLow = (ppu.bgShifterTileLow & 0xFF00) | uint16(ppu.bgNextLowTile)
 	ppu.bgShifterTileHigh = (ppu.bgShifterTileHigh & 0xFF00) | uint16(ppu.bgNextHighTile)
 
@@ -285,7 +285,7 @@ func (ppu *Ppu2c02) loadShifters() {
 	}
 }
 
-func (ppu *Ppu2c02) fetchSpriteShifters() {
+func (ppu *P2c02) fetchSpriteShifters() {
 	var spritePatternAddressLow types.Address
 	var spritePatternAddressHigh types.Address
 	var spritePatternLow byte
@@ -322,7 +322,7 @@ func (ppu *Ppu2c02) fetchSpriteShifters() {
 	}
 }
 
-func (ppu *Ppu2c02) renderBackground() {
+func (ppu *P2c02) renderBackground() {
 	// Render first name table
 	//bankAddress := types.Address(1 * 0x1000)
 	nameTableStart := 0
@@ -347,7 +347,7 @@ func (ppu *Ppu2c02) renderBackground() {
 	}
 }
 
-func (ppu *Ppu2c02) renderTile(tile image.RGBA, coordX int, coordY int) {
+func (ppu *P2c02) renderTile(tile image.RGBA, coordX int, coordY int) {
 	//ppu.screen.Set()
 	//baseY := coordY * 256
 	//baseX := coordX
@@ -360,7 +360,7 @@ func (ppu *Ppu2c02) renderTile(tile image.RGBA, coordX int, coordY int) {
 	}
 }
 
-func (ppu *Ppu2c02) renderSprites() {
+func (ppu *P2c02) renderSprites() {
 	spritePatternTable := ppu.PpuControl.SpritePatternTableAddress
 	for i := 0; i < OAMDATA_SIZE; i++ {
 		yCoordinate := ppu.oamData[i]
@@ -415,7 +415,7 @@ func backgroundPalette(tileColumn uint8, tileRow uint8, nameTable *[2 * NAMETABL
 	panic("backgroundPalette: Invalid attribute Value!")
 }
 
-func (ppu *Ppu2c02) findTile(tileID byte, patternTable byte, tileColumn uint8, tileRow uint8, forcedPalette uint8) image.RGBA {
+func (ppu *P2c02) findTile(tileID byte, patternTable byte, tileColumn uint8, tileRow uint8, forcedPalette uint8) image.RGBA {
 	bankAddress := 0x1000 * int(patternTable)
 	offsetAddress := types.Address(bankAddress + int(tileID)*16)
 	tile := image.NewRGBA(image.Rect(0, 0, TILE_WIDTH, TILE_HEIGHT))

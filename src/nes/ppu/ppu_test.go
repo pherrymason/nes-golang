@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func newNotWarmedUpPPU() *Ppu2c02 {
+func newNotWarmedUpPPU() *P2c02 {
 	cartridge := gamePak.NewDummyGamePak(
 		gamePak.NewEmptyCHRROM(),
 	)
@@ -16,7 +16,7 @@ func newNotWarmedUpPPU() *Ppu2c02 {
 	return ppu
 }
 
-func aPPU() *Ppu2c02 {
+func aPPU() *P2c02 {
 	cartridge := gamePak.NewDummyGamePak(
 		gamePak.NewEmptyCHRROM(),
 	)

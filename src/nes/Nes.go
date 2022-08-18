@@ -13,7 +13,7 @@ import (
 
 type Nes struct {
 	Cpu *Cpu6502
-	ppu *ppu.Ppu2c02
+	ppu *ppu.P2c02
 
 	systemClockCounter uint64 // Controls how many times to call each processor
 	debug              *Debugger
@@ -131,7 +131,11 @@ func (nes *Nes) TickForTime(seconds float64) {
 
 func (nes *Nes) Tick() (byte, bool) {
 	defer nes.handlePanic()
-	ppuState := ppu.NewSimplePPUState(nes.ppu.FrameNumber(), nes.ppu.RenderCycle(), nes.ppu.Scanline())
+	var ppuState ppu.SimplePPUState
+	if nes.Cpu.debugger.Enabled {
+		//ppuState = ppu.NewSimplePPUState(nes.ppu.FrameNumber(), nes.ppu.RenderCycle(), nes.ppu.Scanline())
+		ppuState = ppu.NewSimplePPUState(0, 0, 0)
+	}
 	nes.ppu.Tick()
 
 	cpuCycles := byte(0)
@@ -217,7 +221,7 @@ func (nes *Nes) FramePattern() []byte {
 	return nes.ppu.FramePattern()
 }
 
-func (nes *Nes) PPU() *ppu.Ppu2c02 {
+func (nes *Nes) PPU() *ppu.P2c02 {
 	return nes.ppu
 }
 

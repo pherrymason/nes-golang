@@ -34,15 +34,15 @@ const PPU_HIGH_ADDRESS = types.Address(0x3FFF)
 const PatternTable0Address = types.Address(0x0000)
 const PatternTable1Address = types.Address(0x1000)
 
-func (ppu *Ppu2c02) Peek(address types.Address) byte {
+func (ppu *P2c02) Peek(address types.Address) byte {
 	return ppu.read(address, true)
 }
 
-func (ppu *Ppu2c02) Read(address types.Address) byte {
+func (ppu *P2c02) Read(address types.Address) byte {
 	return ppu.read(address, false)
 }
 
-func (ppu *Ppu2c02) read(address types.Address, readOnly bool) byte {
+func (ppu *P2c02) read(address types.Address, readOnly bool) byte {
 	result := byte(0x00)
 
 	// CHR ROM address
@@ -60,7 +60,7 @@ func (ppu *Ppu2c02) read(address types.Address, readOnly bool) byte {
 	return result
 }
 
-func (ppu *Ppu2c02) Write(address types.Address, value byte) {
+func (ppu *P2c02) Write(address types.Address, value byte) {
 	if isNameTableAddress(address) {
 		nameTableAddress := getNameTableAddress(ppu.cartridge.Header().Mirroring(), address)
 		if ppu.nameTables[nameTableAddress] != value {
@@ -97,7 +97,7 @@ func isPaletteAddress(address types.Address) bool {
 }
 
 // Addresses $3F10/$3F14/$3F18/$3F1C are mirrors of $3F00/$3F04/$3F08/$3F0C
-func (ppu *Ppu2c02) readPalette(address types.Address) byte {
+func (ppu *P2c02) readPalette(address types.Address) byte {
 	address &= 0x1F
 	// Mirrors
 	// Addresses $3F10/$3F14/$3F18/$3F1C are mirrors of $3F00/$3F04/$3F08/$3F0C
@@ -114,7 +114,7 @@ func (ppu *Ppu2c02) readPalette(address types.Address) byte {
 	return ppu.paletteTable[address]
 }
 
-func (ppu *Ppu2c02) writePalette(address types.Address, colorIndex byte) {
+func (ppu *P2c02) writePalette(address types.Address, colorIndex byte) {
 	address &= 0x1F
 	// Mirrors
 	if address == 0x10 {

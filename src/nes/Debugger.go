@@ -13,7 +13,7 @@ import (
 // NES components
 type Debugger struct {
 	cpu                *Cpu6502
-	ppu                *ppu.Ppu2c02
+	ppu                *ppu.P2c02
 	logPath            string
 	disassembled       map[types.Address]string
 	sortedDisassembled []utils.ASM

@@ -79,9 +79,9 @@ func (state *CpuState) String(ppuState ppu.SimplePPUState) string {
 	msg.WriteString(" SP:")
 	msg.WriteString(hexit.HexUint8Str(state.Registers.Sp))
 	msg.WriteString(" PPU: ")
-	msg.WriteString(strconv.FormatUint(uint64(ppuState.Scanline), 10))
+	msg.WriteString(strconv.Itoa(int(ppuState.Scanline)))
 	msg.WriteString(",")
-	msg.WriteString(strconv.FormatUint(uint64(ppuState.RenderCycle), 10))
+	msg.WriteString(strconv.Itoa(int(ppuState.RenderCycle)))
 
 	spaces := 7
 	if ppuState.Scanline < 10 {
@@ -102,11 +102,11 @@ func (state *CpuState) String(ppuState ppu.SimplePPUState) string {
 		msg.WriteString(" ")
 	}
 	msg.WriteString(" CYC:")
-	msg.WriteString(strconv.FormatUint(uint64(state.CyclesSinceReset), 10))
+	msg.WriteString(strconv.Itoa(int(state.CyclesSinceReset)))
 
 	// Frame number
 	msg.WriteString(" f")
-	msg.WriteString(strconv.FormatUint(uint64(ppuState.Frame+1), 10))
+	msg.WriteString(strconv.Itoa(int(ppuState.Frame + 1)))
 
 	msg.WriteString("\n")
 
