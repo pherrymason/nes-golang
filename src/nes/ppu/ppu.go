@@ -5,7 +5,6 @@ import (
 	"github.com/raulferras/nes-golang/src/nes/types"
 	"image"
 	"image/color"
-	"log"
 )
 
 type PPU interface {
@@ -297,7 +296,7 @@ func (ppu *P2c02) ReadRegister(register types.Address) byte {
 // Write made by CPU
 func (ppu *P2c02) WriteRegister(register types.Address, value byte) {
 	if !ppu.warmup {
-		log.Printf("Ignoring write register: %40X: %0X\n", register, value)
+		//log.Printf("Ignoring write register: %40X: %0X\n", register, value)
 		return
 	}
 

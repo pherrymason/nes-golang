@@ -33,7 +33,7 @@ func TestPPU_Render_Cycles_should_increment_scanline_after_341_cycles(t *testing
 
 	ppu.Tick()
 
-	assert.Equal(t, int16(1), ppu.currentScanline)
+	assert.Equal(t, Scanline(1), ppu.currentScanline)
 }
 
 func TestPPU_Render_Cycles_should_reset_scanline_after_261_scanlines(t *testing.T) {
@@ -43,7 +43,7 @@ func TestPPU_Render_Cycles_should_reset_scanline_after_261_scanlines(t *testing.
 
 	ppu.Tick()
 
-	assert.Equal(t, int16(0), ppu.currentScanline)
+	assert.Equal(t, Scanline(0), ppu.currentScanline)
 	assert.Equal(t, uint16(0), ppu.renderCycle)
 }
 

@@ -190,7 +190,7 @@ func TestPPU_PPUData_read(t *testing.T) {
 				expectedIncrement = 32
 			}
 
-			// Dummy Read
+			// Dummy ReadPrgROM
 			firstRead := ppu.ReadRegister(PPUDATA)
 			assert.Equal(t, tt.firstRead, firstRead, "unexpected first read Value")
 			assert.Equal(t, (tt.addressToRead+expectedIncrement)&0x3FFF, ppu.vRam.address(), "unexpected first read ppuDataAddr increment")
@@ -212,7 +212,7 @@ func TestPPUDATA_is_instructed_to_read_address_and_mirrors(t *testing.T) {
 	ppu.WriteRegister(PPUADDR, 0x3F)
 	ppu.WriteRegister(PPUADDR, 0xFF)
 
-	// Dummy Read
+	// Dummy ReadPrgROM
 	ppu.ReadRegister(PPUDATA)
 	assert.Equal(t, types.Address(0x0000), ppu.vRam.address, "ppuDataAddr(cpu@0x2006) must increment on each read to cpu@0x2007")
 }

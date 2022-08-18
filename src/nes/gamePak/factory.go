@@ -6,7 +6,13 @@ import (
 )
 
 func CreateGamePak(header Header, prgROM []byte, chrROM []byte) GamePak {
-	return GamePak{header, prgROM, chrROM}
+	mapper := CreateMapper(header, prgROM, chrROM)
+	return GamePak{
+		header,
+		mapper,
+		prgROM,
+		chrROM}
+
 }
 
 func NewGamePakWithINes(flag6 byte, flag7 byte, flag8 byte, flag9 byte, flag10 byte, prgROM []byte, chrROM []byte) GamePak {
@@ -24,7 +30,7 @@ func CreateGamePakFromROMFile(romFilePath string) GamePak {
 		fmt.Println("File reading error", err)
 	}
 
-	// Read INesHeader
+	// ReadPrgROM INesHeader
 	inesHeader := CreateINes1Header(
 		data[4],
 		data[5],

@@ -2,7 +2,6 @@ package nes
 
 import (
 	gamePak2 "github.com/raulferras/nes-golang/src/nes/gamePak"
-	"github.com/raulferras/nes-golang/src/nes/mappers"
 	"github.com/raulferras/nes-golang/src/nes/types"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -43,7 +42,7 @@ func (f fakeMapper) Write(address types.Address, value byte) {
 type fields struct {
 	ram     [0xFFFF + 1]byte
 	gamePak *gamePak2.GamePak
-	mapper  mappers.Mapper
+	mapper  gamePak2.Mapper
 	ppu     *fakePPU
 }
 
@@ -67,7 +66,6 @@ func TestCPUMemory_Read_into_cpu_ram(t *testing.T) {
 			cm := &CPUMemory{
 				ram:     tt.fields.ram,
 				gamePak: tt.fields.gamePak,
-				mapper:  tt.fields.mapper,
 				ppu:     tt.fields.ppu,
 			}
 			cm.ram[tt.args.address&RAM_LAST_REAL_ADDRESS] = tt.args.value
@@ -95,7 +93,6 @@ func TestCPUMemory_Read_into_ppu(t *testing.T) {
 			cm := &CPUMemory{
 				ram:     tt.fields.ram,
 				gamePak: tt.fields.gamePak,
-				mapper:  tt.fields.mapper,
 				ppu:     ppu,
 			}
 			ppu.register = tt.args.address & 0x2007
@@ -123,7 +120,6 @@ func TestCPUMemory_Write_into_cpu_ram(t *testing.T) {
 			cm := &CPUMemory{
 				ram:     tt.fields.ram,
 				gamePak: tt.fields.gamePak,
-				mapper:  tt.fields.mapper,
 				ppu:     tt.fields.ppu,
 			}
 
@@ -150,7 +146,6 @@ func TestCPUMemory_Write_into_ppu(t *testing.T) {
 			cm := &CPUMemory{
 				ram:     tt.fields.ram,
 				gamePak: tt.fields.gamePak,
-				mapper:  tt.fields.mapper,
 				ppu:     ppu,
 			}
 

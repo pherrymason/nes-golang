@@ -181,10 +181,10 @@ func TestIndexed_indirect(t *testing.T) {
 			cpu.registers.Pc = 0x00
 			cpu.registers.X = 4
 
-			// Write Operand
+			// WritePrgROM Operand
 			cpu.memory.Write(0, 0x10)
 
-			// Write Offset Table
+			// WritePrgROM Offset Table
 			cpu.memory.Write(0x0014, byte(tt.expectedAddress))
 			cpu.memory.Write(0x0015, byte(tt.expectedAddress>>8))
 
@@ -235,7 +235,7 @@ func TestRelativeAddressMode(t *testing.T) {
 	cpu := CreateCPUWithGamePak()
 	cpu.registers.Pc = 0x10
 
-	// Write Operand
+	// WritePrgROM Operand
 	cpu.memory.Write(0x09, 0xFF) // OpCode
 	cpu.memory.Write(0x10, 0x04) // Operand
 
@@ -248,7 +248,7 @@ func TestRelativeAddressModeNegative(t *testing.T) {
 	cpu := CreateCPUWithGamePak()
 	cpu.registers.Pc = 0x10
 
-	// Write Operand
+	// WritePrgROM Operand
 	cpu.memory.Write(0x10, 0x100-4)
 
 	result, _, _, _ := cpu.evalRelative(cpu.registers.Pc)

@@ -14,7 +14,7 @@ func (cpu6502 *Cpu6502) Reset() {
 	cpu6502.registers.Reset()
 	cpu6502.cycle = 0
 
-	// Read Reset Vector
+	// ReadPrgROM Reset Vector
 	address := cpu6502.read16(cpu6502.Registers().Pc)
 	cpu6502.registers.Pc = address
 	cpu6502.cycle = 7

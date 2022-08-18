@@ -37,7 +37,7 @@ func (cpu6502 *Cpu6502) Disassemble(start types.Address, end types.Address) (map
 		// Prefix line with instruction address
 		sInst := "$" + myHex(addr, 4) + ": "
 
-		// Read instruction, and get its readable name
+		// ReadPrgROM instruction, and get its readable name
 		opcode := cpu6502.memory.Peek(addr)
 		addr++
 		instruction := cpu6502.instructions[opcode]

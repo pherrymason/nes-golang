@@ -14,10 +14,10 @@ func (s SimpleMapper) ChrBanks() byte {
 	return 0
 }
 
-func (s SimpleMapper) Read(address types.Address) byte {
+func (s SimpleMapper) ReadPrgROM(address types.Address) byte {
 	return s.memory[address]
 }
 
-func (s SimpleMapper) Write(address types.Address, value byte) {
+func (s SimpleMapper) WritePrgROM(address types.Address, value byte) {
 	s.memory[address] = value
 }

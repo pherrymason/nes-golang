@@ -3,7 +3,6 @@ package nes
 import (
 	"fmt"
 	"github.com/raulferras/nes-golang/src/nes/gamePak"
-	"github.com/raulferras/nes-golang/src/nes/mappers"
 	"github.com/raulferras/nes-golang/src/nes/ppu"
 	"github.com/raulferras/nes-golang/src/nes/types"
 )
@@ -17,7 +16,7 @@ import (
  *
  * As Golang is not a OOP language, I've found that this is a good approach.
  * Another possibility would be to implement this in Nes space
- * and inject Read/Write methods into CPU and PPU
+ * and inject ReadPrgROM/WritePrgROM methods into CPU and PPU
  */
 
 // Nes Memory Map
@@ -63,7 +62,6 @@ type Memory interface {
 type CPUMemory struct {
 	ram           [0xFFFF + 1]byte
 	gamePak       *gamePak.GamePak
-	mapper        mappers.Mapper
 	ppu           ppu.PPU
 	DmaTransfer   bool
 	DmaPage       byte
@@ -72,18 +70,15 @@ type CPUMemory struct {
 	DmaReadBuffer byte
 }
 
-func newCPUMemory(ppu ppu.PPU, gamePak *gamePak.GamePak, mapper mappers.Mapper) *CPUMemory {
+func newCPUMemory(ppu ppu.PPU, gamePak *gamePak.GamePak) *CPUMemory {
 	return &CPUMemory{
 		gamePak: gamePak,
-		mapper:  mapper,
 		ppu:     ppu,
 	}
 }
 
-func newNESCPUMemory(ppu ppu.PPU, gamePak *gamePak.GamePak) *CPUMemory {
-	mapper := mappers.CreateMapper(gamePak)
-
-	return &CPUMemory{gamePak: gamePak, mapper: mapper, ppu: ppu}
+func newNESCPUMemory(ppu ppu.PPU, cartidge *gamePak.GamePak) *CPUMemory {
+	return &CPUMemory{gamePak: cartidge, ppu: ppu}
 }
 
 func (cm *CPUMemory) Peek(address types.Address) byte {
@@ -96,7 +91,7 @@ func (cm *CPUMemory) Read(address types.Address) byte {
 
 func (cm *CPUMemory) read(address types.Address, readOnly bool) byte {
 	if address <= RAM_HIGHER_ADDRESS {
-		// Read with mirror after RAM_LAST_REAL_ADDRESS
+		// ReadPrgROM with mirror after RAM_LAST_REAL_ADDRESS
 		return cm.ram[address&RAM_LAST_REAL_ADDRESS]
 	} else if address <= ppu.PPU_HIGH_ADDRESS {
 		return cm.ppu.ReadRegister(address & 0x2007)
@@ -104,7 +99,7 @@ func (cm *CPUMemory) read(address types.Address, readOnly bool) byte {
 		// TODO Implement APU / IO reading
 		return 0x00
 	} else if address >= gamePak.GAMEPAK_LOW_RANGE {
-		return cm.mapper.Read(address)
+		return cm.gamePak.ReadPrgROM(address)
 	}
 
 	panic(fmt.Sprintf("reading from invalid address %X", address))
@@ -121,7 +116,7 @@ func (cm *CPUMemory) Write(address types.Address, value byte) {
 		cm.DmaPage = value
 		cm.DmaAddress = 0
 	} else if address >= gamePak.GAMEPAK_ROM_LOWER_BANK_START {
-		cm.mapper.Write(address, value)
+		cm.gamePak.WritePrgROM(address, value)
 	}
 }
 

@@ -46,7 +46,7 @@ func (ppu *P2c02) read(address types.Address, readOnly bool) byte {
 	result := byte(0x00)
 
 	// CHR ROM address
-	if address < 0x01FFF {
+	if isCHRAddress(address) {
 		result = ppu.cartridge.ReadCHRROM(address)
 	} else if isNameTableAddress(address) {
 		// Nametable 0, 1, 2, 3
@@ -74,6 +74,8 @@ func (ppu *P2c02) Write(address types.Address, value byte) {
 		// DMA will begin at current OAM write address.
 	} else if isPaletteAddress(address) {
 		ppu.writePalette(address, value)
+	} else if isCHRAddress(address) {
+		ppu.cartridge.WriteCHRRAM(address, value)
 	} else {
 		var vblank string
 		if ppu.PpuStatus.VerticalBlankStarted {
@@ -84,6 +86,10 @@ func (ppu *P2c02) Write(address types.Address, value byte) {
 		err := fmt.Sprintf("Unhandled ppu write address: 0x%X, ppu cycle: %d, Scanline: %d, vBlank: %s", address, ppu.renderCycle, ppu.currentScanline, vblank)
 		panic(err)
 	}
+}
+
+func isCHRAddress(address types.Address) bool {
+	return address >= 0x0000 && address <= 0x1FFF
 }
 
 func isNameTableAddress(address types.Address) bool {

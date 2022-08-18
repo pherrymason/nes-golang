@@ -15,26 +15,32 @@ type GamePakInterface interface {
 	ReadPrgROM(address types.Address) byte
 	WritePrgROM(address types.Address, value byte)
 	ReadCHRROM(address types.Address) byte
+	WriteCHRAM(address types.Address, value byte)
 }
 
 type GamePak struct {
 	header Header
+	mapper Mapper
 	prgROM []byte
 	chrROM []byte
 }
 
-func (gamePak GamePak) Header() Header {
+func (gamePak *GamePak) Header() Header {
 	return gamePak.header
 }
 
-func (gamePak GamePak) ReadPrgROM(address types.Address) byte {
-	return gamePak.prgROM[address]
+func (gamePak *GamePak) ReadPrgROM(address types.Address) byte {
+	return gamePak.mapper.ReadPrgROM(address)
 }
 
 func (gamePak *GamePak) WritePrgROM(address types.Address, value byte) {
-	gamePak.prgROM[address] = value
+	gamePak.mapper.WritePrgROM(address, value)
 }
 
 func (gamePak *GamePak) ReadCHRROM(address types.Address) byte {
-	return gamePak.chrROM[address]
+	return gamePak.mapper.ReadChrROM(address)
+}
+
+func (gamePak *GamePak) WriteCHRRAM(address types.Address, value byte) {
+	gamePak.mapper.WriteChrROM(address, value)
 }

@@ -133,8 +133,7 @@ func (nes *Nes) Tick() (byte, bool) {
 	defer nes.handlePanic()
 	var ppuState ppu.SimplePPUState
 	if nes.Cpu.debugger.Enabled {
-		//ppuState = ppu.NewSimplePPUState(nes.ppu.FrameNumber(), nes.ppu.RenderCycle(), nes.ppu.Scanline())
-		ppuState = ppu.NewSimplePPUState(0, 0, 0)
+		ppuState = ppu.NewSimplePPUState(nes.ppu.FrameNumber(), nes.ppu.RenderCycle(), nes.ppu.Scanline())
 	}
 	nes.ppu.Tick()
 

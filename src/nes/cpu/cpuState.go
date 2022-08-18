@@ -110,18 +110,6 @@ func (state *CpuState) String(ppuState ppu.SimplePPUState) string {
 
 	msg.WriteString("\n")
 
-	/*
-		msg.WriteString(
-			fmt.Sprintf(
-				"A:%02X X:%02X Y:%02X P:%02X SP:%02X PPU:___,___ CYC:%d",
-				state.Registers.A,
-				state.Registers.X,
-				state.Registers.Y,
-				state.Registers.Status,
-				state.Registers.Sp,
-				state.CyclesSinceReset,
-			))
-	*/
 	return msg.String()
 }
 
