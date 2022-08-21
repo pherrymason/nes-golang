@@ -170,6 +170,9 @@ func (ppu *P2c02) Tick() {
 			ppu.currentScanline++
 		}
 		ppu.renderCycle = 0
+		if ppu.shouldSkipFirstCycleOnOddFrame() {
+			ppu.renderCycle = 1
+		}
 	} else {
 		ppu.renderCycle++
 	}
@@ -179,6 +182,10 @@ func (ppu *P2c02) Tick() {
 	} else {
 		ppu.cycle++
 	}
+}
+
+func (ppu *P2c02) shouldSkipFirstCycleOnOddFrame() bool {
+	return ppu.PpuMask.ShowBackground == 1 && ppu.scanlineIsVisibleOrIsPreRender() && ppu.evenFrame == false && ppu.currentScanline == 0 && ppu.renderCycle == 0
 }
 
 func (ppu *P2c02) incrementX() {

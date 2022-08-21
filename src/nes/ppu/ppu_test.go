@@ -26,6 +26,26 @@ func aPPU() *P2c02 {
 	return ppu
 }
 
+func TestPpu2c02_odd_frames_are_1_cycle_shorter_when_rendering_is_enabled(t *testing.T) {
+	ppu := aPPU()
+	ppu.PpuMask.ShowBackground = 1
+	for i := 0; i < (341 * (261 + 1)); i++ {
+		ppu.Tick()
+	}
+
+	assert.Equal(t, uint16(1), ppu.renderCycle, "Did not skip cycle 0")
+}
+
+func TestPpu2c02_odd_frames_are_last_341_cycles_when_rendering_is_disabled(t *testing.T) {
+	ppu := aPPU()
+	ppu.PpuMask.ShowBackground = 0
+	for i := 0; i < (341 * (261 + 1)); i++ {
+		ppu.Tick()
+	}
+
+	assert.Equal(t, uint16(0), ppu.renderCycle, "Should not skip cycle 0")
+}
+
 // Render cycles tests
 func TestPPU_Render_Cycles_should_increment_scanline_after_341_cycles(t *testing.T) {
 	ppu := aPPU()
@@ -40,6 +60,7 @@ func TestPPU_Render_Cycles_should_reset_scanline_after_261_scanlines(t *testing.
 	ppu := aPPU()
 	ppu.renderCycle = 340
 	ppu.currentScanline = 261
+	ppu.evenFrame = false
 
 	ppu.Tick()
 
