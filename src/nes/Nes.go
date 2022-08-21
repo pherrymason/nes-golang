@@ -179,13 +179,6 @@ func (nes *Nes) Tick() (byte, bool) {
 		nes.ppu.ResetNmi()
 	}
 
-	if nes.ppu.VBlank() {
-		if nes.vBlankCount == 20 {
-			nes.ppu.Render()
-		}
-		nes.vBlankCount++
-	}
-
 	nes.systemClockCounter++
 
 	return cpuCycles, cpuExecuted
