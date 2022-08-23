@@ -8,16 +8,16 @@ import (
 )
 
 func myHex(n types.Word, d int) string {
-	s := strings.Repeat("0", d)
+	tableHex := strings.Repeat("0", d)
 	i := d - 1
 	for i >= 0 {
 		c := "0123456789ABCDEF"[n&0xF]
-		s = s[:i] + string(c) + s[i+1:]
+		tableHex = tableHex[:i] + string(c) + tableHex[i+1:]
 		i--
 		n >>= 4
 	}
 
-	return s
+	return tableHex
 }
 
 func (cpu6502 *Cpu6502) Disassemble(start types.Address, end types.Address) (map[types.Address]string, []utils.ASM) {

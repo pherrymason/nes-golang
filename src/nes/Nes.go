@@ -129,14 +129,25 @@ func (nes *Nes) TickForTime(seconds float64) {
 	}
 }
 
+func (nes *Nes) TickTillFrameComplete() {
+	for !nes.PPU().FrameComplete() {
+		nes.Tick()
+	}
+}
+
 func (nes *Nes) Tick() (byte, bool) {
 	defer nes.handlePanic()
+
 	var ppuState ppu.SimplePPUState
 	if nes.Cpu.debugger.Enabled {
 		ppuState = ppu.NewSimplePPUState(nes.ppu.FrameNumber(), nes.ppu.RenderCycle(), nes.ppu.Scanline())
 	}
+	//start := time.Now()
 	nes.ppu.Tick()
+	//elapsed := time.Since(start)
+	//log.Printf("ppu took %s", elapsed)
 
+	//start = time.Now()
 	cpuCycles := byte(0)
 	cpuExecuted := false
 	if nes.systemClockCounter%3 == 0 {
@@ -173,6 +184,8 @@ func (nes *Nes) Tick() (byte, bool) {
 			}
 		}
 	}
+	//elapsed = time.Since(start)
+	//log.Printf("cpu took %s", elapsed)
 
 	if nes.ppu.Nmi() {
 		nes.Cpu.nmi()

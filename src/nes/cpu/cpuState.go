@@ -5,7 +5,6 @@ import (
 	"github.com/FMNSSun/hexit"
 	"github.com/raulferras/nes-golang/src/nes/ppu"
 	"github.com/raulferras/nes-golang/src/nes/types"
-	"strconv"
 	"strings"
 )
 
@@ -37,18 +36,18 @@ func CreateState(registers Registers, opcode [3]byte, instruction Instruction, s
 
 func (state *CpuState) String(ppuState ppu.SimplePPUState) string {
 	var msg strings.Builder
-	msg.Grow(150)
+	msg.Grow(80)
 
 	// Pointer
-	msg.Write(hexit.HexUint16(uint16(state.Registers.Pc)))
+	msg.WriteString(hexit.HexUint16Str(uint16(state.Registers.Pc)))
 	msg.WriteString(" ")
 
 	// Raw OPCode + Operand
-	msg.Write(hexit.HexUint8(state.RawOpcode[0]))
+	msg.WriteString(hexit.HexUint8Str(state.RawOpcode[0]))
 	msg.WriteString(" ")
-	msg.Write(hexit.HexUint8(state.RawOpcode[1]))
+	msg.WriteString(hexit.HexUint8Str(state.RawOpcode[1]))
 	msg.WriteString(" ")
-	msg.Write(hexit.HexUint8(state.RawOpcode[2]))
+	msg.WriteString(hexit.HexUint8Str(state.RawOpcode[2]))
 	msg.WriteString(" ")
 
 	//clampSpace(&msg, 16)
@@ -60,7 +59,7 @@ func (state *CpuState) String(ppuState ppu.SimplePPUState) string {
 	} else {
 		msg.WriteString("$")
 	}
-	msg.Write(hexit.HexUint16(uint16(state.EvaluatedAddress)))
+	msg.WriteString(hexit.HexUint16Str(uint16(state.EvaluatedAddress)))
 
 	//msg = clampSpace(msg, 48)
 	if state.CurrentInstruction.AddressMode() == Immediate {
@@ -79,9 +78,9 @@ func (state *CpuState) String(ppuState ppu.SimplePPUState) string {
 	msg.WriteString(" SP:")
 	msg.WriteString(hexit.HexUint8Str(state.Registers.Sp))
 	msg.WriteString(" PPU: ")
-	msg.WriteString(strconv.Itoa(int(ppuState.Scanline)))
+	//msg.WriteString(strconv.FormatInt(int64(ppuState.Scanline), 10))
 	msg.WriteString(",")
-	msg.WriteString(strconv.Itoa(int(ppuState.RenderCycle)))
+	//msg.WriteString(strconv.FormatInt(int64(ppuState.RenderCycle), 10))
 
 	spaces := 7
 	if ppuState.Scanline < 10 {
@@ -102,11 +101,11 @@ func (state *CpuState) String(ppuState ppu.SimplePPUState) string {
 		msg.WriteString(" ")
 	}
 	msg.WriteString(" CYC:")
-	msg.WriteString(strconv.Itoa(int(state.CyclesSinceReset)))
+	//msg.WriteString(strconv.FormatInt(int64(state.CyclesSinceReset), 10))
 
 	// Frame number
 	msg.WriteString(" f")
-	msg.WriteString(strconv.Itoa(int(ppuState.Frame + 1)))
+	//msg.WriteString(strconv.FormatInt(int64(ppuState.Frame+1), 10))
 
 	msg.WriteString("\n")
 

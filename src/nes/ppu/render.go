@@ -17,10 +17,17 @@ func (ppu *P2c02) Render() {
 	}
 }
 
+func (ppu *P2c02) scanlineIsVisibleOrIsPreRender() bool {
+	scanlineVisible := ppu.currentScanline < 240
+	preRenderScanline := ppu.currentScanline == 261
+
+	return scanlineVisible || preRenderScanline
+}
+
 func (ppu *P2c02) renderLogic() {
 	//renderingEnabled := ppu.PpuMask.ShowBackground || ppu.PpuMask.ShowSprites
 	preRenderScanline := ppu.currentScanline == 261
-	scanlineVisible := ppu.currentScanline >= 0 && ppu.currentScanline < 240
+	scanlineVisible := ppu.currentScanline < 240
 
 	// We are in a cycle which falls inside the visible horizontal region
 	cycleIsVisible := ppu.renderCycle >= 1 && ppu.renderCycle <= 256
@@ -29,10 +36,6 @@ func (ppu *P2c02) renderLogic() {
 	preFetchCycle := ppu.renderCycle >= 321 && ppu.renderCycle <= 336
 
 	if scanlineVisible || preRenderScanline {
-		if ppu.evenFrame == false && ppu.currentScanline == 0 && ppu.renderCycle == 0 {
-			ppu.renderCycle = 1
-		}
-
 		if ppu.renderCycle == 0 {
 			// Idle cycle
 			ppu.renderCycle = 0

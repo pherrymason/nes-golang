@@ -7,6 +7,8 @@ import (
 	"os"
 )
 
+const MaxCpuLogSize = 120000
+
 type cpu6502Logger struct {
 	file       *os.File
 	fileBuffer *bufio.Writer
@@ -19,8 +21,6 @@ type Snapshot struct {
 	PpuState ppu.SimplePPUState
 }
 
-const CPU_LOG_MAX_SIZE = 120000
-
 func createCPULogger(outputPath string) *cpu6502Logger {
 	f, err := os.Create(outputPath)
 	if err != nil {
@@ -29,14 +29,14 @@ func createCPULogger(outputPath string) *cpu6502Logger {
 
 	return &cpu6502Logger{
 		file:       f,
-		fileBuffer: bufio.NewWriterSize(f, CPU_LOG_MAX_SIZE*10),
+		fileBuffer: bufio.NewWriterSize(f, MaxCpuLogSize*10),
 		outputPath: outputPath,
-		snapshots:  make([]Snapshot, 0, CPU_LOG_MAX_SIZE),
+		snapshots:  make([]Snapshot, 0, MaxCpuLogSize),
 	}
 }
 
 func (logger *cpu6502Logger) Log(state CpuState, ppuState ppu.SimplePPUState) {
-	if len(logger.snapshots) == CPU_LOG_MAX_SIZE {
+	if len(logger.snapshots) == MaxCpuLogSize {
 		logger.logToFile()
 		logger.snapshots = logger.snapshots[:0]
 	}
@@ -58,6 +58,6 @@ func (logger *cpu6502Logger) logToFile() {
 	logger.file.Sync()
 }
 
-func (logger cpu6502Logger) Snapshots() []Snapshot {
+func (logger *cpu6502Logger) Snapshots() []Snapshot {
 	return logger.snapshots
 }

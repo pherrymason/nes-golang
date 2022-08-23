@@ -21,7 +21,7 @@ import (
 var cpuAdvance bool
 
 func main() {
-	scale, cpuprofile, romPath, debugPPU, breakpoint := cmdLineArguments()
+	scale, cpuprofile, romPath, logCPU, debugPPU, breakpoint := cmdLineArguments()
 	if cpuprofile != "" {
 		defer profile.Start(profile.CPUProfile, profile.ProfilePath(".")).Stop()
 	}
@@ -36,23 +36,17 @@ func main() {
 	}
 	r.InitWindow(windowWidth, 700, "NES golang")
 	r.SetTraceLogLevel(r.LogWarning)
-	//r.SetTargetFPS(60)
+	r.SetTargetFPS(60)
 
 	graphics.InitDrawer()
 
 	fmt.Printf("Nes Emulator\n")
-	//path := "./assets/roms/snake.nes"
-	//path := "./assets/roms/Pac-Man (USA) (Namco).nes"
-	//path := "./assets/roms/Donkey Kong (World) (Rev A).nes"
-	//path := "./assets/roms/Super Mario Bros. (World).nes"
-	//path := "./assets/roms/Mega Man 2 (Europe).nes"
 	cartridge := gamePak.CreateGamePakFromROMFile(romPath)
-
 	debugger.PrintRomInfo(&cartridge)
 
 	nesDebugger := nes.CreateNesDebugger(
 		"./var",
-		true,
+		logCPU,
 		debugPPU,
 	)
 	if len(breakpoint) > 0 {
@@ -82,12 +76,15 @@ func loop(console *nes.Nes, scale int) {
 		dt := timestamp - _timestamp
 		_timestamp = timestamp
 		if dt > 1 {
+			// difference too big
 			dt = 0
 		}
 
 		// Update emulator
+
 		if !console.Paused() {
-			console.TickForTime(dt)
+			//console.TickForTime(dt)
+			console.TickTillFrameComplete()
 		} else {
 			console.PausedTick()
 		}
@@ -122,13 +119,14 @@ func drawEmulation(frame *image.RGBA) {
 	}
 }
 
-func cmdLineArguments() (int, string, string, bool, string) {
+func cmdLineArguments() (int, string, string, bool, bool, string) {
 	var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 	var romPath = flag.String("rom", "", "path to rom")
+	var logCPU = flag.Bool("logCPU", false, "enables CPU log")
 	var debugPPU = flag.Bool("debugPPU", false, "Displays PPU debug information")
 	var scale = flag.Int("scale", 1, "scale resolution")
 	var breakpoint = flag.String("breakpoint", "", "defines a breakpoint on start")
 	flag.Parse()
 
-	return *scale, *cpuprofile, *romPath, *debugPPU, *breakpoint
+	return *scale, *cpuprofile, *romPath, *logCPU, *debugPPU, *breakpoint
 }

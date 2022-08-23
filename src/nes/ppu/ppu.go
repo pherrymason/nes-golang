@@ -54,6 +54,7 @@ type P2c02 struct {
 	currentScanline Scanline // Current vertical Scanline being rendered
 	evenFrame       bool     // Is current Frame even?
 	frame           uint16
+	frameComplete   bool
 
 	nmi              bool // NMI Interrupt thrown
 	nameTableChanged bool
@@ -165,6 +166,7 @@ func (ppu *P2c02) Tick() {
 			ppu.evenFrame = !ppu.evenFrame
 			ppu.currentScanline = 0
 			ppu.frame++
+			ppu.frameComplete = true
 			//fmt.Printf("End of frame: %d\n", ppu.frame)
 		} else {
 			ppu.currentScanline++
@@ -372,14 +374,15 @@ func (ppu *P2c02) WriteRegister(register types.Address, value byte) {
 	//$3F19-$3F1B 	Sprite palette 2
 	//$3F1D-$3F1F 	Sprite palette 3
 */
-func (ppu *P2c02) GetRGBColor(palette byte, colorIndex byte) color.Color {
+func (ppu *P2c02) GetRGBColor(palette byte, colorIndex byte) color.RGBA {
 	paletteColor := ppu.GetPaletteColor(palette, colorIndex)
-	return color.RGBA{R: SystemPalette[paletteColor][0], G: SystemPalette[paletteColor][1], B: SystemPalette[paletteColor][2], A: 255}
-	//return utils.NewColorRGB(
-	//	SystemPalette[paletteColor][0],
-	//	SystemPalette[paletteColor][1],
-	//	SystemPalette[paletteColor][2],
-	//)
+	//paletteColor := 1
+	return color.RGBA{
+		R: SystemPalette[paletteColor][0],
+		G: SystemPalette[paletteColor][1],
+		B: SystemPalette[paletteColor][2],
+		A: 255,
+	}
 }
 
 func (ppu *P2c02) GetPaletteColor(palette byte, colorIndex byte) byte {
@@ -388,7 +391,8 @@ func (ppu *P2c02) GetPaletteColor(palette byte, colorIndex byte) byte {
 	}
 
 	paletteAddress := types.Address((palette * 4) + colorIndex)
-	return ppu.Read(PaletteLowAddress + paletteAddress)
+	value := ppu.Read(PaletteLowAddress + paletteAddress)
+	return value
 }
 
 func (ppu *P2c02) Stop() {
@@ -400,4 +404,13 @@ func (ppu *P2c02) Stop() {
 func (ppu *P2c02) Oam(index byte) []byte {
 
 	return ppu.oamData[index : index+4]
+}
+
+func (ppu *P2c02) FrameComplete() bool {
+	if ppu.frameComplete {
+		ppu.frameComplete = false
+		return true
+	}
+
+	return false
 }
