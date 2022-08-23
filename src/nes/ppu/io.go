@@ -6,6 +6,121 @@ import (
 	"github.com/raulferras/nes-golang/src/nes/types"
 )
 
+// Read made by CPU
+func (ppu *P2c02) ReadRegister(register types.Address) byte {
+	value := byte(0x00)
+
+	switch register {
+	case PPUCTRL:
+		panic("trying to read PPUCTRL")
+
+	case PPUMASK:
+		panic("trying to read PPMASK")
+
+	case PPUSTATUS:
+		// Source: javid9x reading from status only get top 3 bits. The rest tends to be filled with noise, or more likely what was last in data buffer.
+		value = ppu.PpuStatus.Value()
+
+		// Reading from status register alters it
+		ppu.PpuStatus.VerticalBlankStarted = false // Reading from status, clears VBlank flag.
+		//ppu.registers.status &= 0x7F
+		ppu.tRam.resetLatch()
+		break
+
+	case OAMADDR:
+		break
+
+	case OAMDATA:
+		value = ppu.oamData[ppu.oamAddr]
+		break
+
+	case PPUSCROLL:
+		break
+
+	case PPUADDR:
+		break
+
+	case PPUDATA:
+		// TODO test delay and not delay from palette
+		value = ppu.readBuffer
+		ppu.readBuffer = ppu.Read(ppu.vRam.address())
+
+		// If reading from Palette, there is no delay
+		if isPaletteAddress(ppu.vRam.address()) {
+			value = ppu.readBuffer
+		}
+
+		ppu.vRam.increment(ppu.PpuControl.IncrementMode)
+		break
+
+	case OAMDMA:
+		break
+	}
+
+	return value
+}
+
+// Write made by CPU
+func (ppu *P2c02) WriteRegister(register types.Address, value byte) {
+	if !ppu.warmup {
+		//log.Printf("Ignoring write register: %40X: %0X\n", register, value)
+		return
+	}
+
+	switch register {
+	case PPUCTRL:
+		ppu.ppuCtrlWrite(value)
+		ppu.tRam.setNameTableX(ppu.PpuControl.NameTableX)
+		ppu.tRam.setNameTableY(ppu.PpuControl.NameTableY)
+		// todo trigger nmi if in vblank and generateNMI transitions from 0 to 1
+		break
+
+	case PPUMASK:
+		ppu.PpuMask.write(value)
+		break
+
+	case PPUSTATUS:
+		// READONLY!
+		panic("tried to write @PPUSTATUS")
+
+	case OAMADDR:
+		ppu.oamAddr = value
+		break
+
+	case OAMDATA:
+		ppu.oamData[ppu.oamAddr] = value
+		ppu.oamAddr = (ppu.oamAddr + 1) & 0xFF
+		break
+
+	case PPUSCROLL:
+		if ppu.tRam.latch == 0 {
+			ppu.tRam._coarseX = value >> 3
+			ppu.fineX = value & 0x07
+			ppu.tRam.latch = 1
+		} else {
+			ppu.tRam._coarseY = value >> 3
+			ppu.tRam._fineY = value & 0b111
+			ppu.tRam.latch = 0
+		}
+		break
+
+	case PPUADDR:
+		ppu.tRam.push(value)
+		if ppu.tRam.latch == 0 {
+			ppu.vRam = ppu.tRam
+		}
+		break
+	case PPUDATA:
+		address := ppu.vRam.address()
+		ppu.Write(address, value)
+		ppu.vRam.increment(ppu.PpuControl.IncrementMode)
+		break
+	case OAMDMA:
+		//fmt.Println("OAMDMA!")
+		break
+	}
+}
+
 // Address      Size
 // $0000-$0FFF 	$1000 	Pattern table 0 \ CHR ROM 4KB
 // $1000-$1FFF 	$1000 	Pattern table 1 / CHR ROM 4KB
@@ -24,15 +139,6 @@ import (
 //	     $3F15-$3F17 	Sprite palette 1
 //	     $3F19-$3F1B 	Sprite palette 2
 //	     $3F1D-$3F1F 	Sprite palette 3
-const PaletteLowAddress = types.Address(0x3F00)
-const PaletteHighAddress = types.Address(0x3FFF)
-const NameTableStartAddress = types.Address(0x2000)
-const PPU_NAMETABLES_0_END = types.Address(0x23C0)
-const NameTableEndAddress = types.Address(0x2FFF)
-const PPU_HIGH_ADDRESS = types.Address(0x3FFF)
-
-const PatternTable0Address = types.Address(0x0000)
-const PatternTable1Address = types.Address(0x1000)
 
 func (ppu *P2c02) Peek(address types.Address) byte {
 	return ppu.read(address, true)

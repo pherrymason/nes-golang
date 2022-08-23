@@ -1,3 +1,7 @@
+2022-08-23:
+Implement screen scaling.
+Run emulation until frame is complete on each app loop.
+
 2022-08-18:
 Mapper000 takes into account roms with CHR RAM. This fixes some roms that try to write in that memory.
 Refactor GamePak and Mapper relation.

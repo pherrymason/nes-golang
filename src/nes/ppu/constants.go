@@ -1,5 +1,7 @@
 package ppu
 
+import "github.com/raulferras/nes-golang/src/nes/types"
+
 // Registers
 
 // PPUCTRL NMI enable (V), PPU master/slave (P), sprite height (H),
@@ -45,3 +47,14 @@ const TILE_PIXELS = 8 * 8
 
 // Other
 const PPU_CYCLES_TO_WARMUP = 29658 / 3
+
+// Memory
+const PaletteLowAddress = types.Address(0x3F00)
+const PaletteHighAddress = types.Address(0x3FFF)
+const NameTableStartAddress = types.Address(0x2000)
+const PPU_NAMETABLES_0_END = types.Address(0x23C0)
+const NameTableEndAddress = types.Address(0x2FFF)
+const PPU_HIGH_ADDRESS = types.Address(0x3FFF)
+
+const PatternTable0Address = types.Address(0x0000)
+const PatternTable1Address = types.Address(0x1000)

@@ -11,14 +11,11 @@ import (
 	"github.com/raulferras/nes-golang/src/nes"
 	"github.com/raulferras/nes-golang/src/nes/gamePak"
 	"github.com/raulferras/nes-golang/src/nes/types"
-	"github.com/raulferras/nes-golang/src/utils"
 	"image"
 	"math/rand"
 	_ "net/http/pprof"
 	"time"
 )
-
-var cpuAdvance bool
 
 func main() {
 	scale, cpuprofile, romPath, logCPU, debugPPU, breakpoint := cmdLineArguments()
@@ -62,7 +59,6 @@ func main() {
 }
 
 func loop(console *nes.Nes, scale int) {
-	cpuAdvance = true
 	console.Start()
 	_timestamp := r.GetTime()
 	debuggerGUI := debugger.NewDebugger(console)
@@ -93,30 +89,26 @@ func loop(console *nes.Nes, scale int) {
 
 		r.BeginDrawing()
 		r.ClearBackground(r.Black)
-		drawEmulation(console.Frame())
+		texture := drawEmulation(console.Frame(), scale)
 		debuggerGUI.Tick()
 		r.EndDrawing()
-
+		r.UnloadTexture(texture)
 		// End Draw --------------------
-
-		cpuAdvance = true
 	}
 
 	debuggerGUI.Close()
 	console.Stop()
 }
 
-func drawEmulation(frame *image.RGBA) {
+func drawEmulation(frame image.Image, scale int) r.Texture2D {
 	padding := 20
 	paddingY := 20
-	r.DrawRectangle(padding-1, paddingY-1, types.SCREEN_WIDTH+2, types.SCREEN_HEIGHT+2, r.RayWhite)
-	for x := 0; x < types.SCREEN_WIDTH; x++ {
-		for y := 0; y < types.SCREEN_HEIGHT; y++ {
-			pixel := frame.At(x, y)
-			color := utils.RGBA2raylibColor(pixel)
-			r.DrawPixel(padding+x, paddingY+y, color)
-		}
-	}
+	screenWidth := types.SCREEN_WIDTH * scale
+	screenHeight := types.SCREEN_HEIGHT * scale
+	r.DrawRectangle(padding-1, paddingY-1, screenWidth+2, screenHeight+2, r.RayWhite)
+	texture := r.LoadTextureFromGo(frame)
+	r.DrawTextureEx(texture, r.Vector2{X: float32(padding), Y: float32(paddingY)}, 0, float32(scale), r.White)
+	return texture
 }
 
 func cmdLineArguments() (int, string, string, bool, bool, string) {
