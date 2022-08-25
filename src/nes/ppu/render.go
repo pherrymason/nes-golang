@@ -47,7 +47,7 @@ func (ppu *P2c02) renderLogic() {
 
 			switch ppu.renderCycle % 8 {
 			case 0:
-				ppu.loadShifters()
+				ppu.loadBackgroundShifters()
 				ppu.incrementX()
 			case 1:
 				// fetch NameTable byte
@@ -157,7 +157,7 @@ func (ppu *P2c02) renderLogic() {
 			// Get sprite pattern information
 			// Doing this at cycle 340 is a simplification of what the real NES actually does.
 			// More info: https://www.nesdev.org/wiki/PPU_sprite_evaluation
-			ppu.fetchSpriteShifters()
+			ppu.loadSpriteShifters()
 		}
 		// ---------------------------------
 	}
@@ -265,9 +265,9 @@ func (ppu *P2c02) updateShifters() {
 	}
 }
 
-// loadShifters
+// loadBackgroundShifters
 // This prepares shifters with the next tile to be rendered
-func (ppu *P2c02) loadShifters() {
+func (ppu *P2c02) loadBackgroundShifters() {
 	ppu.bgShifterTileLow = (ppu.bgShifterTileLow & 0xFF00) | uint16(ppu.bgNextLowTile)
 	ppu.bgShifterTileHigh = (ppu.bgShifterTileHigh & 0xFF00) | uint16(ppu.bgNextHighTile)
 
@@ -288,7 +288,7 @@ func (ppu *P2c02) loadShifters() {
 	}
 }
 
-func (ppu *P2c02) fetchSpriteShifters() {
+func (ppu *P2c02) loadSpriteShifters() {
 	var spritePatternAddressLow types.Address
 	var spritePatternAddressHigh types.Address
 	var spritePatternLow byte
@@ -315,9 +315,7 @@ func (ppu *P2c02) fetchSpriteShifters() {
 		spritePatternLow = ppu.Read(spritePatternAddressLow)
 		spritePatternHigh = ppu.Read(spritePatternAddressHigh)
 
-		// TODO check for horizontal flip
 		if object.isFlippedHorizontally() {
-			// todo implement
 			spritePatternLow = bits.Reverse8(spritePatternLow)
 			spritePatternHigh = bits.Reverse8(spritePatternHigh)
 		}

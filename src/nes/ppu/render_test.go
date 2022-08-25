@@ -45,7 +45,7 @@ func TestPpu2c02_updateShifters_does_not_updates_shifters_while_rendering_is_dis
 	assert.Equal(t, uint16(0x01), ppu.bgShifterAttributeHigh)
 }
 
-func TestPpu2c02_loadShifters(t *testing.T) {
+func TestPpu2c02_loadBackgroundShifters(t *testing.T) {
 	ppu := aPPU()
 	ppu.bgShifterTileLow = 0xCCAA
 	ppu.bgShifterTileHigh = 0xCCAA
@@ -56,7 +56,7 @@ func TestPpu2c02_loadShifters(t *testing.T) {
 	ppu.bgNextHighTile = 0xBB
 	ppu.bgNextAttribute = 0xAA
 
-	ppu.loadShifters()
+	ppu.loadBackgroundShifters()
 
 	assert.Equal(t, uint16(0xCCFA), ppu.bgShifterTileLow, "tile low with unexpected Value")
 	assert.Equal(t, uint16(0xCCBB), ppu.bgShifterTileHigh, "tile high with unexpected Value")
@@ -275,15 +275,15 @@ func TestPpu2c02_GetNesColorFromPaletteRam_should_gets_background_color(t *testi
 	backgroundColor := byte(0x10)
 	ppu.Write(PaletteLowAddress, backgroundColor)
 
-	color := ppu.GetPaletteColor(0, 0)
-	assert.Equal(t, backgroundColor, color)
+	nesColor := ppu.GetPaletteColor(0, 0)
+	assert.Equal(t, backgroundColor, nesColor)
 
-	color = ppu.GetPaletteColor(1, 0)
-	assert.Equal(t, backgroundColor, color)
+	nesColor = ppu.GetPaletteColor(1, 0)
+	assert.Equal(t, backgroundColor, nesColor)
 
-	color = ppu.GetPaletteColor(2, 0)
-	assert.Equal(t, backgroundColor, color)
+	nesColor = ppu.GetPaletteColor(2, 0)
+	assert.Equal(t, backgroundColor, nesColor)
 
-	color = ppu.GetPaletteColor(3, 0)
-	assert.Equal(t, backgroundColor, color)
+	nesColor = ppu.GetPaletteColor(3, 0)
+	assert.Equal(t, backgroundColor, nesColor)
 }
