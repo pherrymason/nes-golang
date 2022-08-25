@@ -17,7 +17,10 @@
   - PPU: Implemented scanline rendering. 
     - Renders contents of CHR ROM
     - Renders background.
-    - Preliminar sprite rendering.
+    - Sprite rendering.
+      - vertical mirror: implemented
+      - horizontal mirror: missing 
+      - 8x16 sprites: missing
   - APU: 0%
   - MMU: 0%
 - UI

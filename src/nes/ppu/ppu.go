@@ -261,7 +261,6 @@ func (ppu *P2c02) ResetNmi() {
 */
 func (ppu *P2c02) GetRGBColor(palette byte, colorIndex byte) color.RGBA {
 	paletteColor := ppu.GetPaletteColor(palette, colorIndex)
-	//paletteColor := 1
 	return color.RGBA{
 		R: SystemPalette[paletteColor][0],
 		G: SystemPalette[paletteColor][1],

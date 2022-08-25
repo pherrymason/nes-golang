@@ -205,7 +205,7 @@ func (ppu *P2c02) finalPixelComposition() {
 
 	var fgPixel byte
 	var fgPalette byte
-	//var fgPriority byte
+	//var fgPriority byte //todo implement priority
 	if ppu.PpuMask.showSpritesEnabled() {
 		for i := byte(0); i < ppu.spriteScanlineCount; i++ {
 			if ppu.oamDataScanline[i].x > 0 {
@@ -300,8 +300,8 @@ func (ppu *P2c02) fetchSpriteShifters() {
 		if ppu.PpuControl.SpriteSize == PPU_CONTROL_SPRITE_SIZE_8 {
 			if !object.isFlippedVertically() {
 				spritePatternAddressLow = types.Address(ppu.PpuControl.SpritePatternTableAddress) << 12
-				spritePatternAddressLow |= types.Address(object.tileId) << 4                       // Multiply ID per 16 (16 bytes per tile)
-				spritePatternAddressLow |= types.Address(ppu.currentScanline - Scanline(object.y)) // Which tile line we want
+				spritePatternAddressLow |= types.Address(object.tileId) << 4                           // Multiply ID per 16 (16 bytes per tile)
+				spritePatternAddressLow |= types.Address(ppu.currentScanline - Scanline(object.y) - 1) // Which tile line we want
 			} else {
 				// TODO implement vertical flip
 			}

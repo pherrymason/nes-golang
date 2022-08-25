@@ -98,7 +98,7 @@ func (dbg *GuiDebugger) DrawDebugger(emulator *nes.Nes) {
 	//scale := 3
 	drawASM(emulator)
 	//drawPalettes(emulator, scale, DEBUG_X_OFFSET, 40+15*20, debuggerGUI)
-	//drawCHR(emulator, 2, DEBUG_X_OFFSET, 40+15*20+50, font, debuggerGUI)
+	dbg.drawCHR(emulator, 2, DEBUG_X_OFFSET, 40+15*20+50)
 
 	if emulator.Debugger().DebugPPU {
 		drawPPUDebugger(emulator)
@@ -194,7 +194,7 @@ func drawColorWatch(coordX int, coordY int, width int, height int, color color.C
 	raylib.DrawRectangle(coordX, coordY, width, height, pixelColor2RaylibColor(color))
 }
 
-func drawCHR(console *nes.Nes, scale int, xOffset int, yOffset int, font *raylib.Font, debuggerGUI *GuiDebugger) {
+func (dbg *GuiDebugger) drawCHR(console *nes.Nes, scale int, xOffset int, yOffset int) {
 	drawIndexes := false
 
 	if raylib.IsKeyDown(raylib.KeyZero) {
@@ -207,7 +207,7 @@ func drawCHR(console *nes.Nes, scale int, xOffset int, yOffset int, font *raylib
 	const BorderWidth = 5
 	nextOffsetY := yOffset
 	for patternTableIdx := 0; patternTableIdx < 2; patternTableIdx++ {
-		decodedPatternTable := console.Debugger().PatternTable(byte(patternTableIdx), debuggerGUI.chrPaletteSelector)
+		decodedPatternTable := console.Debugger().PatternTable(byte(patternTableIdx), dbg.chrPaletteSelector)
 		yOffset = nextOffsetY
 
 		for x := 0; x < decodedPatternTable.Bounds().Max.X; x++ {
