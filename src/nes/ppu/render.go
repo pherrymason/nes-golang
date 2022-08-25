@@ -303,7 +303,9 @@ func (ppu *P2c02) fetchSpriteShifters() {
 				spritePatternAddressLow |= types.Address(object.tileId) << 4                           // Multiply ID per 16 (16 bytes per tile)
 				spritePatternAddressLow |= types.Address(ppu.currentScanline - Scanline(object.y) - 1) // Which tile line we want
 			} else {
-				// TODO implement vertical flip
+				spritePatternAddressLow = types.Address(ppu.PpuControl.SpritePatternTableAddress) << 12
+				spritePatternAddressLow |= types.Address(object.tileId) << 4                                 // Multiply ID per 16 (16 bytes per tile)
+				spritePatternAddressLow |= types.Address(7 - (ppu.currentScanline - Scanline(object.y) - 1)) // Which tile line we want
 			}
 		} else {
 			// TODO implement 8x16 sprites
