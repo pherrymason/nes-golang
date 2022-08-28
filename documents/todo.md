@@ -1,0 +1,3 @@
+- gamepad.
+- horizontal line glitches in some games sprites.
+- ice climbear breaks because is trying to read from PPU MASK

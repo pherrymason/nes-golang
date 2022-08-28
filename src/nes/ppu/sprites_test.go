@@ -37,8 +37,8 @@ func Test_loadSpritesShifters_should_render_sprite_line_no_flipping(t *testing.T
 	ppu := CreatePPU(cartridge, false, "")
 
 	// setup oamData Scanline
-	ppu.currentScanline = 1
-	ppu.oamDataScanline[0] = objectAttributeEntry{y: 0, tileId: 0, attributes: 0x00, x: 0}
+	ppu.currentScanline = 0
+	ppu.oamDataScanline[0] = objectAttributeEntry{y: 1, tileId: 0, attributes: 0x00, x: 0}
 	ppu.spriteScanlineCount = 1
 
 	ppu.loadSpriteShifters()
@@ -69,8 +69,8 @@ func Test_loadSpritesShifters_should_render_sprite_line_horizontal_flipping(t *t
 	ppu := CreatePPU(cartridge, false, "")
 
 	// setup oamData Scanline
-	ppu.currentScanline = 1
-	ppu.oamDataScanline[0] = objectAttributeEntry{y: 0, tileId: 0, attributes: 0x40, x: 0}
+	ppu.currentScanline = 0
+	ppu.oamDataScanline[0] = objectAttributeEntry{y: 1, tileId: 0, attributes: 0x40, x: 0}
 	ppu.spriteScanlineCount = 1
 
 	ppu.loadSpriteShifters()
@@ -93,4 +93,42 @@ func Test_loadSpritesShifters_should_render_sprite_line_vertical_and_horizontal_
 
 	assert.Equal(t, byte(0b10000000), ppu.spShifterPatternLow[0])
 	assert.Equal(t, byte(0b11111111), ppu.spShifterPatternHigh[0])
+}
+
+func Test_checkSprite0Hit_should_not_enable_flag_if_sprite_rendering_is_disabled(t *testing.T) {
+	chrRom := createCHRRom()
+	cartridge := gamePak.NewDummyGamePak(chrRom)
+	ppu := CreatePPU(cartridge, false, "")
+	ppu.currentScanline = 10
+	ppu.oamDataScanline[0] = objectAttributeEntry{y: 10, tileId: 0, attributes: 0x80 | 0x40, x: 20}
+
+	ppu.checkSprite0Hit()
+
+	assert.Equal(t, byte(0), ppu.PpuStatus.Sprite0Hit)
+}
+
+func Test_checkSprite0Hit_should_not_enable_flag_if_no_sprite_0_is_being_rendered(t *testing.T) {
+	chrRom := createCHRRom()
+	cartridge := gamePak.NewDummyGamePak(chrRom)
+	ppu := CreatePPU(cartridge, false, "")
+	ppu.currentScanline = 10
+	ppu.renderCycle = 20
+	ppu.oamDataScanline[0] = objectAttributeEntry{y: 11, tileId: 0, attributes: 0x80 | 0x40, x: 20}
+
+	ppu.checkSprite0Hit()
+
+	assert.Equal(t, byte(0), ppu.PpuStatus.Sprite0Hit)
+}
+
+func Test_checkSprite0Hit_should_enable_flag_if_sprite_0_hits_opaque_background_pixel(t *testing.T) {
+	chrRom := createCHRRom()
+	cartridge := gamePak.NewDummyGamePak(chrRom)
+	ppu := CreatePPU(cartridge, false, "")
+	ppu.currentScanline = 10
+	ppu.renderCycle = 20
+	ppu.oamDataScanline[0] = objectAttributeEntry{y: 10, tileId: 0, attributes: 0x80 | 0x40, x: 20}
+
+	ppu.checkSprite0Hit()
+
+	assert.Equal(t, byte(0), ppu.PpuStatus.Sprite0Hit)
 }

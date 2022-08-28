@@ -1,3 +1,10 @@
+2022-08-28:
+Fix glitch lines on sprites.
+
+2022-08-25:
+Implement vertical sprite mirror.
+Fixed glitch line under sprites.
+
 2022-08-23:
 Implement screen scaling.
 Run emulation until frame is complete on each app loop.

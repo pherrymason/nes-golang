@@ -145,6 +145,7 @@ func (ppu *P2c02) Tick() {
 		}
 	} else if ppu.currentScanline == VBLANK_END_SCNALINE && ppu.renderCycle == 1 {
 		ppu.PpuStatus.VerticalBlankStarted = false
+		ppu.PpuStatus.Sprite0Hit = 0
 	}
 
 	// ------------------------------
