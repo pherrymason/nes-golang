@@ -77,6 +77,8 @@ func loop(console *nes.Nes, scale int) {
 		}
 
 		// Update emulator
+		controllerState := readController()
+		console.UpdateController(1, controllerState)
 
 		if !console.Paused() {
 			//console.TickForTime(dt)
@@ -98,6 +100,21 @@ func loop(console *nes.Nes, scale int) {
 
 	debuggerGUI.Close()
 	console.Stop()
+}
+
+func readController() nes.ControllerState {
+	state := nes.ControllerState{
+		A:      r.IsKeyDown(r.KeyZ),
+		B:      r.IsKeyDown(r.KeyX),
+		Select: r.IsKeyDown(r.KeyA),
+		Start:  r.IsKeyDown(r.KeyS),
+		Up:     r.IsKeyDown(r.KeyUp),
+		Down:   r.IsKeyDown(r.KeyDown),
+		Left:   r.IsKeyDown(r.KeyLeft),
+		Right:  r.IsKeyDown(r.KeyRight),
+	}
+
+	return state
 }
 
 func drawEmulation(frame image.Image, scale int) r.Texture2D {

@@ -15,7 +15,9 @@ func (ppu *P2c02) ReadRegister(register types.Address) byte {
 		panic("trying to read PPUCTRL")
 
 	case PPUMASK:
-		panic("trying to read PPMASK")
+		//panic("trying to read PPMASK")
+		value = 0
+		break
 
 	case PPUSTATUS:
 		// Source: javid9x reading from status only get top 3 bits. The rest tends to be filled with noise, or more likely what was last in data buffer.

@@ -41,6 +41,8 @@ import (
 const RAM_LOWER_ADDRESS = types.Address(0x0000)
 const RAM_HIGHER_ADDRESS = types.Address(0x1FFF)
 const RAM_LAST_REAL_ADDRESS = types.Address(0x07FF)
+const CONTROLLER_1_ADDRESS = 0x4016
+const CONTROLLER_2_ADDRESS = 0x4017
 
 type Memory interface {
 	// Peek Reads without side effects. Useful for debugging
@@ -60,14 +62,16 @@ type Memory interface {
 }
 
 type CPUMemory struct {
-	ram           [0xFFFF + 1]byte
-	gamePak       *gamePak.GamePak
-	ppu           ppu.PPU
-	DmaTransfer   bool
-	DmaPage       byte
-	DmaWaiting    bool
-	DmaAddress    byte
-	DmaReadBuffer byte
+	ram              [0xFFFF + 1]byte
+	gamePak          *gamePak.GamePak
+	ppu              ppu.PPU
+	DmaTransfer      bool
+	DmaPage          byte
+	DmaWaiting       bool
+	DmaAddress       byte
+	DmaReadBuffer    byte
+	controllers      [2]byte
+	controllersState [2]byte
 }
 
 func newCPUMemory(ppu ppu.PPU, gamePak *gamePak.GamePak) *CPUMemory {
@@ -95,6 +99,14 @@ func (cm *CPUMemory) read(address types.Address, readOnly bool) byte {
 		return cm.ram[address&RAM_LAST_REAL_ADDRESS]
 	} else if address <= ppu.PPU_HIGH_ADDRESS {
 		return cm.ppu.ReadRegister(address & 0x2007)
+	} else if address >= CONTROLLER_1_ADDRESS && address <= CONTROLLER_2_ADDRESS {
+		data := byte(0)
+		if (cm.controllersState[address&0x0001] & 0x80) > 0 {
+			data = 1
+		}
+		cm.controllersState[address&0x0001] <<= 1
+
+		return data
 	} else if address >= types.Address(0x4000) && address <= types.Address(0x401F) {
 		// TODO Implement APU / IO reading
 		return 0x00
@@ -110,6 +122,8 @@ func (cm *CPUMemory) Write(address types.Address, value byte) {
 		cm.ram[address&RAM_LAST_REAL_ADDRESS] = value
 	} else if address <= 0x3FFF {
 		cm.ppu.WriteRegister(address&0x2007, value)
+	} else if address >= CONTROLLER_1_ADDRESS && address <= CONTROLLER_2_ADDRESS {
+		cm.snapshotControllerState(address)
 	} else if address == 0x4014 {
 		cm.DmaTransfer = true
 		cm.DmaWaiting = true
@@ -154,4 +168,8 @@ func (cm *CPUMemory) IncrementDMAAddress() {
 
 func (cm *CPUMemory) ResetDMA() {
 	cm.DmaTransfer = false
+}
+
+func (cm *CPUMemory) snapshotControllerState(address types.Address) {
+	cm.controllersState[address&0x0001] = cm.controllers[address&0x0001]
 }

@@ -14,6 +14,7 @@ import (
 type Nes struct {
 	Cpu *Cpu6502
 	ppu *ppu.P2c02
+	bus *CPUMemory
 
 	systemClockCounter uint64 // Controls how many times to call each processor
 	debug              *Debugger
@@ -37,6 +38,7 @@ func CreateNes(gamePak *gamePak.GamePak, debugger *Debugger) *Nes {
 	nes := &Nes{
 		Cpu:   cpu,
 		ppu:   thePPU,
+		bus:   cpuBus,
 		debug: debugger,
 	}
 
@@ -121,7 +123,6 @@ func (nes *Nes) TickForTime(seconds float64) {
 		}
 
 		cpuCycles, _ := nes.Tick()
-		//log.Printf("Cpu cycles left: %d\n", cpuCycles)
 		cycles -= int(cpuCycles)
 		if nes.Finished() {
 			break
@@ -237,4 +238,8 @@ func (nes *Nes) handlePanic() {
 		log.Fatalf("%s\nTrace: %s", a, string(debug.Stack()))
 		//os.Exit(3)
 	}
+}
+
+func (nes *Nes) UpdateController(controllerNumber int, state ControllerState) {
+	nes.bus.controllers[controllerNumber-1] = state.value()
 }

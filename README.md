@@ -14,13 +14,9 @@
 # Status
 - Emulation:
   - CPU: 100% of "legal" opcodes implemented
-  - PPU: Implemented scanline rendering. 
-    - Renders contents of CHR ROM
-    - Renders background.
-    - Sprite rendering.
-      - vertical mirror: implemented
-      - horizontal mirror: missing 
+  - PPU: Implemented pixel dot rendering. 
       - 8x16 sprites: missing
+  - Controller 1
   - APU: 0%
   - MMU: 0%
 - UI

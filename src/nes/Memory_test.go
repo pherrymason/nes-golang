@@ -156,3 +156,54 @@ func TestCPUMemory_Write_into_ppu(t *testing.T) {
 		})
 	}
 }
+
+func allPressedButtons() ControllerState {
+	controllerState := ControllerState{
+		A:      true,
+		B:      true,
+		Select: true,
+		Start:  true,
+		Up:     true,
+		Down:   true,
+		Left:   true,
+		Right:  true,
+	}
+	return controllerState
+}
+
+func TestCPUMemory_Writing_into_controller_takes_a_snapshot_of_the_controller(t *testing.T) {
+	bus := CPUMemory{}
+	buttons := allPressedButtons()
+	bus.controllers[0] = buttons.value()
+	bus.controllers[1] = buttons.value()
+
+	bus.Write(0x4016, 1)
+	assert.Equal(t, buttons.value(), bus.controllersState[0])
+	bus.Write(0x4017, 1)
+	assert.Equal(t, buttons.value(), bus.controllersState[1])
+}
+
+func TestCPUMemory_Reading_controller_state_gets_most_significant_bit_everytime(t *testing.T) {
+	bus := CPUMemory{}
+	bus.controllersState[0] = 0b10101010
+	expectedReads := [8]byte{1, 0, 1, 0, 1, 0, 1, 0}
+
+	for _, expected := range expectedReads {
+		value := bus.Read(0x4016)
+		assert.Equal(t, expected, value)
+	}
+}
+
+func TestCPUMemory_Reading_controller_state_shifts_controllerState_everytime(t *testing.T) {
+	bus := CPUMemory{}
+	bus.controllersState[0] = 0b10101010
+
+	i := 0
+	expectedShiftedState := bus.controllersState[0]
+	for i < 8 {
+		bus.Read(0x4016)
+		expectedShiftedState <<= 1
+		assert.Equal(t, expectedShiftedState, bus.controllersState[0])
+		i++
+	}
+}

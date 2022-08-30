@@ -38,7 +38,7 @@ func Test_loadSpritesShifters_should_render_sprite_line_no_flipping(t *testing.T
 
 	// setup oamData Scanline
 	ppu.currentScanline = 0
-	ppu.oamDataScanline[0] = objectAttributeEntry{y: 1, tileId: 0, attributes: 0x00, x: 0}
+	ppu.oamDataScanline[0] = objectAttributeEntry{y: 0, tileId: 0, attributes: 0x00, x: 0}
 	ppu.spriteScanlineCount = 1
 
 	ppu.loadSpriteShifters()
@@ -70,7 +70,7 @@ func Test_loadSpritesShifters_should_render_sprite_line_horizontal_flipping(t *t
 
 	// setup oamData Scanline
 	ppu.currentScanline = 0
-	ppu.oamDataScanline[0] = objectAttributeEntry{y: 1, tileId: 0, attributes: 0x40, x: 0}
+	ppu.oamDataScanline[0] = objectAttributeEntry{y: 0, tileId: 0, attributes: 0x40, x: 0}
 	ppu.spriteScanlineCount = 1
 
 	ppu.loadSpriteShifters()

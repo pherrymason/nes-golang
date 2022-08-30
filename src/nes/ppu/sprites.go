@@ -16,7 +16,7 @@ func (ppu *P2c02) loadNextScanLineSprites() {
 
 	for oamIndex := 0; oamIndex < OAMDATA_SIZE && ppu.spriteScanlineCount < 8; oamIndex += 4 {
 		spriteY := int16(ppu.oamData[oamIndex])
-		diff := int16(ppu.currentScanline+1) - spriteY
+		diff := int16(ppu.currentScanline) - spriteY
 		if diff >= 0 && diff < spriteHeight {
 			ppu.oamDataScanline[ppu.spriteScanlineCount] = objectAttributeEntry{
 				y:          byte(spriteY),
@@ -44,12 +44,12 @@ func (ppu *P2c02) loadSpriteShifters() {
 		if ppu.PpuControl.SpriteSize == PPU_CONTROL_SPRITE_SIZE_8 {
 			if !object.isFlippedVertically() {
 				spritePatternAddressLow = types.Address(ppu.PpuControl.SpritePatternTableAddress) << 12
-				spritePatternAddressLow |= types.Address(object.tileId) << 4                             // Multiply ID per 16 (16 bytes per tile)
-				spritePatternAddressLow |= types.Address((ppu.currentScanline + 1) - Scanline(object.y)) // Which tile line we want
+				spritePatternAddressLow |= types.Address(object.tileId) << 4                         // Multiply ID per 16 (16 bytes per tile)
+				spritePatternAddressLow |= types.Address((ppu.currentScanline) - Scanline(object.y)) // Which tile line we want
 			} else {
 				spritePatternAddressLow = types.Address(ppu.PpuControl.SpritePatternTableAddress) << 12
-				spritePatternAddressLow |= types.Address(object.tileId) << 4                                 // Multiply ID per 16 (16 bytes per tile)
-				spritePatternAddressLow |= types.Address(7 - (ppu.currentScanline - Scanline(object.y) - 1)) // Which tile line we want
+				spritePatternAddressLow |= types.Address(object.tileId) << 4                             // Multiply ID per 16 (16 bytes per tile)
+				spritePatternAddressLow |= types.Address(7 - (ppu.currentScanline - Scanline(object.y))) // Which tile line we want
 			}
 		} else {
 			// TODO implement 8x16 sprites
