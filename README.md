@@ -10,6 +10,16 @@
 - `p` Displays PPU Register debug panel.
 - `o` Displays Breakpoint debugger.
 
+## Controls
+Only Controller 1 is supported with keyboard:
+ - Controller Up: Keyboard arrow up
+ - Controller Right: Keyboard arrow right
+ - Controller Down: Keyboard arrow down
+ - Controller left: Keyboard arrow left
+ - Controller A: Keyboard Z
+ - Controller B: Keyboard X
+ - Controller Select: Keyboard A
+ - Controller Start: Keyboard S
 
 # Status
 - Emulation:
