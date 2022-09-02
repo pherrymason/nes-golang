@@ -2,8 +2,11 @@ github.com/FMNSSun/hexit v0.0.0-20180713092704-89e1f9f0820e h1:gp+nQeppbEt4Z1R2G
 github.com/FMNSSun/hexit v0.0.0-20180713092704-89e1f9f0820e/go.mod h1:DbrWTO7k70lzel/9bE/H9Y5h3r3Q0dqe9ceML42Ye68=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/lachee/raylib-goplus v0.0.0-20200605081007-7ca39b8afc71 h1:H4fcwldyU7pQvzyR3fuNLe0Gs3f7yLg/lH7NorUTc7I=
-github.com/lachee/raylib-goplus v0.0.0-20200605081007-7ca39b8afc71/go.mod h1:dBwvFApqhdnnQuWzvHZnvWph/zlTAHC3nd/Hy6yBE8U=
+github.com/gen2brain/raylib-go/raygui v0.0.0-20220829124729-25ea53bfbb90 h1:CKe999ElvGB/6BsUgjZY6AGJjZzYsKXCBrSt9Q4FN3U=
+github.com/gen2brain/raylib-go/raygui v0.0.0-20220829124729-25ea53bfbb90/go.mod h1:PdIDpFApFZazMjaf1mVuSgzTrMIdyC1e4vL98Euzgkw=
+github.com/gen2brain/raylib-go/raylib v0.0.0-20211111173445-914ca1ffdc4d/go.mod h1:+NbsqGlEQqGqrsgJFF5Yj2dkvn0ML2SQb8RqM2hJsPU=
+github.com/gen2brain/raylib-go/raylib v0.0.0-20220829124729-25ea53bfbb90 h1:EC1Xe3xRd771GGxXi8vJeS3ZWhYGBxnH2rHA1kRFwcQ=
+github.com/gen2brain/raylib-go/raylib v0.0.0-20220829124729-25ea53bfbb90/go.mod h1:+NbsqGlEQqGqrsgJFF5Yj2dkvn0ML2SQb8RqM2hJsPU=
 github.com/pkg/profile v1.6.0 h1:hUDfIISABYI59DyeB3OTay/HxSRwTQ8rB/H83k6r5dM=
 github.com/pkg/profile v1.6.0/go.mod h1:qBsxPvzyUincmltOk6iyRVxHYg4adc0OFOv72ZdLa18=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=

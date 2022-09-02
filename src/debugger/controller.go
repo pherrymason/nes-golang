@@ -2,7 +2,8 @@ package debugger
 
 import (
 	"fmt"
-	"github.com/lachee/raylib-goplus/raylib"
+	rl "github.com/gen2brain/raylib-go/raylib"
+	"github.com/raulferras/nes-golang/src/audio"
 	"github.com/raulferras/nes-golang/src/graphics"
 	"github.com/raulferras/nes-golang/src/nes"
 	"github.com/raulferras/nes-golang/src/nes/types"
@@ -15,43 +16,46 @@ type GuiDebugger struct {
 	chrPaletteSelector    uint8
 	overlayTileIdx        bool
 	overlayAttributeTable bool
-	font                  *raylib.Font
+	font                  *rl.Font
 
 	emulator           *nes.Nes
 	ppuDebugger        *PPUDebugger
 	breakpointDebugger *breakpointDebugger
+	audioDebugger      *audioDebugger
 }
 
 type Panel interface {
 	Draw()
 }
 
-func NewDebugger(emulator *nes.Nes) GuiDebugger {
-	font := raylib.LoadFont("./assets/Pixel_NES.otf")
-	//raylib.GuiLoadStyle("./assets/style.rgs")
+func NewDebugger(emulator *nes.Nes, audio *audio.Audio) GuiDebugger {
+	font := rl.LoadFont("./assets/Pixel_NES.otf")
+	//rl.GuiLoadStyle("./assets/style.rgs")
 
 	return GuiDebugger{
 		chrPaletteSelector:    0,
 		overlayTileIdx:        false,
 		overlayAttributeTable: false,
-		font:                  font,
+		font:                  &font,
 		emulator:              emulator,
 		ppuDebugger:           NewPPUDebugger(emulator.PPU()),
 		breakpointDebugger:    NewBreakpointDebugger(emulator),
+		audioDebugger:         NewAudioDebugger(audio),
 	}
 }
 
 func (dbg *GuiDebugger) Close() {
-	defer raylib.UnloadFont(dbg.font)
+	defer rl.UnloadFont(*dbg.font)
 }
 
 func (dbg *GuiDebugger) Tick() {
 	dbg.listenKeyboard()
-	raylib.DrawFPS(0, 0)
+	rl.DrawFPS(0, 0)
 
 	dbg.ppuDebugger.Draw()
 	dbg.breakpointDebugger.Draw()
 	//dbg.DrawDebugger(dbg.emulator)
+	dbg.audioDebugger.Draw()
 }
 
 func (dbg *GuiDebugger) DrawDebugger(emulator *nes.Nes) {
@@ -60,17 +64,17 @@ func (dbg *GuiDebugger) DrawDebugger(emulator *nes.Nes) {
 
 	dbg.listenKeyboard()
 
-	textColor := raylib.RayWhite
+	textColor := rl.RayWhite
 	fontSize := float32(16)
 
-	raylib.SetTextureFilter(dbg.font.Texture, raylib.FilterPoint)
+	rl.SetTextureFilter(dbg.font.Texture, rl.FilterPoint)
 
 	// Status Register
 	graphics.DrawText("STATUS:", x, y, textColor, fontSize)
 
 	graphics.DrawText("N", x+70, y, colorFlag(emulator.Debugger().N()), fontSize)
 	graphics.DrawText("O", x+90, y, colorFlag(emulator.Debugger().O()), fontSize)
-	graphics.DrawText("-", x+110, y, raylib.RayWhite, fontSize)
+	graphics.DrawText("-", x+110, y, rl.RayWhite, fontSize)
 	graphics.DrawText("B", x+130, y, colorFlag(emulator.Debugger().B()), fontSize)
 	graphics.DrawText("D", x+150, y, colorFlag(emulator.Debugger().D()), fontSize)
 	graphics.DrawText("I", x+170, y, colorFlag(emulator.Debugger().I()), fontSize)
@@ -92,8 +96,8 @@ func (dbg *GuiDebugger) DrawDebugger(emulator *nes.Nes) {
 	graphics.DrawText(msg, x+270, y+15, textColor, fontSize)
 
 	//registers := fmt.Sprintf("A:0x%0X X:0x%X Y:0x%X P:0x%X SP:0x%X", 0, 0, 0, 0, 0)
-	//position := raylib.Vector2{X: 380, Y: 20}
-	//raylib.DrawTextEx(*font, registers, position, 16, 0, raylib.RayWhite)
+	//position := rl.Vector2{X: 380, Y: 20}
+	//rl.DrawTextEx(*font, registers, position, 16, 0, rl.RayWhite)
 	//
 	//scale := 3
 	drawASM(emulator)
@@ -108,7 +112,7 @@ func (dbg *GuiDebugger) DrawDebugger(emulator *nes.Nes) {
 }
 
 func (dbg *GuiDebugger) listenKeyboard() {
-	if raylib.IsKeyPressed(raylib.KeyP) {
+	if rl.IsKeyPressed(rl.KeyP) {
 		//dbg.chrPaletteSelector += 1
 		//if dbg.chrPaletteSelector > (8 - 1) {
 		//	dbg.chrPaletteSelector = 0
@@ -116,21 +120,21 @@ func (dbg *GuiDebugger) listenKeyboard() {
 		dbg.ppuDebugger.Toggle()
 	}
 
-	if raylib.IsKeyPressed(raylib.KeyO) {
+	if rl.IsKeyPressed(rl.KeyO) {
 		dbg.breakpointDebugger.Toggle()
 	}
 }
 
-func colorFlag(flag bool) raylib.Color {
+func colorFlag(flag bool) rl.Color {
 	if flag {
-		return raylib.Green
+		return rl.Green
 	}
 
-	return raylib.RayWhite
+	return rl.RayWhite
 }
 
 func drawASM(console *nes.Nes) {
-	textColor := raylib.RayWhite
+	textColor := rl.RayWhite
 	yOffset := 60
 	yIteration := 0
 	ySeparation := 15
@@ -139,9 +143,9 @@ func drawASM(console *nes.Nes) {
 	for i := 0; i < 20; i++ {
 		currentAddress := console.Debugger().ProgramCounter() - 10 + types.Address(i)
 		if currentAddress == console.Debugger().ProgramCounter() {
-			textColor = raylib.GopherBlue
+			textColor = rl.Blue
 		} else {
-			textColor = raylib.White
+			textColor = rl.White
 		}
 
 		code := disassembled[currentAddress]
@@ -152,59 +156,60 @@ func drawASM(console *nes.Nes) {
 	}
 }
 
-func drawPalettes(console *nes.Nes, scale int, xOffset int, yOffset int, debuggerGUI *GuiDebugger) {
+func drawPalettes(console *nes.Nes, scale int32, xOffset int32, yOffset int32, debuggerGUI *GuiDebugger) {
 	// Draw defined palettes (8)
-	x := xOffset
-	y := yOffset
-	posX := 0
-	posY := 0
-	border := 1
-	oneColorWidth := 5 * scale
+	x := int32(xOffset)
+	y := int32(yOffset)
+	posX := int32(0)
+	posY := int32(0)
+	border := int32(1)
+	oneColorWidth := int32(5 * scale)
 	paletteWidth := oneColorWidth * 4
-	height := 2 * scale
-	paddingX := 5
-	paddingY := 15
+	height := int32(2 * scale)
+	paddingX := int32(5)
+	paddingY := int32(15)
 
-	for i := 0; i < 8; i++ {
-		m := i % 4
+	for i := int32(0); i < 8; i++ {
+		m := int32(i % 4)
 		posX = x + (m * paletteWidth) + paddingX*m
 		posY = y + (height+border*2+paddingY)*(i/4)
 		colors := console.Debugger().GetPaletteFromRam(uint8(i))
 
-		raylib.DrawRectangle(posX-border, posY-border, oneColorWidth*4+border*2, height+border*2, raylib.White)
+		rl.DrawRectangle(int32(posX-border), int32(posY-border), int32(oneColorWidth*4+border*2), int32(height+border*2), rl.White)
 
 		drawColorWatch(posX, posY, oneColorWidth, height, colors[0], uint8(i), 0, console)
 		drawColorWatch(posX+oneColorWidth, posY, oneColorWidth, height, colors[1], uint8(i), 1, console)
 		drawColorWatch(posX+oneColorWidth*2, posY, oneColorWidth, height, colors[2], uint8(i), 2, console)
 		drawColorWatch(posX+oneColorWidth*3, posY, oneColorWidth, height, colors[3], uint8(i), 3, console)
 
-		if int(debuggerGUI.chrPaletteSelector) == i {
-			graphics.DrawArrow(posX+oneColorWidth+3, posY-height-2, scale)
+		if int32(debuggerGUI.chrPaletteSelector) == i {
+			graphics.DrawArrow(int32(posX+oneColorWidth+3), int32(posY-height-2), int32(scale))
 		}
 	}
 }
 
-func drawColorWatch(coordX int, coordY int, width int, height int, color color.Color, paletteIndex byte, colorIndex byte, console *nes.Nes) {
-	raylib.DrawText(
+func drawColorWatch(coordX int32, coordY int32, width int32, height int32, color color.Color, paletteIndex byte, colorIndex byte, console *nes.Nes) {
+	rl.DrawText(
 		fmt.Sprintf("%0X", console.Debugger().GetPaletteColorFromPaletteRam(paletteIndex, colorIndex)),
-		coordX, coordY-10,
+		coordX,
+		coordY-10,
 		10,
-		raylib.White,
+		rl.White,
 	)
-	raylib.DrawRectangle(coordX, coordY, width, height, pixelColor2RaylibColor(color))
+	rl.DrawRectangle(coordX, coordY, width, height, pixelColor2rlColor(color))
 }
 
-func (dbg *GuiDebugger) drawCHR(console *nes.Nes, scale int, xOffset int, yOffset int) {
+func (dbg *GuiDebugger) drawCHR(console *nes.Nes, scale int32, xOffset int32, yOffset int32) {
 	drawIndexes := false
 
-	if raylib.IsKeyDown(raylib.KeyZero) {
+	if rl.IsKeyDown(rl.KeyZero) {
 		drawIndexes = true
 	}
 
 	// CHR Left Container
-	raylib.DrawRectangle(xOffset, yOffset, (16*8)*scale+10, (16*8)*scale+10, raylib.RayWhite)
+	rl.DrawRectangle(xOffset, yOffset, (16*8)*scale+10, (16*8)*scale+10, rl.RayWhite)
 
-	const BorderWidth = 5
+	const BorderWidth = int32(5)
 	nextOffsetY := yOffset
 	for patternTableIdx := 0; patternTableIdx < 2; patternTableIdx++ {
 		decodedPatternTable := console.Debugger().PatternTable(byte(patternTableIdx), dbg.chrPaletteSelector)
@@ -212,18 +217,18 @@ func (dbg *GuiDebugger) drawCHR(console *nes.Nes, scale int, xOffset int, yOffse
 
 		for x := 0; x < decodedPatternTable.Bounds().Max.X; x++ {
 			for y := 0; y < decodedPatternTable.Bounds().Max.Y; y++ {
-				screenX := DEBUG_X_OFFSET + BorderWidth
-				screenX += x * scale
+				screenX := int32(DEBUG_X_OFFSET + BorderWidth)
+				screenX += int32(x) * scale
 
-				screenY := yOffset + BorderWidth
-				screenY += y * scale
+				screenY := int32(yOffset + BorderWidth)
+				screenY += int32(y) * scale
 
-				raylib.DrawRectangle(
+				rl.DrawRectangle(
 					screenX,
 					screenY,
 					scale,
 					scale,
-					pixelColor2RaylibColor(decodedPatternTable.At(x, y)),
+					pixelColor2rlColor(decodedPatternTable.At(x, y)),
 				)
 
 				nextOffsetY = screenY
@@ -236,19 +241,19 @@ func (dbg *GuiDebugger) drawCHR(console *nes.Nes, scale int, xOffset int, yOffse
 					types.LinearToXCoordinate(i, 16)*8*scale
 				screenY := yOffset + BorderWidth + types.LinearToYCoordinate(i, 16)*8*scale
 
-				raylib.DrawRectangle(
+				rl.DrawRectangle(
 					screenX-1,
 					screenY-1,
 					20,
 					10,
-					raylib.RayWhite,
+					rl.RayWhite,
 				)
-				raylib.DrawText(
+				rl.DrawText(
 					fmt.Sprintf("%d", i),
 					screenX,
 					screenY,
 					10,
-					raylib.Black,
+					rl.Black,
 				)
 			}
 		}
@@ -274,7 +279,7 @@ func drawObjectAttributeEntries(console *nes.Nes) {
 			),
 			50,
 			300+i*16,
-			raylib.White,
+			rl.White,
 			10,
 		)
 	}
@@ -296,14 +301,14 @@ func drawBackgroundTileIDs(console *nes.Nes, xOffset int, yOffset int) {
 			fmt.Sprintf("%X", framePattern[i]),
 			padding+x,
 			offsetY+y,
-			raylib.White,
+			rl.White,
 			10,
 		)
 	}
 }
 
-func pixelColor2RaylibColor(pixelColor color.Color) raylib.Color {
+func pixelColor2rlColor(pixelColor color.Color) rl.Color {
 	r, g, b, a := pixelColor.RGBA()
 
-	return raylib.NewColor(uint8(r), uint8(g), uint8(b), uint8(a))
+	return rl.NewColor(uint8(r), uint8(g), uint8(b), uint8(a))
 }

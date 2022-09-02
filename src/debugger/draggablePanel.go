@@ -1,19 +1,21 @@
 package debugger
 
-import "github.com/lachee/raylib-goplus/raylib"
+import (
+	rl "github.com/gen2brain/raylib-go/raylib"
+)
 
 type draggablePanel struct {
 	title               string
 	enabled             bool
-	position            raylib.Vector2
+	position            rl.Vector2
 	width               float32
 	height              float32
 	dragWindow          bool
-	positionOnStartDrag raylib.Vector2
+	positionOnStartDrag rl.Vector2
 	layoutYPositions    []float32
 }
 
-func NewDraggablePanel(title string, position raylib.Vector2, width int, height int) *draggablePanel {
+func NewDraggablePanel(title string, position rl.Vector2, width int, height int) *draggablePanel {
 	return &draggablePanel{
 		title:    title,
 		enabled:  false,
@@ -35,19 +37,20 @@ func (panel *draggablePanel) Draw() bool {
 
 	panel.layoutYPositions = nil
 	panel.updateWindowPosition()
-	shouldClose := raylib.GuiWindowBox(
-		raylib.Rectangle{
-			X:      panel.position.X,
-			Y:      panel.position.Y,
-			Width:  panel.width,
-			Height: panel.height,
-		},
-		panel.title,
-	)
-	if shouldClose {
-		panel.Close()
-	}
-
+	/*
+		shouldClose := raygui.WindowBox(
+			rl.Rectangle{
+				X:      panel.position.X,
+				Y:      panel.position.Y,
+				Width:  panel.width,
+				Height: panel.height,
+			},
+			panel.title,
+		)
+		if shouldClose {
+			panel.Close()
+		}
+	*/
 	return true
 }
 
@@ -56,12 +59,12 @@ func (panel *draggablePanel) Close() {
 }
 
 func (panel *draggablePanel) updateWindowPosition() {
-	mousePosition := raylib.GetMousePosition()
-	if raylib.IsMouseButtonPressed(raylib.MouseLeftButton) {
+	mousePosition := rl.GetMousePosition()
+	if rl.IsMouseButtonPressed(rl.MouseLeftButton) {
 
-		if raylib.CheckCollisionPointRec(mousePosition, panel.statusBarPosition()) {
+		if rl.CheckCollisionPointRec(mousePosition, panel.statusBarPosition()) {
 			panel.dragWindow = true
-			panel.positionOnStartDrag = raylib.Vector2{
+			panel.positionOnStartDrag = rl.Vector2{
 				X: mousePosition.X - panel.position.X,
 				Y: mousePosition.Y - panel.position.Y,
 			}
@@ -71,14 +74,14 @@ func (panel *draggablePanel) updateWindowPosition() {
 	if panel.dragWindow {
 		panel.position.X = mousePosition.X - panel.positionOnStartDrag.X
 		panel.position.Y = mousePosition.Y - panel.positionOnStartDrag.Y
-		if raylib.IsMouseButtonReleased(raylib.MouseLeftButton) {
+		if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
 			panel.dragWindow = false
 		}
 	}
 }
 
-func (panel *draggablePanel) statusBarPosition() raylib.Rectangle {
-	return raylib.Rectangle{
+func (panel *draggablePanel) statusBarPosition() rl.Rectangle {
+	return rl.Rectangle{
 		X:      panel.position.X,
 		Y:      panel.position.Y,
 		Width:  panel.width - 20,

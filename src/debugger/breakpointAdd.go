@@ -1,9 +1,7 @@
 package debugger
 
 import (
-	"fmt"
-	"github.com/FMNSSun/hexit"
-	"github.com/lachee/raylib-goplus/raylib"
+	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 type breakpointAdd struct {
@@ -20,7 +18,7 @@ func NewBreakpointAddPanel(onOk func(addressBreakPoint uint16)) *breakpointAdd {
 		onAddBreakPointCallback: onOk,
 		panel: NewDraggablePanel(
 			"Add breakpoint",
-			raylib.Vector2{
+			rl.Vector2{
 				X: 0,
 				Y: 0,
 			},
@@ -37,51 +35,53 @@ func (dbg *breakpointAdd) Open(x float32, y float32) {
 }
 
 func (dbg *breakpointAdd) Draw() {
-	if !dbg.panel.Draw() {
-		return
-	}
+	/*
+		if !dbg.panel.Draw() {
+			return
+		}
 
-	raylib.GuiLabel(
-		raylib.Rectangle{
-			X:      dbg.panel.position.X + 5,
-			Y:      dbg.panel.position.Y + 30 + 5,
-			Height: 20,
-		},
-		"Address",
-	)
-	pressed, value := raylib.GuiTextBox(
-		raylib.Rectangle{
-			X:      dbg.panel.position.X + 40 + 5 + 5,
-			Y:      dbg.panel.position.Y + 30 + 5,
-			Width:  70,
-			Height: 20,
-		},
-		dbg.inputAddress,
-		5,
-		true,
-	)
-	valueValid := false
-	dbg.inputAddress = value
-	formattedAddress := fmt.Sprintf("%04s", value)
-	if len(formattedAddress) == 4 {
-		valueValid = true
-		dbg.breakPointAddress = hexit.UnhexUint16Str(formattedAddress)
-	}
-
-	if valueValid {
-		pressed = raylib.GuiButton(
-			raylib.Rectangle{
+		rl.GuiLabel(
+			rl.Rectangle{
 				X:      dbg.panel.position.X + 5,
-				Y:      dbg.panel.position.Y + dbg.panel.height - 5 - 20,
-				Width:  dbg.panel.width - 5 - 5,
+				Y:      dbg.panel.position.Y + 30 + 5,
 				Height: 20,
 			},
-			"Ok",
+			"Address",
 		)
-	}
+		pressed, value := rl.GuiTextBox(
+			rl.Rectangle{
+				X:      dbg.panel.position.X + 40 + 5 + 5,
+				Y:      dbg.panel.position.Y + 30 + 5,
+				Width:  70,
+				Height: 20,
+			},
+			dbg.inputAddress,
+			5,
+			true,
+		)
+		valueValid := false
+		dbg.inputAddress = value
+		formattedAddress := fmt.Sprintf("%04s", value)
+		if len(formattedAddress) == 4 {
+			valueValid = true
+			dbg.breakPointAddress = hexit.UnhexUint16Str(formattedAddress)
+		}
 
-	if pressed {
-		dbg.panel.Close()
-		dbg.onAddBreakPointCallback(dbg.breakPointAddress)
-	}
+		if valueValid {
+			pressed = rl.GuiButton(
+				rl.Rectangle{
+					X:      dbg.panel.position.X + 5,
+					Y:      dbg.panel.position.Y + dbg.panel.height - 5 - 20,
+					Width:  dbg.panel.width - 5 - 5,
+					Height: 20,
+				},
+				"Ok",
+			)
+		}
+
+		if pressed {
+			dbg.panel.Close()
+			dbg.onAddBreakPointCallback(dbg.breakPointAddress)
+		}
+	*/
 }

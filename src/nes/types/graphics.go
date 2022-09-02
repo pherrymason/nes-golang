@@ -35,12 +35,12 @@ func CoordinatesToArrayIndex(x int, y int, canvasWidth int) int {
 	return x + canvasWidth*y
 }
 
-func LinearToXCoordinate(index int, canvasWidth int) int {
-	return index % canvasWidth
+func LinearToXCoordinate(index int, canvasWidth int) int32 {
+	return int32(index % canvasWidth)
 }
 
-func LinearToYCoordinate(index int, canvasWidth int) int {
-	return index / canvasWidth
+func LinearToYCoordinate(index int, canvasWidth int) int32 {
+	return int32(index / canvasWidth)
 }
 
 type Tile struct {

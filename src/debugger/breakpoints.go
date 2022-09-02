@@ -2,10 +2,9 @@ package debugger
 
 import (
 	"fmt"
-	"github.com/lachee/raylib-goplus/raylib"
+	rl "github.com/gen2brain/raylib-go/raylib"
 	"github.com/raulferras/nes-golang/src/nes"
 	"github.com/raulferras/nes-golang/src/nes/types"
-	"log"
 )
 
 type breakpointDebugger struct {
@@ -28,7 +27,7 @@ func NewBreakpointDebugger(emulator *nes.Nes) *breakpointDebugger {
 		emulator: emulator,
 		panel: NewDraggablePanel(
 			"Debugger · Breakpoints",
-			raylib.Vector2{300, 350},
+			rl.Vector2{300, 350},
 			breakpointDebuggerWidth,
 			400,
 		),
@@ -46,105 +45,109 @@ func (dbg *breakpointDebugger) Draw() {
 		return
 	}
 	padding := float32(5)
-	anchor := raylib.Vector2{dbg.panel.position.X + padding, dbg.panel.position.Y + 30}
+	anchor := rl.Vector2{dbg.panel.position.X + padding, dbg.panel.position.Y + 30}
 
 	dbg.drawDisassembler(anchor)
 	dbg.breakPointControls(anchor)
 }
 
-func (dbg *breakpointDebugger) drawDisassembler(anchor raylib.Vector2) {
-	raylib.GuiLabel(
-		raylib.Rectangle{anchor.X, anchor.Y, 200, 20},
-		"Disassembler",
-	)
+func (dbg *breakpointDebugger) drawDisassembler(anchor rl.Vector2) {
+	/*
+		//rl.GuiLabel(
+		//	rl.Rectangle{anchor.X, anchor.Y, 200, 20},
+		//	"Disassembler",
+		//)
 
-	disassembled := dbg.emulator.Debugger().SortedDisassembled()
-	pc := dbg.emulator.Debugger().ProgramCounter()
+		disassembled := dbg.emulator.Debugger().SortedDisassembled()
+		pc := dbg.emulator.Debugger().ProgramCounter()
 
-	// todo optimization: extract only the asm lines required, based on current dbg.dasmScroll
-	var disasm []string
-	disasm = make([]string, 0, len(disassembled))
-	line := 0
-	active := 0
-	for _, asm := range disassembled {
-		if asm.Address == pc {
-			active = line
-			//log.Printf("Current pc found: %x (idx %d)", pc, line)
+		// todo optimization: extract only the asm lines required, based on current dbg.dasmScroll
+		var disasm []string
+		disasm = make([]string, 0, len(disassembled))
+		line := 0
+		active := 0
+		for _, asm := range disassembled {
+			if asm.Address == pc {
+				active = line
+				//log.Printf("Current pc found: %x (idx %d)", pc, line)
+			}
+			disasm = append(disasm, asm.Asm)
+			line++
 		}
-		disasm = append(disasm, asm.Asm)
-		line++
-	}
 
-	_, _, scroll := raylib.GuiListViewEx(
-		raylib.Rectangle{anchor.X, anchor.Y + 20, 200, 300},
-		disasm,
-		len(disasm),
-		0,
-		active,
-		active,
-	)
-	dbg.dasmScroll = scroll
+		_, _, scroll := rl.GuiListViewEx(
+			rl.Rectangle{anchor.X, anchor.Y + 20, 200, 300},
+			disasm,
+			len(disasm),
+			0,
+			active,
+			active,
+		)
+		dbg.dasmScroll = scroll
+	*/
 }
 
-func (dbg *breakpointDebugger) breakPointControls(windowAnchor raylib.Vector2) {
-	padding := float32(5)
-	anchor := raylib.Vector2{windowAnchor.X + 200 + padding, windowAnchor.Y}
-	width := float32(290)
-	controlsWidth := 290 - padding*2
+func (dbg *breakpointDebugger) breakPointControls(windowAnchor rl.Vector2) {
+	/*
+		padding := float32(5)
+		anchor := rl.Vector2{windowAnchor.X + 200 + padding, windowAnchor.Y}
+		width := float32(290)
+		controlsWidth := 290 - padding*2
 
-	raylib.GuiGroupBox(
-		raylib.Rectangle{anchor.X, anchor.Y, width, 300},
-		"Breakpoints",
-	)
-	y := dbg.panel.registerStackedControl(anchor.Y+20, padding)
+		rl.GuiGroupBox(
+			rl.Rectangle{anchor.X, anchor.Y, width, 300},
+			"Breakpoints",
+		)
+		y := dbg.panel.registerStackedControl(anchor.Y+20, padding)
 
-	addBreakPointClicked := raylib.GuiButton(
-		raylib.Rectangle{anchor.X, y, controlsWidth, 20},
-		"Add breakpoint",
-	)
-	y = dbg.panel.registerStackedControl(20, padding)
+		addBreakPointClicked := rl.GuiButton(
+			rl.Rectangle{anchor.X, y, controlsWidth, 20},
+			"Add breakpoint",
+		)
+		y = dbg.panel.registerStackedControl(20, padding)
 
-	// List of breakpoints
-	var breakpoints []string
-	for i := uint8(0); i < dbg.breakpointsCount; i++ {
-		breakpoints = append(breakpoints, fmt.Sprintf("0x%X", dbg.breakpoints[i]))
-	}
-	breakpointListHeight := float32(20 * 4)
-	raylib.GuiListViewEx(
-		raylib.Rectangle{anchor.X, y, controlsWidth, breakpointListHeight},
-		breakpoints,
-		len(breakpoints),
-		0,
-		0,
-		-1,
-	)
-	y = dbg.panel.registerStackedControl(breakpointListHeight, padding)
-
-	// Emulator control
-	dbg.breakpointEnabled = raylib.GuiCheckBox(
-		raylib.Rectangle{anchor.X, y, 20, 20},
-		"Listen BP",
-		dbg.breakpointEnabled,
-	)
-	y = dbg.panel.registerStackedControl(20, padding)
-
-	stepClicked := raylib.GuiButton(
-		raylib.Rectangle{anchor.X, y, 100, 20},
-		//raylib.GuiIconText(raylib.)
-		"Step",
-	)
-
-	if stepClicked {
-		log.Println("click on step")
-		dbg.emulator.Debugger().RunOneCPUOperationAndPause()
-	}
-
-	if dbg.breakpointsCount < 4 {
-		if addBreakPointClicked {
-			dbg.showBreakpointAdd()
+		// List of breakpoints
+		var breakpoints []string
+		for i := uint8(0); i < dbg.breakpointsCount; i++ {
+			breakpoints = append(breakpoints, fmt.Sprintf("0x%X", dbg.breakpoints[i]))
 		}
-		dbg.updateBreakpointAdd()
-	}
+		breakpointListHeight := float32(20 * 4)
+		rl.GuiListViewEx(
+			rl.Rectangle{anchor.X, y, controlsWidth, breakpointListHeight},
+			breakpoints,
+			len(breakpoints),
+			0,
+			0,
+			-1,
+		)
+		y = dbg.panel.registerStackedControl(breakpointListHeight, padding)
+
+		// Emulator control
+		dbg.breakpointEnabled = rl.GuiCheckBox(
+			rl.Rectangle{anchor.X, y, 20, 20},
+			"Listen BP",
+			dbg.breakpointEnabled,
+		)
+		y = dbg.panel.registerStackedControl(20, padding)
+
+		stepClicked := rl.GuiButton(
+			rl.Rectangle{anchor.X, y, 100, 20},
+			//rl.GuiIconText(rl.)
+			"Step",
+		)
+
+		if stepClicked {
+			log.Println("click on step")
+			dbg.emulator.Debugger().RunOneCPUOperationAndPause()
+		}
+
+		if dbg.breakpointsCount < 4 {
+			if addBreakPointClicked {
+				dbg.showBreakpointAdd()
+			}
+			dbg.updateBreakpointAdd()
+		}
+	*/
 }
 
 func (dbg *breakpointDebugger) showBreakpointAdd() {
